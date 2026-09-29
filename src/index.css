@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Nunito, system-ui, sans-serif;
+  color: #44403c;
+  background:
+    radial-gradient(circle at top left, #fee2e2 0%, transparent 40%),
+    radial-gradient(circle at top right, #dcfce7 0%, transparent 36%),
+    radial-gradient(circle at bottom, #fef3c7 0%, transparent 42%),
+    #fafaf9;
+}
