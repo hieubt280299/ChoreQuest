@@ -36,12 +36,14 @@ const AUTH_ERROR_KEYS: Record<string, TranslationKey> = {
   'auth/weak-password': 'auth.error.weakPassword',
   'auth/invalid-email': 'auth.error.invalidEmail',
   'auth/operation-not-allowed': 'auth.error.notEnabled',
+  'auth/configuration-not-found': 'auth.error.notEnabled',
   'auth/network-request-failed': 'auth.error.network',
   'auth/too-many-requests': 'auth.error.tooMany',
 };
 
 function toErrorKey(err: unknown): TranslationKey {
   const code = err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
+  console.warn('ChoreQuest: auth failed', code || err);
   return AUTH_ERROR_KEYS[code] ?? 'auth.error';
 }
 

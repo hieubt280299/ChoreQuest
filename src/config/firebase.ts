@@ -31,6 +31,8 @@ function readConfig() {
     storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: env.VITE_FIREBASE_APP_ID,
+    // Optional: only needed for Google Analytics.
+    measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || undefined,
   };
 }
 
@@ -54,7 +56,8 @@ let services: FirebaseServices | null = null;
 export function getFirebase(): FirebaseServices | null {
   if (!firebaseConfigured) return null;
   if (services) return services;
-  const app = initializeApp(readConfig());
+  const config = readConfig();
+  const app = initializeApp(config);
   services = {
     app,
     auth: getAuth(app),
@@ -64,5 +67,16 @@ export function getFirebase(): FirebaseServices | null {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     }),
   };
+  if (config.measurementId) void startAnalytics(app);
   return services;
+}
+
+// Loaded on demand so Analytics never blocks or bloats the initial bundle.
+async function startAnalytics(app: FirebaseApp) {
+  try {
+    const { getAnalytics, isSupported } = await import('firebase/analytics');
+    if (await isSupported()) getAnalytics(app);
+  } catch (err) {
+    console.warn('ChoreQuest: analytics unavailable', err);
+  }
 }
