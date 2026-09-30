@@ -1,9 +1,10 @@
-import { Download } from 'lucide-react';
+import { Download } from 'pixelarticons/react';
 import { useSyncExternalStore } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { canInstall, promptInstall, subscribeInstallPrompt } from '../../utils/installPrompt';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 
 export function InstallAppCard() {
   const { t } = useLanguage();
@@ -11,10 +12,10 @@ export function InstallAppCard() {
   if (!installable) return null;
 
   return (
-    <Card className="bg-gradient-to-br from-sage-soft to-white">
-      <p className="mb-3 text-sm text-stone-600">{t('settings.installHint')}</p>
-      <Button onClick={() => void promptInstall()}>
-        <Download size={16} />
+    <Card tone="moss" className="flex flex-wrap items-center gap-4">
+      <p className="min-w-48 flex-1 text-lg font-bold">{t('settings.installHint')}</p>
+      <Button variant="moss" onClick={() => void promptInstall()}>
+        <Icon as={Download} size={24} />
         {t('settings.install')}
       </Button>
     </Card>

@@ -1,15 +1,20 @@
 import type { ReactNode } from 'react';
 
+const tones = {
+  parchment: 'px-panel',
+  wood: 'px-panel px-panel-wood',
+  ember: 'px-panel px-panel-ember',
+  moss: 'px-panel px-panel-moss',
+};
+
 export function Card({
   children,
   className = '',
+  tone = 'parchment',
 }: {
   children: ReactNode;
   className?: string;
+  tone?: keyof typeof tones;
 }) {
-  return (
-    <div className={`rounded-2xl bg-white/80 p-5 shadow-cozy backdrop-blur-sm ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`${tones[tone]} p-5 ${className}`}>{children}</div>;
 }

@@ -1,9 +1,10 @@
-import { ChefHat, Clover, Coins, Heart, Leaf, Moon, Shirt, ShoppingCart, Sparkles, Sun } from 'lucide-react';
+import { Cake, Coins, Heart, Leaf, Moon, Shirt, ShoppingCart, Sparkles, Star, Sun } from 'pixelarticons/react';
 import type { SkillDefinition } from '../../types';
+import { Icon } from './Icon';
 
 const icons = {
   sparkles: Sparkles,
-  chef: ChefHat,
+  chef: Cake,
   coins: Coins,
   sun: Sun,
   hearts: Heart,
@@ -11,10 +12,9 @@ const icons = {
   cart: ShoppingCart,
   leaf: Leaf,
   moon: Moon,
-  clover: Clover,
+  clover: Star,
 };
 
-export function SkillIcon({ icon, size = 18 }: { icon: SkillDefinition['icon']; size?: number }) {
-  const Icon = icons[icon];
-  return <Icon size={size} />;
+export function SkillIcon({ icon, size = 24 }: { icon: SkillDefinition['icon']; size?: 12 | 24 | 36 }) {
+  return <Icon as={icons[icon]} size={size} />;
 }

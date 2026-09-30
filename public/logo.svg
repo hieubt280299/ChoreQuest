@@ -1,8 +1,97 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FEF3C7"/>
-  <circle cx="256" cy="256" r="176" fill="#FFFFFF"/>
-  <g transform="translate(136 128) scale(10)" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
-    <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-  </g>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' shape-rendering='crispEdges'>
+  <!-- Generated from the FIRE sprite in src/assets/sprites.ts: 16x14 art at 20px per pixel. -->
+  <rect width='512' height='512' fill='#3d2518'/>
+  <rect x='96' y='96' width='320' height='320' fill='#5a3621'/>
+  <rect x='76' y='116' width='360' height='280' fill='#5a3621'/>
+  <rect x='116' y='76' width='280' height='360' fill='#5a3621'/>
+  <rect x='236' y='124' width='20' height='20' fill='#d9502f'/>
+  <rect x='216' y='144' width='20' height='20' fill='#d9502f'/>
+  <rect x='236' y='144' width='20' height='20' fill='#f39a3d'/>
+  <rect x='256' y='144' width='20' height='20' fill='#d9502f'/>
+  <rect x='216' y='164' width='20' height='20' fill='#d9502f'/>
+  <rect x='236' y='164' width='20' height='20' fill='#f39a3d'/>
+  <rect x='256' y='164' width='20' height='20' fill='#d9502f'/>
+  <rect x='336' y='164' width='20' height='20' fill='#d9502f'/>
+  <rect x='196' y='184' width='20' height='20' fill='#d9502f'/>
+  <rect x='216' y='184' width='20' height='20' fill='#f39a3d'/>
+  <rect x='236' y='184' width='20' height='20' fill='#ffd166'/>
+  <rect x='256' y='184' width='20' height='20' fill='#f39a3d'/>
+  <rect x='276' y='184' width='20' height='20' fill='#d9502f'/>
+  <rect x='336' y='184' width='40' height='20' fill='#d9502f'/>
+  <rect x='136' y='204' width='20' height='20' fill='#d9502f'/>
+  <rect x='196' y='204' width='20' height='20' fill='#d9502f'/>
+  <rect x='216' y='204' width='20' height='20' fill='#f39a3d'/>
+  <rect x='236' y='204' width='20' height='20' fill='#ffd166'/>
+  <rect x='256' y='204' width='20' height='20' fill='#f39a3d'/>
+  <rect x='276' y='204' width='20' height='20' fill='#d9502f'/>
+  <rect x='316' y='204' width='20' height='20' fill='#d9502f'/>
+  <rect x='336' y='204' width='20' height='20' fill='#f39a3d'/>
+  <rect x='356' y='204' width='20' height='20' fill='#d9502f'/>
+  <rect x='136' y='224' width='40' height='20' fill='#d9502f'/>
+  <rect x='196' y='224' width='20' height='20' fill='#d9502f'/>
+  <rect x='216' y='224' width='60' height='20' fill='#ffd166'/>
+  <rect x='276' y='224' width='20' height='20' fill='#f39a3d'/>
+  <rect x='296' y='224' width='40' height='20' fill='#d9502f'/>
+  <rect x='336' y='224' width='20' height='20' fill='#f39a3d'/>
+  <rect x='356' y='224' width='20' height='20' fill='#d9502f'/>
+  <rect x='136' y='244' width='20' height='20' fill='#d9502f'/>
+  <rect x='156' y='244' width='20' height='20' fill='#f39a3d'/>
+  <rect x='176' y='244' width='20' height='20' fill='#d9502f'/>
+  <rect x='196' y='244' width='40' height='20' fill='#ffd166'/>
+  <rect x='236' y='244' width='20' height='20' fill='#fff4d6'/>
+  <rect x='256' y='244' width='40' height='20' fill='#ffd166'/>
+  <rect x='296' y='244' width='40' height='20' fill='#f39a3d'/>
+  <rect x='336' y='244' width='20' height='20' fill='#d9502f'/>
+  <rect x='156' y='264' width='20' height='20' fill='#d9502f'/>
+  <rect x='176' y='264' width='20' height='20' fill='#f39a3d'/>
+  <rect x='196' y='264' width='40' height='20' fill='#ffd166'/>
+  <rect x='236' y='264' width='40' height='20' fill='#fff4d6'/>
+  <rect x='276' y='264' width='40' height='20' fill='#ffd166'/>
+  <rect x='316' y='264' width='20' height='20' fill='#f39a3d'/>
+  <rect x='336' y='264' width='20' height='20' fill='#d9502f'/>
+  <rect x='156' y='284' width='20' height='20' fill='#d9502f'/>
+  <rect x='176' y='284' width='20' height='20' fill='#f39a3d'/>
+  <rect x='196' y='284' width='20' height='20' fill='#ffd166'/>
+  <rect x='216' y='284' width='80' height='20' fill='#fff4d6'/>
+  <rect x='296' y='284' width='20' height='20' fill='#ffd166'/>
+  <rect x='316' y='284' width='20' height='20' fill='#f39a3d'/>
+  <rect x='336' y='284' width='20' height='20' fill='#d9502f'/>
+  <rect x='176' y='304' width='20' height='20' fill='#d9502f'/>
+  <rect x='196' y='304' width='40' height='20' fill='#ffd166'/>
+  <rect x='236' y='304' width='40' height='20' fill='#fff4d6'/>
+  <rect x='276' y='304' width='40' height='20' fill='#ffd166'/>
+  <rect x='316' y='304' width='20' height='20' fill='#d9502f'/>
+  <rect x='136' y='324' width='20' height='20' fill='#4a2c1a'/>
+  <rect x='156' y='324' width='60' height='20' fill='#7a4a2a'/>
+  <rect x='216' y='324' width='20' height='20' fill='#d9502f'/>
+  <rect x='236' y='324' width='40' height='20' fill='#ffd166'/>
+  <rect x='276' y='324' width='20' height='20' fill='#d9502f'/>
+  <rect x='296' y='324' width='60' height='20' fill='#7a4a2a'/>
+  <rect x='356' y='324' width='20' height='20' fill='#4a2c1a'/>
+  <rect x='136' y='344' width='20' height='20' fill='#9a8a74'/>
+  <rect x='156' y='344' width='40' height='20' fill='#4a2c1a'/>
+  <rect x='196' y='344' width='120' height='20' fill='#7a4a2a'/>
+  <rect x='316' y='344' width='40' height='20' fill='#4a2c1a'/>
+  <rect x='356' y='344' width='20' height='20' fill='#9a8a74'/>
+  <rect x='116' y='364' width='20' height='20' fill='#9a8a74'/>
+  <rect x='136' y='364' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='156' y='364' width='20' height='20' fill='#9a8a74'/>
+  <rect x='176' y='364' width='40' height='20' fill='#7a4a2a'/>
+  <rect x='216' y='364' width='80' height='20' fill='#4a2c1a'/>
+  <rect x='296' y='364' width='40' height='20' fill='#7a4a2a'/>
+  <rect x='336' y='364' width='20' height='20' fill='#9a8a74'/>
+  <rect x='356' y='364' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='376' y='364' width='20' height='20' fill='#9a8a74'/>
+  <rect x='136' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='156' y='384' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='176' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='196' y='384' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='216' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='236' y='384' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='256' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='276' y='384' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='296' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='316' y='384' width='20' height='20' fill='#6b5d4d'/>
+  <rect x='336' y='384' width='20' height='20' fill='#9a8a74'/>
+  <rect x='356' y='384' width='20' height='20' fill='#6b5d4d'/>
 </svg>

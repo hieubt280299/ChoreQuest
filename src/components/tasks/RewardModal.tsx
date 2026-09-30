@@ -1,11 +1,18 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { PartyPopper, Sparkles } from 'lucide-react';
+import { Sparkles, Star } from 'pixelarticons/react';
+import { useEffect } from 'react';
+import { COIN } from '../../assets/sprites';
+import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import { translations, type TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
+import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
+import { Icon } from '../ui/Icon';
+import { pixelEase } from '../ui/Modal';
+import { PixelSprite } from '../ui/pixel/PixelSprite';
 
 function label(nameKey: string, t: (key: TranslationKey) => string) {
   return nameKey in translations.en ? t(nameKey as TranslationKey) : nameKey;
@@ -14,6 +21,16 @@ function label(nameKey: string, t: (key: TranslationKey) => string) {
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t } = useLanguage();
   const { state, reward, clearReward } = useGame();
+  const { playTaskCompleteSFX, playLevelUpSFX } = useAudio();
+
+  // Coin jingle for every completed quest, then a fanfare if anyone levelled up.
+  const rewardId = reward?.id;
+  const leveledUp = (reward?.levelUps.length ?? 0) > 0;
+  useEffect(() => {
+    if (!rewardId) return;
+    playTaskCompleteSFX();
+    if (leveledUp) playLevelUpSFX(0.35);
+  }, [rewardId, leveledUp, playTaskCompleteSFX, playLevelUpSFX]);
   const needsSkills = reward?.levelUps.some((levelUp) => {
     const character = state.characters[levelUp.characterId];
     return skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
@@ -23,47 +40,62 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
     <AnimatePresence>
       {reward && (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-900/50 p-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: pixelEase(3) }}
           onClick={clearReward}
         >
           <motion.div
-            initial={{ scale: 0.85, opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('tasks.reward')}
+            initial={{ scale: 0.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.92, opacity: 0 }}
-            className="w-full max-w-sm rounded-3xl bg-gradient-to-b from-amber-warm to-cream p-6 text-center shadow-2xl"
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.25, ease: pixelEase(5) }}
+            className="px-panel w-full max-w-sm p-6 text-center"
             onClick={(event) => event.stopPropagation()}
           >
-            <motion.div
-              animate={{ rotate: [0, -8, 8, 0], y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white text-amber-600"
-            >
-              <PartyPopper size={28} />
-            </motion.div>
-            <h2 className="font-display text-2xl text-stone-800">{t('tasks.reward')}</h2>
-            <p className="mb-4 font-semibold text-stone-500">{label(reward.title, t)}</p>
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              {(['husband', 'wife'] as const).map((id) => (
-                <div key={id} className="rounded-2xl bg-white/80 p-3">
-                  <p className="font-bold text-stone-600">{t(`character.${id}`)}</p>
-                  <p className="text-emerald-700">+{Math.round(reward.xp[id])} XP</p>
-                  <GoldCounter amount={reward.gold[id]} className="mt-1" />
-                </div>
-              ))}
+            <div className="mb-2 flex items-center justify-center gap-3 text-ember-500">
+              <Icon as={Sparkles} size={24} />
+              <PixelSprite frames={COIN} fps={8} scale={6} />
+              <Icon as={Sparkles} size={24} className="-scale-x-100" />
+            </div>
+            <h2 className="px-title text-4xl uppercase text-flame-300" style={{ textShadow: '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' }}>
+              {t('tasks.reward')}
+            </h2>
+            <p className="mb-5 mt-1 text-xl font-bold text-wood-600">{label(reward.title, t)}</p>
+            <div className="mb-4 grid grid-cols-2 gap-4">
+              {(['husband', 'wife'] as const).map((id) => {
+                const earned = reward.xp[id] > 0 || reward.gold[id] > 0;
+                return (
+                  <div key={id} className={`px-slot flex flex-col items-center gap-2 p-3 ${earned ? '' : 'opacity-50'}`}>
+                    <CharacterAvatar id={id} scale={2} framed={false} />
+                    <p className="text-base font-extrabold uppercase text-wood-700">{t(`character.${id}`)}</p>
+                    <p className="font-arcade text-[10px] text-moss-700">+{Math.round(reward.xp[id])}XP</p>
+                    <GoldCounter amount={reward.gold[id]} />
+                  </div>
+                );
+              })}
             </div>
             {reward.levelUps.map((levelUp) => (
-              <p key={levelUp.characterId} className="mb-2 inline-flex items-center gap-1 font-bold text-rose-700">
-                <Sparkles size={16} />
+              <motion.p
+                key={levelUp.characterId}
+                initial={{ scale: 0.5 }}
+                animate={{ scale: [0.5, 1.15, 1] }}
+                transition={{ duration: 0.4, ease: pixelEase(4) }}
+                className="px-level mb-2 w-full justify-center py-2 font-sans text-lg font-extrabold uppercase"
+              >
+                <Icon as={Star} size={24} className="px-blink text-flame-300" />
                 {t('tasks.levelUp')} {t(`character.${levelUp.characterId}`)} {levelUp.from}→{levelUp.to}
-              </p>
+              </motion.p>
             ))}
             {needsSkills && onAssignSkills && (
               <Button
                 className="mt-3 w-full"
-                variant="rose"
+                variant="brick"
                 onClick={() => {
                   onAssignSkills();
                   clearReward();

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   ChoreQuest retro cabin theme: chunky stepped pixel borders drawn with
+   box-shadows, beveled "physical" buttons and a wood-plank wall.
+   --------------------------------------------------------------------------- */
+
 html,
 body,
 #root {
@@ -10,11 +15,510 @@ body,
 
 body {
   margin: 0;
-  font-family: Nunito, system-ui, sans-serif;
-  color: #44403c;
-  background:
-    radial-gradient(circle at top left, #fee2e2 0%, transparent 40%),
-    radial-gradient(circle at top right, #dcfce7 0%, transparent 36%),
-    radial-gradient(circle at bottom, #fef3c7 0%, transparent 42%),
-    #fafaf9;
+  font-family: Handjet, system-ui, sans-serif;
+  font-size: 19px;
+  color: #2b1a12;
+  background-color: #3d2518;
+  /* Fireplace glow over a pixel wood-plank wall (48px tile drawn 3x). */
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(243, 154, 61, 0.2), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' shape-rendering='crispEdges'%3E%3Crect width='48' height='48' fill='%233d2518'/%3E%3Cg fill='%234a2d1c'%3E%3Crect width='48' height='1'/%3E%3Crect y='12' width='48' height='1'/%3E%3Crect y='24' width='48' height='1'/%3E%3Crect y='36' width='48' height='1'/%3E%3C/g%3E%3Cg fill='%232b1a12'%3E%3Crect y='11' width='48' height='1'/%3E%3Crect y='23' width='48' height='1'/%3E%3Crect y='35' width='48' height='1'/%3E%3Crect y='47' width='48' height='1'/%3E%3Crect x='30' width='1' height='11'/%3E%3Crect x='10' y='12' width='1' height='11'/%3E%3Crect x='40' y='24' width='1' height='11'/%3E%3Crect x='20' y='36' width='1' height='11'/%3E%3C/g%3E%3Cg fill='%23352014'%3E%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='36' y='7' width='5' height='1'/%3E%3Crect x='18' y='16' width='7' height='1'/%3E%3Crect x='27' y='19' width='4' height='1'/%3E%3Crect x='6' y='29' width='5' height='1'/%3E%3Crect x='24' y='31' width='8' height='1'/%3E%3Crect x='33' y='40' width='6' height='1'/%3E%3Crect x='3' y='43' width='5' height='1'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 520px, 144px 144px;
+  background-repeat: no-repeat, repeat;
+  background-attachment: fixed, fixed;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+::selection {
+  background: #f7c548;
+  color: #2b1a12;
+}
+
+@layer components {
+  .pixelated {
+    image-rendering: pixelated;
+  }
+
+  /* Parchment panel with a notched 4px ink border, bevel and a stepped drop shadow. */
+  .px-panel {
+    --bw: 4px;
+    --pb: #2b1a12;
+    --hl: #fff8e7;
+    --sh: #dcbc80;
+    position: relative;
+    background-color: #f7e9c8;
+    color: #2b1a12;
+    box-shadow:
+      0 calc(var(--bw) * -1) 0 0 var(--pb),
+      0 var(--bw) 0 0 var(--pb),
+      calc(var(--bw) * -1) 0 0 0 var(--pb),
+      var(--bw) 0 0 0 var(--pb),
+      0 calc(var(--bw) * 2.5) 0 0 rgba(20, 10, 5, 0.45),
+      inset -4px -4px 0 0 var(--sh),
+      inset 4px 4px 0 0 var(--hl);
+  }
+
+  /* Rustic wood board variant. */
+  .px-panel-wood {
+    --hl: #9c6337;
+    --sh: #2b1a12;
+    color: #f7e9c8;
+    background-color: #5a3621;
+    background-image:
+      repeating-linear-gradient(180deg, transparent 0 22px, rgba(43, 26, 18, 0.55) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 60px, rgba(43, 26, 18, 0.25) 60px 62px);
+  }
+
+  .px-panel-ember {
+    --hl: #fff8e7;
+    --sh: #f39a3d;
+    background-color: #f7b76a;
+  }
+
+  .px-panel-moss {
+    --hl: #eef5dc;
+    --sh: #a9c97a;
+    background-color: #d4e6b0;
+  }
+
+  /* Sunken inventory slot. */
+  .px-slot {
+    background-color: #ecd6a4;
+    box-shadow:
+      inset 3px 3px 0 0 #b8955c,
+      inset -3px -3px 0 0 #fff8e7,
+      0 0 0 3px #2b1a12;
+  }
+
+  .px-slot-dark {
+    background-color: #2b1a12;
+    box-shadow:
+      inset 3px 3px 0 0 #1f130c,
+      inset -3px -3px 0 0 #5a3621,
+      0 0 0 3px #1f130c;
+  }
+
+  /* Beveled arcade button that physically presses down. */
+  .px-btn {
+    --hl: #fff8e7;
+    --sh: #b8955c;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.9rem 0.45rem;
+    font-family: Handjet, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #2b1a12;
+    background-color: #ecd6a4;
+    cursor: pointer;
+    user-select: none;
+    box-shadow:
+      0 -3px 0 0 #2b1a12,
+      0 3px 0 0 #2b1a12,
+      -3px 0 0 0 #2b1a12,
+      3px 0 0 0 #2b1a12,
+      0 6px 0 0 rgba(20, 10, 5, 0.5),
+      inset -3px -4px 0 0 var(--sh),
+      inset 3px 3px 0 0 var(--hl);
+    transition: transform 60ms steps(1), filter 60ms steps(1);
+  }
+  .px-btn:hover:not(:disabled) {
+    filter: brightness(1.07);
+  }
+  .px-btn:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow:
+      0 -3px 0 0 #2b1a12,
+      0 3px 0 0 #2b1a12,
+      -3px 0 0 0 #2b1a12,
+      3px 0 0 0 #2b1a12,
+      inset -3px -1px 0 0 var(--sh),
+      inset 3px 3px 0 0 var(--hl);
+  }
+  .px-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    filter: saturate(0.5);
+  }
+  .px-btn-primary {
+    --hl: #f7b76a;
+    --sh: #a44a14;
+    background-color: #e8772e;
+    color: #2b1a12;
+  }
+  .px-btn-brick {
+    --hl: #cc6a4a;
+    --sh: #6e2a22;
+    background-color: #b04a34;
+    color: #fff8e7;
+  }
+  .px-btn-moss {
+    --hl: #86b049;
+    --sh: #3f5a24;
+    background-color: #638c3c;
+    color: #fff8e7;
+  }
+  .px-btn-ghost {
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+  }
+  .px-btn-ghost:hover:not(:disabled) {
+    background: rgba(43, 26, 18, 0.08);
+  }
+  .px-btn-ghost:active:not(:disabled) {
+    box-shadow: none;
+  }
+
+  .px-btn:focus-visible,
+  .px-tab:focus-visible,
+  .px-input:focus-visible,
+  .px-focus:focus-visible {
+    outline: 3px dashed #ffd166;
+    outline-offset: 5px;
+  }
+
+  /* Text field / select with a sunken pixel border. */
+  .px-input {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    font-family: Handjet, system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #2b1a12;
+    background-color: #fff8e7;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      0 -3px 0 0 #2b1a12,
+      0 3px 0 0 #2b1a12,
+      -3px 0 0 0 #2b1a12,
+      3px 0 0 0 #2b1a12,
+      inset 3px 3px 0 0 #dcbc80;
+  }
+  .px-input::placeholder {
+    color: #8a6a3c;
+  }
+  .px-input:focus {
+    outline: none;
+    box-shadow:
+      0 -3px 0 0 #e8772e,
+      0 3px 0 0 #e8772e,
+      -3px 0 0 0 #e8772e,
+      3px 0 0 0 #e8772e,
+      inset 3px 3px 0 0 #dcbc80;
+  }
+  .px-input:disabled {
+    opacity: 0.6;
+  }
+
+  /* Square pixel checkbox. */
+  .px-check {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    cursor: pointer;
+    background-color: #fff8e7;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset 3px 3px 0 0 #dcbc80;
+  }
+  .px-check:checked {
+    background-color: #638c3c;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset -3px -3px 0 0 #3f5a24;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23fff8e7' d='M6 1h1v2H6zM5 3h1v1H5zM4 4h1v1H4zM1 3h1v1H1zM2 4h1v1H2zM3 5h1v1H3z'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+  }
+
+  /* Chunky segmented progress bar. */
+  .px-bar {
+    position: relative;
+    height: 20px;
+    padding: 3px;
+    background-color: #1f130c;
+    box-shadow:
+      0 -3px 0 0 #2b1a12,
+      0 3px 0 0 #2b1a12,
+      -3px 0 0 0 #2b1a12,
+      3px 0 0 0 #2b1a12;
+  }
+  .px-bar-fill {
+    height: 100%;
+    background-color: var(--fill, #f7c548);
+    background-image: repeating-linear-gradient(90deg, transparent 0 10px, var(--fill-gap, #c85f1f) 10px 12px);
+    box-shadow:
+      inset 0 3px 0 0 rgba(255, 248, 231, 0.45),
+      inset 0 -3px 0 0 rgba(43, 26, 18, 0.25);
+    transition: width 700ms steps(10);
+  }
+
+  /* Arcade tab for navigation. */
+  .px-tab {
+    --hl: #9c6337;
+    --sh: #2b1a12;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #dcbc80;
+    background-color: #5a3621;
+    box-shadow:
+      0 -3px 0 0 #1f130c,
+      0 3px 0 0 #1f130c,
+      -3px 0 0 0 #1f130c,
+      3px 0 0 0 #1f130c,
+      inset -3px -3px 0 0 var(--sh),
+      inset 3px 3px 0 0 var(--hl);
+    transition: transform 80ms steps(1);
+  }
+  .px-tab:hover {
+    color: #fff8e7;
+  }
+  .px-tab[aria-current='page'] {
+    --hl: #fff8e7;
+    --sh: #dcbc80;
+    color: #2b1a12;
+    background-color: #f7e9c8;
+  }
+
+  /* Headings that sit directly on the wood wall. */
+  .px-title {
+    font-weight: 800;
+    color: #fff8e7;
+    text-shadow:
+      2px 2px 0 #2b1a12,
+      3px 3px 0 #2b1a12;
+  }
+  .px-subtitle {
+    color: #dcbc80;
+    text-shadow: 2px 2px 0 #1f130c;
+  }
+
+  /* Arcade wordmark. */
+  .px-wordmark {
+    font-family: 'Press Start 2P', monospace;
+    color: #ffd166;
+    text-shadow: 2px 2px 0 #b04a34;
+    letter-spacing: 0.02em;
+  }
+
+  /* Level chip: brick banner with arcade digits. */
+  .px-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.5rem 0.25rem;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: #fff8e7;
+    background-color: #8f3a2c;
+    box-shadow:
+      0 -2px 0 0 #2b1a12,
+      0 2px 0 0 #2b1a12,
+      -2px 0 0 0 #2b1a12,
+      2px 0 0 0 #2b1a12,
+      inset -2px -2px 0 0 #6e2a22,
+      inset 2px 2px 0 0 #cc6a4a;
+  }
+}
+
+/* ---- Sprite and scene animations (stepped for a frame-by-frame feel) ---- */
+
+.bob {
+  animation: px-bob 1.2s steps(1) infinite;
+}
+.bob-delay {
+  animation-delay: -0.6s;
+}
+@keyframes px-bob {
+  0%,
+  49% {
+    transform: translateY(0);
+  }
+  50%,
+  100% {
+    transform: translateY(1px);
+  }
+}
+
+.twinkle {
+  animation: px-twinkle 2.4s steps(1) infinite;
+}
+.twinkle:nth-child(2n) {
+  animation-delay: -1.2s;
+}
+@keyframes px-twinkle {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  71%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.hearth-flicker {
+  animation: px-flicker 1s steps(1) infinite;
+}
+@keyframes px-flicker {
+  0% {
+    opacity: 0.9;
+  }
+  30% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.75;
+  }
+  80% {
+    opacity: 0.95;
+  }
+}
+
+.spark {
+  animation: px-spark 1.8s steps(9) infinite;
+}
+.spark-1 {
+  animation-delay: -0.6s;
+}
+.spark-2 {
+  animation-delay: -1.2s;
+}
+@keyframes px-spark {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(2px, -18px);
+    opacity: 0;
+  }
+}
+
+.px-blink {
+  animation: px-blink 1s steps(1) infinite;
+}
+@keyframes px-blink {
+  0%,
+  59% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .twinkle,
+  .hearth-flicker,
+  .spark,
+  .px-blink {
+    animation: none;
+  }
+  .spark {
+    opacity: 0;
+  }
+  .px-bar-fill {
+    transition: none;
+  }
+}
+
+/* ---- Audio controls: pixel switch and volume slider ---- */
+@layer components {
+  .px-switch {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    flex-shrink: 0;
+    cursor: pointer;
+    background-color: #5a3621;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset 3px 3px 0 0 #2b1a12;
+    transition: background-color 80ms steps(1);
+  }
+  .px-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .px-switch-on {
+    background-color: #638c3c;
+  }
+  .px-switch-knob {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    background-color: #ecd6a4;
+    box-shadow:
+      0 0 0 2px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+    transition: transform 100ms steps(2);
+  }
+  .px-switch-on .px-switch-knob {
+    transform: translateX(28px);
+  }
+
+  .px-range {
+    --value: 50%;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 16px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #e8772e 0 var(--value), #2b1a12 var(--value) 100%);
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset 0 3px 0 0 rgba(0, 0, 0, 0.35);
+  }
+  .px-range:focus-visible {
+    outline: 3px dashed #ffd166;
+    outline-offset: 6px;
+  }
+  .px-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 28px;
+    background-color: #ecd6a4;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+  }
+  .px-range::-moz-range-thumb {
+    width: 22px;
+    height: 28px;
+    background-color: #ecd6a4;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+  }
+  .px-range:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
 }

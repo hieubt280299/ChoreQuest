@@ -5,8 +5,9 @@ Act as a Principal Full-Stack Engineer specializing in React, TypeScript, and Fi
 ### 🛠️ Tech Stack & Constraints
 
 - **Frontend:** React 18 + TypeScript (Vite)
-- **Styling:** Tailwind CSS + Lucide React Icons + Framer Motion (for playful animations)
+- **Styling:** Tailwind CSS + Pixelarticons (pixel icon set) + Framer Motion (stepped, frame-by-frame animations)
 - **State Management:** React Context API + Custom Hooks
+- **Audio:** Optional chiptune BGM + SFX synthesized with the Web Audio API (`utils/chiptune.ts`, song data in `constants/chiptuneSong.ts`), controlled by `context/AudioContext.tsx` (`useAudio`). No audio files; sound is off until the player enables it (autoplay rules).
 - **Backend/Database/Auth:** Google Firebase (v10+ Modular SDK using Firestore and Auth)
 - **Localization:** i18next or simple light React i18n Context supporting **English (EN)** and **Vietnamese (VI)** with hot-swapping in settings.
 - **Hosting/Deployment:** Vercel (SPA fallback via `vercel.json`).
@@ -16,8 +17,13 @@ Act as a Principal Full-Stack Engineer specializing in React, TypeScript, and Fi
 
 ### 🎨 Visual & UI Design System
 
-- **Theme:** Warm, cozy, and inviting "Cozy RPG / Studio Ghibli" inspired aesthetic (Soft Rose `#FEE2E2`, Warm Amber `#FEF3C7`, Sage Green `#DCFCE7`, Soft Cream `#FAFAF9`).
-- **Components:** Rounded cards (`rounded-2xl`), smooth progress bars, gold coin counters, level badge chips, and playful reward modals.
+- **Theme:** Nostalgic, warm and playful **Retro / Arcade 16-bit** cabin. Husband and Wife warm up by a crackling hearth, not in a cold, industrial arcade.
+- **Palette:** Rich earth tones and firelight. Dark wood `#3d2518` / `#5a3621`, parchment `#f7e9c8`, brick red `#b04a34`, ember orange `#e8772e`, flame gold `#ffd166`, moss green `#638c3c`, ink outline `#2b1a12`. Tokens live in `tailwind.config.js`.
+- **Typography:** `Handjet` (pixel font with full Vietnamese support) for all text. `Press Start 2P` is Latin-only, so use it only for digits, "LV" badges and the ChoreQuest wordmark, never for translated strings.
+- **Sprites:** Hand-made pixel art in `src/assets/sprites.ts` (knight = Husband, mage = Wife, fire, coin, cat), rendered as crisp SVG rects by `components/ui/pixel/PixelSprite.tsx` on one shared 8 fps clock. Scale sprites by whole numbers only; never mix pixel sizes in one scene.
+- **Components:** Chunky stepped pixel borders (box-shadow based `.px-panel`, `.px-btn`, `.px-input`, `.px-bar` in `index.css`); parchment panels on a wood-plank wall; arcade tabs for navigation; segmented XP bars; RPG dialog-box modals; inventory-slot icons. No rounded corners.
+- **Icons:** `pixelarticons/react` via `components/ui/Icon.tsx`, at 12/24/36px (multiples of their 12px grid) so they stay crisp.
+- **Motion:** Stepped easing (`pixelEase`) and `steps()` CSS animations; every looping animation pauses under `prefers-reduced-motion`.
 - **Responsiveness:** Mobile-first design optimized for both mobile web and desktop.
 
 ---

@@ -1,36 +1,37 @@
-import { Gift } from 'lucide-react';
+import { Gift } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { calculatePayout, formatVnd } from '../../utils/calculations';
+import type { CharacterId } from '../../types';
+import { calculatePayout } from '../../utils/calculations';
 import { Card } from '../ui/Card';
+import { CharacterAvatar } from '../ui/CharacterAvatar';
+import { Icon } from '../ui/Icon';
+import { Vnd } from '../ui/Vnd';
 
 export function PrizePreview() {
   const { t } = useLanguage();
   const { state } = useGame();
-  const payout = calculatePayout(
-    state.prizePool,
-    state.characters.husband.gold,
-    state.characters.wife.gold,
-  );
+  const payout = calculatePayout(state.prizePool, state.characters.husband.gold, state.characters.wife.gold);
 
   return (
-    <Card className="bg-gradient-to-br from-white to-rose-soft">
-      <div className="mb-3 flex items-center gap-2 text-rose-700">
-        <Gift size={18} />
-        <p className="text-xs font-bold uppercase tracking-widest">{t('dashboard.prizePool')}</p>
+    <Card>
+      <div className="mb-2 flex items-center gap-2 text-brick-600">
+        <Icon as={Gift} size={24} />
+        <p className="text-lg font-extrabold uppercase tracking-wide">{t('dashboard.prizePool')}</p>
       </div>
-      <p className="font-display text-2xl text-stone-800">{formatVnd(state.prizePool)}</p>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-2xl bg-white/70 p-3">
-          <p className="text-stone-500">{t('character.husband')}</p>
-          <p className="font-bold text-stone-800">{formatVnd(payout.husband)}</p>
-        </div>
-        <div className="rounded-2xl bg-white/70 p-3">
-          <p className="text-stone-500">{t('character.wife')}</p>
-          <p className="font-bold text-stone-800">{formatVnd(payout.wife)}</p>
-        </div>
+      <Vnd amount={state.prizePool} className="text-lg text-ink" />
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        {(['husband', 'wife'] as CharacterId[]).map((id) => (
+          <div key={id} className="px-slot flex items-center gap-2 p-2">
+            <CharacterAvatar id={id} scale={2} framed={false} />
+            <div className="min-w-0">
+              <p className="text-sm font-bold uppercase text-wood-600">{t(`character.${id}`)}</p>
+              <Vnd amount={payout[id]} className="block truncate text-[10px] text-ink" />
+            </div>
+          </div>
+        ))}
       </div>
-      <p className="mt-3 text-xs text-stone-500">{t('dashboard.goldResets')}</p>
+      <p className="mt-3 text-base text-wood-600">{t('dashboard.goldResets')}</p>
     </Card>
   );
 }
