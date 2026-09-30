@@ -1,11 +1,13 @@
-import { Trophy } from 'pixelarticons/react';
+import { Gift, Trophy } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId } from '../../types';
-import { calculatePayout, daysInMonth, localDateKey, monthLabel } from '../../utils/calculations';
+import { calculatePayout, daysInMonth, getXpProgress, localDateKey, monthLabel } from '../../utils/calculations';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
+import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
+import { LevelRing } from '../ui/LevelRing';
 import { PageHeader } from '../ui/PageHeader';
 import { Vnd } from '../ui/Vnd';
 
@@ -65,19 +67,50 @@ export function CalendarView() {
           <Icon as={Trophy} size={24} />
           <h2 className="text-2xl font-extrabold uppercase">{t('calendar.share')}</h2>
         </div>
+        <div className="px-slot-dark mb-4 flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <span className="flex items-center gap-2 text-lg font-extrabold uppercase text-parchment-300">
+            <Icon as={Gift} size={24} className="text-flame-300" />
+            {t('dashboard.prizePool')}
+          </span>
+          <Vnd amount={state.prizePool} className="text-base text-flame-300" />
+        </div>
         {state.characters.husband.gold + state.characters.wife.gold === 0 && (
           <p className="mb-3 text-base text-wood-600">{t('calendar.noGold')}</p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          {(['husband', 'wife'] as CharacterId[]).map((id) => (
-            <div key={id} className="px-slot flex items-center gap-3 p-3">
-              <CharacterAvatar id={id} scale={2} framed={false} />
-              <div>
-                <p className="text-base font-bold uppercase text-wood-600">{t(`calendar.${id}Share`)}</p>
-                <Vnd amount={payout[id]} className="text-sm text-ink" />
+          {(['husband', 'wife'] as CharacterId[]).map((id) => {
+            const character = state.characters[id];
+            const progress = getXpProgress(character.xp);
+            return (
+              <div key={id} className="px-slot flex items-center gap-4 p-3">
+                {/* Portrait with the level circle overlapping its corner, Dota-style */}
+                <div className="relative shrink-0 pb-4 pl-4">
+                  <CharacterAvatar id={id} scale={4} className="w-[84px]" />
+                  <LevelRing
+                    xp={character.xp}
+                    size={44}
+                    className="absolute bottom-0 left-0"
+                    label={`${t('character.level', { level: progress.level })} · ${
+                      progress.needed
+                        ? t('character.xp', { current: Math.round(progress.currentInLevel), needed: progress.needed })
+                        : t('character.maxLevel')
+                    }`}
+                  />
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <p className="text-xl font-extrabold uppercase leading-none">{t(`character.${id}`)}</p>
+                  <p className="flex items-center gap-2 text-sm font-bold uppercase text-wood-600">
+                    {t('character.gold')}
+                    <GoldCounter amount={character.gold} />
+                  </p>
+                  <div>
+                    <p className="text-sm font-bold uppercase text-wood-600">{t(`calendar.${id}Share`)}</p>
+                    <Vnd amount={payout[id]} className="text-sm text-ink" />
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
       {state.prizeHistory.length > 0 && (

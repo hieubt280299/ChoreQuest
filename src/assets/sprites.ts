@@ -33,8 +33,8 @@ export const PIXEL_PALETTE: Record<string, string> = {
   g: '#9a8a74',
   G: '#6b5d4d',
   // cat
-  C: '#e8a55a',
-  c: '#b8702f',
+  C: '#f4efe6',
+  c: '#bdb3a4',
 };
 
 export type Sprite = readonly string[];
