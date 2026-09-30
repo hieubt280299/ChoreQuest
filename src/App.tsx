@@ -9,6 +9,7 @@ import { SkillPickerModal } from './components/skills/SkillPickerModal';
 import { SkillsView } from './components/skills/SkillsView';
 import { RewardModal } from './components/tasks/RewardModal';
 import { TasksView } from './components/tasks/TasksView';
+import { AudioToggle } from './components/ui/AudioToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
@@ -34,8 +35,11 @@ export default function App() {
       <SideNav view={view} onChange={setView} />
       <main className="min-w-0 flex-1 space-y-6">
         <div className="flex items-center justify-between gap-3 md:justify-end">
-          <p className="px-wordmark text-[11px] md:hidden">ChoreQuest</p>
-          <ProfileSwitcher />
+          <p className="px-wordmark hidden text-[11px] min-[400px]:block md:hidden">ChoreQuest</p>
+          <div className="flex items-center gap-3">
+            <AudioToggle />
+            <ProfileSwitcher />
+          </div>
         </div>
         {view === 'dashboard' && <DashboardView />}
         {view === 'tasks' && <TasksView />}

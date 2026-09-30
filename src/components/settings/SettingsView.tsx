@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
 import { PageHeader } from '../ui/PageHeader';
+import { AudioSettingsCard } from './AudioSettingsCard';
 import { InstallAppCard } from './InstallAppCard';
 
 function SectionTitle({ icon, children }: { icon: typeof Coins; children: string }) {
@@ -28,6 +29,7 @@ export function SettingsView() {
     <section className="space-y-6">
       <PageHeader title={t('settings.title')} />
       <InstallAppCard />
+      <AudioSettingsCard />
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <SectionTitle icon={Languages}>{t('settings.language')}</SectionTitle>

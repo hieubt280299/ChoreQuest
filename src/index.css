@@ -438,3 +438,87 @@ body {
     transition: none;
   }
 }
+
+/* ---- Audio controls: pixel switch and volume slider ---- */
+@layer components {
+  .px-switch {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    flex-shrink: 0;
+    cursor: pointer;
+    background-color: #5a3621;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset 3px 3px 0 0 #2b1a12;
+    transition: background-color 80ms steps(1);
+  }
+  .px-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .px-switch-on {
+    background-color: #638c3c;
+  }
+  .px-switch-knob {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    background-color: #ecd6a4;
+    box-shadow:
+      0 0 0 2px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+    transition: transform 100ms steps(2);
+  }
+  .px-switch-on .px-switch-knob {
+    transform: translateX(28px);
+  }
+
+  .px-range {
+    --value: 50%;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 16px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #e8772e 0 var(--value), #2b1a12 var(--value) 100%);
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset 0 3px 0 0 rgba(0, 0, 0, 0.35);
+  }
+  .px-range:focus-visible {
+    outline: 3px dashed #ffd166;
+    outline-offset: 6px;
+  }
+  .px-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 28px;
+    background-color: #ecd6a4;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+  }
+  .px-range::-moz-range-thumb {
+    width: 22px;
+    height: 28px;
+    background-color: #ecd6a4;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      0 0 0 3px #2b1a12,
+      inset -3px -3px 0 0 #b8955c,
+      inset 3px 3px 0 0 #fff8e7;
+  }
+  .px-range:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
