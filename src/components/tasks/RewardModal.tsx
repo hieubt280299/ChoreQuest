@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Star } from 'pixelarticons/react';
+import { useEffect } from 'react';
 import { COIN } from '../../assets/sprites';
+import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
@@ -19,6 +21,16 @@ function label(nameKey: string, t: (key: TranslationKey) => string) {
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t } = useLanguage();
   const { state, reward, clearReward } = useGame();
+  const { playTaskCompleteSFX, playLevelUpSFX } = useAudio();
+
+  // Coin jingle for every completed quest, then a fanfare if anyone levelled up.
+  const rewardId = reward?.id;
+  const leveledUp = (reward?.levelUps.length ?? 0) > 0;
+  useEffect(() => {
+    if (!rewardId) return;
+    playTaskCompleteSFX();
+    if (leveledUp) playLevelUpSFX(0.35);
+  }, [rewardId, leveledUp, playTaskCompleteSFX, playLevelUpSFX]);
   const needsSkills = reward?.levelUps.some((levelUp) => {
     const character = state.characters[levelUp.characterId];
     return skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
