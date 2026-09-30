@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { GameProvider, useGame } from './context/GameContext';
 import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
+import './utils/installPrompt';
 
 function BridgedApp() {
   const { loading } = useAuth();
