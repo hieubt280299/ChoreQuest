@@ -9,6 +9,7 @@ import { SkillPickerModal } from './components/skills/SkillPickerModal';
 import { SkillsView } from './components/skills/SkillsView';
 import { RewardModal } from './components/tasks/RewardModal';
 import { TasksView } from './components/tasks/TasksView';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
 import type { AppView, CharacterId } from './types';
@@ -21,11 +22,7 @@ export default function App() {
   const [skillCharacter, setSkillCharacter] = useState<CharacterId | null>(null);
 
   if (authLoading || gameLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center font-display text-2xl text-stone-500">
-        ChoreQuest
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user && !demoMode) {
@@ -33,10 +30,11 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-4 pb-24 pt-6 md:pb-10">
+    <div className="mx-auto flex min-h-screen max-w-6xl gap-8 px-4 pb-32 pt-6 md:pb-10">
       <SideNav view={view} onChange={setView} />
-      <main className="min-w-0 flex-1 space-y-4">
-        <div className="flex justify-end">
+      <main className="min-w-0 flex-1 space-y-6">
+        <div className="flex items-center justify-between gap-3 md:justify-end">
+          <p className="px-wordmark text-[11px] md:hidden">ChoreQuest</p>
           <ProfileSwitcher />
         </div>
         {view === 'dashboard' && <DashboardView />}

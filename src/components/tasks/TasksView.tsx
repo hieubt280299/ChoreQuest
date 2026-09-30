@@ -1,14 +1,25 @@
-import { Check, Pencil, Plus } from 'lucide-react';
+import { Check, Fire, Home, Pencil, Plus, Shirt, ShoppingCart, Sparkles } from 'pixelarticons/react';
 import { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { Completer, Task } from '../../types';
+import type { Completer, Task, TaskCategory } from '../../types';
 import { translations, type TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
+import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import { PageHeader } from '../ui/PageHeader';
 import { TaskEditorModal } from './TaskEditorModal';
+
+export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
+  cleaning: Sparkles,
+  cooking: Fire,
+  shopping: ShoppingCart,
+  laundry: Shirt,
+  general: Home,
+};
 
 function taskLabel(nameKey: string, t: (key: TranslationKey) => string) {
   return nameKey in translations.en ? t(nameKey as TranslationKey) : nameKey;
@@ -25,73 +36,92 @@ export function TasksView() {
   const enabled = state.tasks.filter((task) => task.enabled);
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-stone-800">{t('tasks.title')}</h1>
-          <p className="text-stone-500">{t('tasks.subtitle')}</p>
-        </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus size={16} />
-          {t('tasks.create')}
-        </Button>
-      </div>
+    <section className="space-y-6">
+      <PageHeader
+        title={t('tasks.title')}
+        subtitle={t('tasks.subtitle')}
+        action={
+          <Button onClick={() => setCreating(true)}>
+            <Icon as={Plus} size={24} />
+            {t('tasks.create')}
+          </Button>
+        }
+      />
       {enabled.length === 0 && <Card>{t('tasks.empty')}</Card>}
-      <div className="grid gap-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         {enabled.map((task) => {
           const done = isTaskDoneToday(task.id);
           return (
-            <Card key={task.id} className={done ? 'opacity-70' : ''}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex-1">
-                  <p className="font-bold text-stone-800">{taskLabel(task.nameKey, t)}</p>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-                    {t(`category.${task.category}` as TranslationKey)}
+            <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-4">
+              <div className="flex items-center gap-3">
+                <span className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-12 w-12 items-center justify-center`}>
+                  <Icon as={done ? Check : CATEGORY_ICONS[task.category]} size={24} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-xl font-extrabold leading-tight ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
+                    {taskLabel(task.nameKey, t)}
                   </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-3">
+                    <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
+                    <GoldCounter amount={task.gold} />
+                    <span className="text-sm font-bold uppercase text-wood-500">
+                      {t(`category.${task.category}` as TranslationKey)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-emerald-700">+{task.xp} XP</span>
-                  <GoldCounter amount={task.gold} />
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-stone-400 hover:bg-white"
-                    onClick={() => setEditing(task)}
-                    aria-label={t('tasks.edit')}
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <Button
-                    disabled={done}
-                    variant={done ? 'secondary' : 'rose'}
-                    onClick={() => {
-                      setCompleter(state.activeCharacter);
-                      setPending(task);
-                    }}
-                  >
-                    {done ? <Check size={16} /> : null}
-                    {done ? t('tasks.alreadyDone') : t('tasks.complete')}
-                  </Button>
-                </div>
+                <button
+                  type="button"
+                  className="px-focus p-1 text-wood-500 hover:text-brick-600"
+                  onClick={() => setEditing(task)}
+                  aria-label={t('tasks.edit')}
+                >
+                  <Icon as={Pencil} size={24} />
+                </button>
               </div>
+              <Button
+                className="mt-3 w-full"
+                disabled={done}
+                variant={done ? 'moss' : 'brick'}
+                onClick={() => {
+                  setCompleter(state.activeCharacter);
+                  setPending(task);
+                }}
+              >
+                {done && <Icon as={Check} size={24} />}
+                {done ? t('tasks.alreadyDone') : t('tasks.complete')}
+              </Button>
             </Card>
           );
         })}
       </div>
 
       <Modal open={!!pending} onClose={() => setPending(null)} title={t('tasks.who')}>
-        <div className="mb-4 grid grid-cols-3 gap-2">
-          {(['husband', 'wife', 'both'] as Completer[]).map((who) => (
-            <button
-              key={who}
-              type="button"
-              onClick={() => setCompleter(who)}
-              className={`rounded-2xl px-3 py-3 text-sm font-bold ${
-                completer === who ? 'bg-amber-700 text-white' : 'bg-white text-stone-600'
-              }`}
-            >
-              {who === 'both' ? t('tasks.both') : t(`character.${who}`)}
-            </button>
-          ))}
+        <div className="mb-5 grid grid-cols-3 gap-3" role="radiogroup" aria-label={t('tasks.who')}>
+          {(['husband', 'wife', 'both'] as Completer[]).map((who) => {
+            const selected = completer === who;
+            return (
+              <button
+                key={who}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setCompleter(who)}
+                className={`px-btn flex-col gap-2 px-1 py-3 ${selected ? 'px-btn-primary -translate-y-1' : ''}`}
+              >
+                <span className="flex h-[52px] items-end">
+                  {who === 'both' ? (
+                    <>
+                      <CharacterAvatar id="husband" scale={2} framed={false} />
+                      <CharacterAvatar id="wife" scale={2} framed={false} />
+                    </>
+                  ) : (
+                    <CharacterAvatar id={who} scale={3} framed={false} />
+                  )}
+                </span>
+                {who === 'both' ? t('tasks.both') : t(`character.${who}`)}
+              </button>
+            );
+          })}
         </div>
         <Button
           className="w-full"

@@ -1,8 +1,9 @@
-import { Hourglass } from 'lucide-react';
+import { Hourglass } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatCountdown, msUntilNextMonth } from '../../utils/calculations';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 
 export function MonthTimer() {
   const { t } = useLanguage();
@@ -14,17 +15,28 @@ export function MonthTimer() {
   }, []);
 
   const { days, hours, minutes } = formatCountdown(ms);
+  const digit = (value: number, unit: string) => (
+    <span className="flex items-baseline gap-1">
+      <span className="font-arcade text-base text-flame-300">{String(value).padStart(2, '0')}</span>
+      <span className="text-sm font-bold uppercase text-parchment-300">{unit}</span>
+    </span>
+  );
 
   return (
-    <Card className="bg-gradient-to-br from-amber-warm to-white">
-      <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-white/80 p-3 text-amber-700">
-          <Hourglass size={22} />
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('dashboard.monthTimer')}</p>
-          <p className="font-display text-xl text-stone-800">{t('dashboard.days', { days, hours, minutes })}</p>
-        </div>
+    <Card>
+      <div className="mb-3 flex items-center gap-2 text-brick-600">
+        <Icon as={Hourglass} size={24} />
+        <p className="text-lg font-extrabold uppercase tracking-wide">{t('dashboard.monthTimer')}</p>
+      </div>
+      {/* Retro LCD-style countdown */}
+      <div
+        className="px-slot-dark flex items-center justify-center gap-5 px-3 py-3"
+        role="timer"
+        aria-label={t('dashboard.days', { days, hours, minutes })}
+      >
+        {digit(days, 'd')}
+        {digit(hours, 'h')}
+        {digit(minutes, 'm')}
       </div>
     </Card>
   );

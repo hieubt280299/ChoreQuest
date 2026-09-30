@@ -28,7 +28,7 @@ export function TaskEditorModal({
   return (
     <Modal open={open} onClose={onClose} title={initial ? t('tasks.edit') : t('tasks.create')}>
       <form
-        className="space-y-3"
+        className="space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
           const id = initial?.id ?? `custom-${Date.now()}`;
@@ -43,43 +43,43 @@ export function TaskEditorModal({
           onClose();
         }}
       >
-        <label className="block text-sm font-bold text-stone-600">
+        <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           {t('tasks.name')}
           <input
             value={nameKey}
             onChange={(event) => setNameKey(event.target.value)}
-            className="mt-1 w-full rounded-2xl border border-stone-200 bg-white px-3 py-2 font-semibold"
+            className="px-input mt-2"
             required
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm font-bold text-stone-600">
+        <div className="grid grid-cols-2 gap-4">
+          <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
             {t('tasks.xp')}
             <input
               type="number"
               min={1}
               value={xp}
               onChange={(event) => setXp(Number(event.target.value))}
-              className="mt-1 w-full rounded-2xl border border-stone-200 bg-white px-3 py-2"
+              className="px-input mt-2"
             />
           </label>
-          <label className="block text-sm font-bold text-stone-600">
+          <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
             {t('tasks.gold')}
             <input
               type="number"
               min={0}
               value={gold}
               onChange={(event) => setGold(Number(event.target.value))}
-              className="mt-1 w-full rounded-2xl border border-stone-200 bg-white px-3 py-2"
+              className="px-input mt-2"
             />
           </label>
         </div>
-        <label className="block text-sm font-bold text-stone-600">
+        <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           {t('tasks.category')}
           <select
             value={category}
             onChange={(event) => setCategory(event.target.value as TaskCategory)}
-            className="mt-1 w-full rounded-2xl border border-stone-200 bg-white px-3 py-2"
+            className="px-input mt-2"
           >
             {TASK_CATEGORIES.map((item) => (
               <option key={item} value={item}>
@@ -88,9 +88,9 @@ export function TaskEditorModal({
             ))}
           </select>
         </label>
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-3">
           {onDelete && (
-            <Button type="button" variant="ghost" className="text-rose-600" onClick={onDelete}>
+            <Button type="button" variant="ghost" className="text-brick-600" onClick={onDelete}>
               {t('tasks.delete')}
             </Button>
           )}
