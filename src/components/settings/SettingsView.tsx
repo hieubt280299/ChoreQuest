@@ -5,6 +5,7 @@ import type { LanguageCode } from '../../types';
 import { translations, type TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { InstallAppCard } from './InstallAppCard';
 
 export function SettingsView() {
   const { t, language, setLanguage } = useLanguage();
@@ -14,6 +15,7 @@ export function SettingsView() {
   return (
     <section className="space-y-4">
       <h1 className="font-display text-3xl text-stone-800">{t('settings.title')}</h1>
+      <InstallAppCard />
       <Card>
         <p className="mb-3 text-sm font-bold uppercase tracking-widest text-stone-400">{t('settings.language')}</p>
         <div className="flex gap-2">
