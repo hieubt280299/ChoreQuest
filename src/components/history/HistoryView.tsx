@@ -4,7 +4,7 @@ import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
-import { formatDateRange, parseDateKey } from '../../utils/calculations';
+import { formatDateRange, formatDay } from '../../utils/calculations';
 import { questHistory, totalTally, type QuestTally } from '../../utils/history';
 import type { TranslationKey } from '../../utils/i18n';
 import { STREAK_MIN_DAYS } from '../../utils/streaks';
@@ -75,7 +75,6 @@ export function HistoryView() {
     [state.logs, chronicle.startDate, end],
   );
   const totals = totalTally(entries);
-  const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
 
   return (
     <section className="space-y-6">
@@ -142,7 +141,7 @@ export function HistoryView() {
                       <span className="flex flex-wrap items-center gap-2 text-sm font-bold uppercase text-wood-600">
                         {task && t(`group.${task.group}` as TranslationKey)}
                         {entry.mine.lastDate && (
-                          <span>· {t('history.lastDone', { date: dateFormat.format(parseDateKey(entry.mine.lastDate)) })}</span>
+                          <span>· {t('history.lastDone', { date: formatDay(entry.mine.lastDate, locale, false) })}</span>
                         )}
                         {streak.days >= STREAK_MIN_DAYS && (
                           <span className="inline-flex items-center gap-1 bg-ember-400 px-1 text-ink shadow-[0_0_0_2px_#2b1a12]">

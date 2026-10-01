@@ -1,13 +1,15 @@
-import { Gift, Trophy } from 'pixelarticons/react';
+import { Crown, Flag, Gift, Trophy } from 'pixelarticons/react';
+import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
-import type { CharacterId } from '../../types';
+import type { CharacterId, TaskLog } from '../../types';
 import {
   addDays,
   calculatePayout,
   dayCount,
   formatDateRange,
+  formatDay,
   getXpProgress,
   localDateKey,
   parseDateKey,
@@ -19,6 +21,7 @@ import { Icon } from '../ui/Icon';
 import { LevelRing } from '../ui/LevelRing';
 import { PageHeader } from '../ui/PageHeader';
 import { Vnd } from '../ui/Vnd';
+import { DayLog } from './DayLog';
 
 export function CalendarView() {
   const { t, locale, language } = useLanguage();
@@ -33,6 +36,28 @@ export function CalendarView() {
   );
   const firstWeekday = parseDateKey(chronicle.startDate).getDay();
   const monthShort = new Intl.DateTimeFormat(locale, { month: 'short' });
+  const [selected, setSelected] = useState(() =>
+    today >= chronicle.startDate && today <= chronicle.endDate ? today : chronicle.startDate,
+  );
+  // Keep the selection inside the chronicle when it rolls over or its end date moves.
+  const selectedDay = selected >= chronicle.startDate && selected <= chronicle.endDate ? selected : chronicle.startDate;
+
+  const logsByDay = useMemo(() => {
+    const map = new Map<string, TaskLog[]>();
+    for (const log of state.logs) map.set(log.date, [...(map.get(log.date) ?? []), log]);
+    return map;
+  }, [state.logs]);
+  // Best day: the most gold earned in one day, once there are at least two active days to compare.
+  const bestDay = useMemo(() => {
+    const active = days
+      .map((date) => ({
+        date,
+        gold: (logsByDay.get(date) ?? []).reduce((sum, log) => sum + log.goldAwarded.husband + log.goldAwarded.wife, 0),
+      }))
+      .filter((day) => day.gold > 0);
+    if (active.length < 2) return null;
+    return active.reduce((best, day) => (day.gold > best.gold ? day : best)).date;
+  }, [days, logsByDay]);
 
   return (
     <section className="space-y-6">
@@ -55,18 +80,36 @@ export function CalendarView() {
           ))}
           {days.map((date, index) => {
             const day = parseDateKey(date).getDate();
-            const count = state.logs.filter((log) => log.date === date).length;
+            const dayLogs = logsByDay.get(date) ?? [];
+            const count = dayLogs.length;
             const isToday = date === today;
+            const isSelected = date === selectedDay;
+            // A pip per character who did something that day: knight red, mage plum.
+            const pips = (['husband', 'wife'] as CharacterId[]).filter((id) =>
+              dayLogs.some((log) => log.completedBy === id || log.completedBy === 'both'),
+            );
             // Label the month on the first cell and wherever a new month starts.
             const showMonth = index === 0 || day === 1;
             return (
-              <div
+              <button
+                type="button"
                 key={date}
-                className={`flex min-h-14 flex-col justify-between p-1.5 sm:min-h-16 ${
+                onClick={() => setSelected(date)}
+                className={`px-focus relative flex min-h-14 flex-col justify-between p-1.5 text-left sm:min-h-16 ${
                   isToday ? 'bg-ember-400 shadow-[inset_-3px_-3px_0_0_#c85f1f,inset_3px_3px_0_0_#f7b76a,0_0_0_3px_#2b1a12]' : 'px-slot'
-                } ${date > today ? 'opacity-70' : ''}`}
+                } ${date > today && !isSelected ? 'opacity-70' : ''} ${
+                  isSelected ? 'z-10 outline outline-[3px] outline-offset-2 outline-flame-300' : 'hover:brightness-105'
+                }`}
                 aria-current={isToday ? 'date' : undefined}
+                aria-pressed={isSelected}
+                aria-label={t('calendar.tileLabel', { date: formatDay(date, locale), count })}
               >
+                {date === bestDay && (
+                  <Icon as={Crown} size={12} className="absolute -right-1 -top-1.5 text-flame-300 drop-shadow-[1px_1px_0_#2b1a12]" />
+                )}
+                {date === chronicle.endDate && date !== bestDay && (
+                  <Icon as={Flag} size={12} className="absolute -right-1 -top-1.5 text-brick-500 drop-shadow-[1px_1px_0_#2b1a12]" />
+                )}
                 <p className="font-arcade text-[9px] text-ink">
                   {day}
                   {showMonth && (
@@ -74,15 +117,24 @@ export function CalendarView() {
                   )}
                 </p>
                 {count > 0 && (
-                  <p className="self-end bg-moss-500 px-1 font-arcade text-[8px] leading-[14px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12]">
-                    {count}
-                  </p>
+                  <span className="flex items-end justify-between gap-0.5">
+                    <span className="flex gap-0.5">
+                      {pips.map((id) => (
+                        <span key={id} className={`h-1.5 w-1.5 ${id === 'husband' ? 'bg-brick-500' : 'bg-plum-500'} shadow-[0_0_0_1px_#2b1a12]`} />
+                      ))}
+                    </span>
+                    <span className="bg-moss-500 px-1 font-arcade text-[8px] leading-[14px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12]">
+                      {count}
+                    </span>
+                  </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
+        <p className="mt-3 text-center text-sm font-bold uppercase text-wood-500">{t('calendar.tapHint')}</p>
       </Card>
+      <DayLog date={selectedDay} logs={logsByDay.get(selectedDay) ?? []} bestDay={bestDay} />
       <Card>
         <div className="mb-3 flex items-center gap-2 text-brick-600">
           <Icon as={Trophy} size={24} />

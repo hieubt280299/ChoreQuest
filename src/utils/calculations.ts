@@ -266,9 +266,21 @@ export function defaultChronicle(id: number, startDate: string) {
   return { id, startDate, endDate, endsAtMs: endOfDayMs(endDate) };
 }
 
+/**
+ * Formats a `YYYY-MM-DD` day: "Oct 1, 2026" in English, "01/10/2026" in Vietnamese
+ * (without the year: "Oct 1" / "01/10"). Vietnamese is built by hand since ICU varies its separators.
+ */
+export function formatDay(key: string, locale: string, withYear = true): string {
+  if (locale.startsWith('vi')) {
+    const [year, month, day] = key.split('-');
+    return withYear ? `${day}/${month}/${year}` : `${day}/${month}`;
+  }
+  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  return new Intl.DateTimeFormat(locale, withYear ? { ...options, year: 'numeric' } : options).format(parseDateKey(key));
+}
+
 export function formatDateRange(start: string, end: string, locale: string): string {
-  const format = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' });
-  return `${format.format(parseDateKey(start))} – ${format.format(parseDateKey(end))}`;
+  return `${formatDay(start, locale)} – ${formatDay(end, locale)}`;
 }
 
 // ---------------------------------------------------------------------------
