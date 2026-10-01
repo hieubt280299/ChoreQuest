@@ -1,8 +1,9 @@
 import { Check, Fire, Home, Pencil, Plus, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
-import { useState } from 'react';
-import { useGame, type ActionResult } from '../../context/GameContext';
+import { Fragment, useMemo, useState } from 'react';
+import { TASK_GROUPS } from '../../constants/gameRules';
+import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { Completer, Task, TaskCategory, TaskLog } from '../../types';
+import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
@@ -12,7 +13,12 @@ import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 import { PageHeader } from '../ui/PageHeader';
+import { QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
+import { RewardBreakdownTable } from './RewardBreakdownTable';
+import { StreakBadge } from './StreakBadge';
 import { TaskEditorModal } from './TaskEditorModal';
+
+type Breakdown = Record<CharacterId, RewardBreakdown | null>;
 
 export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
   cleaning: Sparkles,
@@ -32,10 +38,13 @@ function CompleterPicker({
   options,
   value,
   onChange,
+  previews,
 }: {
   options: Completer[];
   value: Completer;
   onChange: (who: Completer) => void;
+  /** Live reward per option, summed over recipients, shown under each tile. */
+  previews?: Partial<Record<Completer, Breakdown | null>>;
 }) {
   const { t } = useLanguage();
   return (
@@ -66,11 +75,42 @@ function CompleterPicker({
               )}
             </span>
             <CompleterLabel who={who} />
+            {previews?.[who] && <OptionTotal breakdown={previews[who]!} />}
           </button>
         );
       })}
     </div>
   );
+}
+
+function OptionTotal({ breakdown }: { breakdown: Breakdown }) {
+  const parts = Object.values(breakdown).filter((part): part is RewardBreakdown => !!part);
+  const xp = Math.round(parts.reduce((sum, part) => sum + part.xp, 0));
+  const gold = Math.round(parts.reduce((sum, part) => sum + part.gold, 0));
+  const streak = parts.some((part) => part.streakGold > 0);
+  return (
+    <span className="flex items-center gap-1 font-arcade text-[8px] normal-case leading-tight">
+      +{xp}XP {gold}G
+      {streak && <Icon as={Fire} size={12} className="text-brick-700" />}
+    </span>
+  );
+}
+
+function sortTasks(
+  tasks: Task[],
+  prefs: QuestViewPrefs,
+  name: (task: Task) => string,
+  streakDays: (task: Task) => number,
+  locale: string,
+): Task[] {
+  const byName = (a: Task, b: Task) => name(a).localeCompare(name(b), locale);
+  const compare: Record<QuestViewPrefs['sort'], (a: Task, b: Task) => number> = {
+    streak: (a, b) => streakDays(b) - streakDays(a) || byName(a, b),
+    xp: (a, b) => b.xp - a.xp || byName(a, b),
+    gold: (a, b) => b.gold - a.gold || byName(a, b),
+    name: byName,
+  };
+  return [...tasks].sort(compare[prefs.sort]);
 }
 
 function ErrorNote({ error }: { error: TranslationKey | null }) {
@@ -84,7 +124,8 @@ function ErrorNote({ error }: { error: TranslationKey | null }) {
 }
 
 export function TasksView() {
-  const { t, language } = useLanguage();
+  const { t, language, locale } = useLanguage();
+  const [prefs, setPrefs] = useQuestViewPrefs();
   const {
     state,
     activeCharacter,
@@ -96,6 +137,8 @@ export function TasksView() {
     undoLog,
     reassignLog,
     getTodayLog,
+    getStreak,
+    previewReward,
     upsertTask,
     removeTask,
   } = useGame();
@@ -108,6 +151,32 @@ export function TasksView() {
   const [error, setError] = useState<TranslationKey | null>(null);
 
   const enabled = state.tasks.filter((task) => task.enabled);
+  // Sorted, then split into sections (a single untitled section when not grouping).
+  const sections = useMemo(() => {
+    const sorted = sortTasks(
+      enabled,
+      prefs,
+      (task) => taskName(task, language),
+      (task) => getStreak(task.id, activeCharacter).days,
+      locale,
+    );
+    if (prefs.groupBy === 'none') return [{ key: 'all', title: null as string | null, tasks: sorted }];
+    const keys: string[] = prefs.groupBy === 'group' ? TASK_GROUPS : TASK_CATEGORIES;
+    return keys
+      .map((key) => ({
+        key,
+        title: t((prefs.groupBy === 'group' ? `group.${key}` : `category.${key}`) as TranslationKey),
+        tasks: sorted.filter((task) => (prefs.groupBy === 'group' ? task.group : task.category) === key),
+      }))
+      .filter((section) => section.tasks.length > 0);
+  }, [enabled, prefs, language, locale, getStreak, activeCharacter, t]);
+
+  const previews = useMemo(() => {
+    if (!pending) return undefined;
+    const result: Partial<Record<Completer, Breakdown | null>> = {};
+    for (const who of completerOptions) result[who] = previewReward(pending.id, who);
+    return result;
+  }, [pending, completerOptions, previewReward]);
   const handle = (result: ActionResult, onOk: () => void) => {
     if (result.ok) {
       setError(null);
@@ -132,94 +201,114 @@ export function TasksView() {
         }
       />
       {!pending && !fixing && <ErrorNote error={error} />}
+      <QuestViewControls prefs={prefs} onChange={setPrefs} />
       {enabled.length === 0 && <Card>{t('tasks.empty')}</Card>}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {enabled.map((task) => {
-          const log = getTodayLog(task.id);
-          const done = !!log;
-          return (
-            <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-4">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-12 w-12 items-center justify-center`}
-                >
-                  <Icon as={done ? Check : CATEGORY_ICONS[task.category]} size={24} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-xl font-extrabold leading-tight ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
-                    {taskName(task, language)}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-3">
-                    <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
-                    <GoldCounter amount={task.gold} />
-                    <span className="text-sm font-bold uppercase text-wood-500">
-                      {t(`category.${task.category}` as TranslationKey)}
+      {sections.map((section) => (
+        <Fragment key={section.key}>
+          {section.title && (
+            <h2 className="px-title flex items-center gap-2 text-2xl">
+              {section.title}
+              <span className="font-arcade text-[10px] text-parchment-300">{section.tasks.length}</span>
+            </h2>
+          )}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {section.tasks.map((task) => {
+              const log = getTodayLog(task.id);
+              const done = !!log;
+              const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
+              return (
+                <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-12 w-12 items-center justify-center`}
+                    >
+                      <Icon as={done ? Check : CATEGORY_ICONS[task.category]} size={24} />
                     </span>
-                  </div>
-                </div>
-                {canEditSettings && (
-                  <button
-                    type="button"
-                    className="px-focus p-1 text-wood-500 hover:text-brick-600"
-                    onClick={() => setEditing(task)}
-                    aria-label={t('tasks.edit')}
-                  >
-                    <Icon as={Pencil} size={24} />
-                  </button>
-                )}
-              </div>
-              {log ? (
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-base font-extrabold uppercase text-moss-700">
-                    <span className="flex items-end">
-                      {log.completedBy === 'both' ? (
-                        <>
-                          <CharacterAvatar id="husband" scale={1} framed={false} />
-                          <CharacterAvatar id="wife" scale={1} framed={false} />
-                        </>
-                      ) : (
-                        <CharacterAvatar id={log.completedBy} scale={1} framed={false} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-xl font-extrabold leading-tight ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
+                        {taskName(task, language)}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-3">
+                        <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
+                        <GoldCounter amount={task.gold} />
+                        <span className="text-sm font-bold uppercase text-wood-500">
+                          {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
+                        </span>
+                      </div>
+                      {streaks.some((streak) => streak.days >= 2) && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {streaks.map((streak) => (
+                            <StreakBadge key={streak.characterId} streak={streak} showAvatar />
+                          ))}
+                        </div>
                       )}
-                    </span>
-                    {t('tasks.doneBy', {
-                      who: log.completedBy === 'both' ? t('tasks.both') : t(`character.${log.completedBy}`),
-                    })}
-                  </span>
-                  {canManageLog(log) && (
+                    </div>
+                    {canEditSettings && (
+                      <button
+                        type="button"
+                        className="px-focus p-1 text-wood-500 hover:text-brick-600"
+                        onClick={() => setEditing(task)}
+                        aria-label={t('tasks.edit')}
+                      >
+                        <Icon as={Pencil} size={24} />
+                      </button>
+                    )}
+                  </div>
+                  {log ? (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-base font-extrabold uppercase text-moss-700">
+                        <span className="flex items-end">
+                          {log.completedBy === 'both' ? (
+                            <>
+                              <CharacterAvatar id="husband" scale={1} framed={false} />
+                              <CharacterAvatar id="wife" scale={1} framed={false} />
+                            </>
+                          ) : (
+                            <CharacterAvatar id={log.completedBy} scale={1} framed={false} />
+                          )}
+                        </span>
+                        {t('tasks.doneBy', {
+                          who: log.completedBy === 'both' ? t('tasks.both') : t(`character.${log.completedBy}`),
+                        })}
+                      </span>
+                      {canManageLog(log) && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setError(null);
+                            setFixCompleter(log.completedBy);
+                            setFixing(log);
+                          }}
+                        >
+                          <Icon as={Pencil} size={24} />
+                          {t('tasks.editLog')}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
                     <Button
-                      variant="secondary"
+                      className="mt-3 w-full"
+                      variant="brick"
+                      disabled={!canPlay}
                       onClick={() => {
                         setError(null);
-                        setFixCompleter(log.completedBy);
-                        setFixing(log);
+                        setCompleter(completerOptions.includes(activeCharacter) ? activeCharacter : completerOptions[0]);
+                        setPending(task);
                       }}
                     >
-                      <Icon as={Pencil} size={24} />
-                      {t('tasks.editLog')}
+                      {t('tasks.complete')}
                     </Button>
                   )}
-                </div>
-              ) : (
-                <Button
-                  className="mt-3 w-full"
-                  variant="brick"
-                  disabled={!canPlay}
-                  onClick={() => {
-                    setError(null);
-                    setCompleter(completerOptions.includes(activeCharacter) ? activeCharacter : completerOptions[0]);
-                    setPending(task);
-                  }}
-                >
-                  {t('tasks.complete')}
-                </Button>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+                </Card>
+              );
+            })}
+          </div>
+        </Fragment>
+      ))}
 
       <Modal open={!!pending} onClose={() => setPending(null)} title={t('tasks.who')}>
-        <CompleterPicker options={completerOptions} value={completer} onChange={setCompleter} />
+        <CompleterPicker options={completerOptions} value={completer} onChange={setCompleter} previews={previews} />
+        {previews?.[completer] && <RewardBreakdownTable breakdown={previews[completer]!} />}
         <ErrorNote error={error} />
         <Button
           className="w-full"

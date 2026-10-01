@@ -1,5 +1,21 @@
-import { HIGH_TIER_LEVEL_GOLD, MAX_LEVEL, STANDARD_LEVEL_GOLD, XP_CURVE } from '../constants/gameRules';
-import type { Character, CharacterId, CharacterSkill, Completer, SkillDefinition, Task } from '../types';
+import {
+  HIGH_TIER_LEVEL_GOLD,
+  MASTERY_LEVEL_GOLD,
+  MAX_LEVEL,
+  MAX_SKILL_POINTS,
+  STANDARD_LEVEL_GOLD,
+  XP_CURVE,
+} from '../constants/gameRules';
+import type {
+  Character,
+  CharacterId,
+  CharacterSkill,
+  Completer,
+  RewardBreakdown,
+  SkillDefinition,
+  Task,
+} from '../types';
+import { streakBonusGold } from './streaks';
 
 export function getLevelFromXp(xp: number): number {
   let remaining = Math.max(0, xp);
@@ -48,6 +64,7 @@ export function getXpProgress(xp: number): {
 export function getLevelUpGold(newLevel: number): number {
   if (newLevel < 2 || newLevel > MAX_LEVEL) return 0;
   if (newLevel <= 24) return STANDARD_LEVEL_GOLD;
+  if (newLevel === MAX_LEVEL) return MASTERY_LEVEL_GOLD;
   return HIGH_TIER_LEVEL_GOLD;
 }
 
@@ -111,9 +128,14 @@ export function monthKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Skill points earned by a level: one per level, capped at what all skill slots can hold (24). */
+export function skillPointsEarned(level: number): number {
+  return Math.min(level, MAX_SKILL_POINTS);
+}
+
 export function skillPointsAvailable(level: number, skills: CharacterSkill[]): number {
   const allocated = skills.reduce((sum, skill) => sum + skill.level, 0);
-  return Math.max(0, level - allocated);
+  return Math.max(0, skillPointsEarned(level) - allocated);
 }
 
 export function msUntilNextMonth(date = new Date()): number {
@@ -129,14 +151,14 @@ export function formatCountdown(ms: number): { days: number; hours: number; minu
   return { days, hours, minutes };
 }
 
+/** Multiplies a reward by the character's skill bonuses for this task (category, group, co-op). */
 export function applySkillBonuses(
   baseXp: number,
   baseGold: number,
-  task: Task,
+  task: Pick<Task, 'category' | 'group'>,
   completer: Completer,
   character: Character,
   skillPool: SkillDefinition[],
-  hour = new Date().getHours(),
 ): { xp: number; gold: number } {
   let xpMult = 1;
   let goldMult = 1;
@@ -145,13 +167,12 @@ export function applySkillBonuses(
     const def = skillPool.find((skill) => skill.id === owned.skillId);
     if (!def) continue;
     const bonus = def.effect.perLevel * owned.level;
+    const inGroup = task.group === def.effect.group;
     switch (def.effect.kind) {
       case 'xp_all':
         xpMult += bonus;
         break;
       case 'gold_all':
-        goldMult += bonus;
-        break;
       case 'gold_mult':
         goldMult += bonus;
         break;
@@ -167,14 +188,14 @@ export function applySkillBonuses(
           goldMult += bonus;
         }
         break;
-      case 'morning_bonus':
-        if (hour < 12) {
-          xpMult += bonus;
-          goldMult += bonus;
-        }
+      case 'group_xp':
+        if (inGroup) xpMult += bonus;
         break;
-      case 'evening_bonus':
-        if (hour >= 20) {
+      case 'group_gold':
+        if (inGroup) goldMult += bonus;
+        break;
+      case 'group_both':
+        if (inGroup) {
           xpMult += bonus;
           goldMult += bonus;
         }
@@ -273,23 +294,58 @@ export function normalizeHouseholdCode(input: string): string {
 // ---------------------------------------------------------------------------
 
 export type RewardSplit = Record<CharacterId, { xp: number; gold: number }>;
+export type QuestBase = Pick<Task, 'xp' | 'gold' | 'category' | 'group'>;
 
-/** XP/gold each character earns for a quest, including the 50/50 split for "both" and skill bonuses. */
-export function computeRewardSplit(
-  base: { xp: number; gold: number; category: Task['category'] },
+/**
+ * Exactly what each character earns for a quest: base share (50/50 for "both"), plus skill bonuses on
+ * that share, plus the character's own streak bonus gold (never split). `null` for non-recipients.
+ */
+export function computeRewardBreakdown(
+  base: QuestBase,
   completer: Completer,
   characters: Record<CharacterId, Character>,
   skillPool: SkillDefinition[],
-  hour: number,
-): RewardSplit {
+  streakDays: Partial<Record<CharacterId, number>> = {},
+): Record<CharacterId, RewardBreakdown | null> {
   const share = completer === 'both' ? 0.5 : 1;
-  const split: RewardSplit = { husband: { xp: 0, gold: 0 }, wife: { xp: 0, gold: 0 } };
+  const result: Record<CharacterId, RewardBreakdown | null> = { husband: null, wife: null };
   const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
-  const task = { id: '', nameKey: '', enabled: true, ...base };
   for (const id of recipients) {
-    split[id] = applySkillBonuses(base.xp * share, base.gold * share, task, completer, characters[id], skillPool, hour);
+    const baseXp = base.xp * share;
+    const baseGold = base.gold * share;
+    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool);
+    const days = streakDays[id] ?? 0;
+    const streakGold = streakBonusGold(days);
+    result[id] = {
+      baseXp,
+      baseGold,
+      skillXp: withSkills.xp - baseXp,
+      skillGold: withSkills.gold - baseGold,
+      streakDays: days,
+      streakGold,
+      xp: withSkills.xp,
+      gold: withSkills.gold + streakGold,
+    };
   }
-  return split;
+  return result;
+}
+
+/** Totals per character from a breakdown (0 for non-recipients). */
+export function splitFromBreakdown(breakdown: Record<CharacterId, RewardBreakdown | null>): RewardSplit {
+  return {
+    husband: { xp: breakdown.husband?.xp ?? 0, gold: breakdown.husband?.gold ?? 0 },
+    wife: { xp: breakdown.wife?.xp ?? 0, gold: breakdown.wife?.gold ?? 0 },
+  };
+}
+
+/** XP/gold each character earns for a quest (without streaks); see computeRewardBreakdown for details. */
+export function computeRewardSplit(
+  base: QuestBase,
+  completer: Completer,
+  characters: Record<CharacterId, Character>,
+  skillPool: SkillDefinition[],
+): RewardSplit {
+  return splitFromBreakdown(computeRewardBreakdown(base, completer, characters, skillPool));
 }
 
 export interface LevelUp {
@@ -336,7 +392,7 @@ export function revokeRewards(
     const fromLevel = getLevelFromXp(prev.xp);
     const toLevel = getLevelFromXp(xp);
     const allocated = prev.skills.reduce((sum, skill) => sum + skill.level, 0);
-    if (allocated > toLevel) return { ok: false, characterId: id };
+    if (allocated > skillPointsEarned(toLevel)) return { ok: false, characterId: id };
     const lostBonus = goldForLevelRange(toLevel, fromLevel);
     next[id] = { ...prev, xp, gold: Math.max(0, prev.gold - (goldAwarded[id] ?? 0) - lostBonus) };
   }

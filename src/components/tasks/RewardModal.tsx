@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Star } from 'pixelarticons/react';
-import { useEffect } from 'react';
+import { Fire, Sparkles, Star } from 'pixelarticons/react';
+import { useEffect, useState } from 'react';
 import { COIN } from '../../assets/sprites';
+import { MAX_LEVEL } from '../../constants/gameRules';
 import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -13,20 +14,27 @@ import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { pixelEase } from '../ui/Modal';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
+import { MasteryCelebration } from './MasteryCelebration';
 
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t, language } = useLanguage();
   const { state, reward, clearReward, canActAs } = useGame();
-  const { playTaskCompleteSFX, playLevelUpSFX } = useAudio();
+  const { playTaskCompleteSFX, playLevelUpSFX, playMasterySFX } = useAudio();
+  // Reaching the level cap gets a full-screen celebration before the usual reward card.
+  const mastery = reward?.levelUps.find((levelUp) => levelUp.to >= MAX_LEVEL);
+  const [celebratedId, setCelebratedId] = useState<string | null>(null);
+  const celebrating = !!reward && !!mastery && celebratedId !== reward.id;
 
-  // Coin jingle for every completed quest, then a fanfare if anyone levelled up.
+  // Coin jingle for every completed quest, then a fanfare if anyone levelled up (a grand one for mastery).
   const rewardId = reward?.id;
   const leveledUp = (reward?.levelUps.length ?? 0) > 0;
+  const mastered = !!mastery;
   useEffect(() => {
     if (!rewardId) return;
     playTaskCompleteSFX();
-    if (leveledUp) playLevelUpSFX(0.35);
-  }, [rewardId, leveledUp, playTaskCompleteSFX, playLevelUpSFX]);
+    if (mastered) playMasterySFX(0.35);
+    else if (leveledUp) playLevelUpSFX(0.35);
+  }, [rewardId, leveledUp, mastered, playTaskCompleteSFX, playLevelUpSFX, playMasterySFX]);
   // Only offer the skill picker for a character this player controls.
   const needsSkills = reward?.levelUps.some((levelUp) => {
     const character = state.characters[levelUp.characterId];
@@ -35,8 +43,18 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
 
   return (
     <AnimatePresence>
-      {reward && (
+      {celebrating && mastery && (
+        <MasteryCelebration
+          key="mastery"
+          characterId={mastery.characterId}
+          level={mastery.to}
+          bonusGold={mastery.bonusGold}
+          onContinue={() => setCelebratedId(reward.id)}
+        />
+      )}
+      {reward && !celebrating && (
         <motion.div
+          key="reward"
           className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -73,6 +91,12 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                     <p className="text-base font-extrabold uppercase text-wood-700">{t(`character.${id}`)}</p>
                     <p className="font-arcade text-[10px] text-moss-700">+{Math.round(reward.xp[id])}XP</p>
                     <GoldCounter amount={reward.gold[id]} />
+                    {(reward.streakGold?.[id] ?? 0) > 0 && (
+                      <p className="flex items-center gap-1 bg-ember-400 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]">
+                        <Icon as={Fire} size={12} className="text-brick-700" />
+                        {t('streak.days', { days: reward.streakDays?.[id] ?? 0 })} ({t('streak.bonus', { gold: reward.streakGold?.[id] ?? 0 })})
+                      </p>
+                    )}
                   </div>
                 );
               })}

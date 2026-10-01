@@ -48,12 +48,15 @@ interface HouseholdContextValue {
   me: HouseholdMember | null;
   partner: HouseholdMember | null;
   isModerator: boolean;
+  /** This account created the household: only it may grant or revoke the partner's moderator role. */
+  isCreator: boolean;
   /** Both husband and wife have joined. */
   isActive: boolean;
   createHousehold: (characterId: CharacterId) => Promise<ActionResult>;
   joinHousehold: (code: string) => Promise<ActionResult>;
   leaveHousehold: () => Promise<ActionResult>;
   grantModerator: (uid: string) => Promise<ActionResult>;
+  revokeModerator: (uid: string) => Promise<ActionResult>;
   /** Re-authenticates with the password, removes all of this account's data, then deletes the sign-in. */
   deleteAccount: (password: string) => Promise<ActionResult>;
 }
@@ -66,7 +69,8 @@ function firestoreCode(err: unknown): string {
 
 /**
  * Adds "remove `uid` from this household" to a batch: the last member deletes the household and its
- * code; a leaving sole moderator hands the role to the partner so the household is never unmanaged.
+ * code. A leaving creator passes founder status (and moderation) to the partner, and a leaving sole
+ * moderator promotes the partner, so the household is never left unmanaged.
  */
 function addLeaveToBatch(batch: WriteBatch, db: Firestore, household: HouseholdSnapshot, uid: string) {
   const ref = doc(db, 'households', household.id);
@@ -77,9 +81,11 @@ function addLeaveToBatch(batch: WriteBatch, db: Firestore, household: HouseholdS
     return;
   }
   const patch: UpdateData<DocumentData> = { memberIds: others, [`members.${uid}`]: deleteField() };
+  const leavingCreator = household.data.createdBy === uid;
   const leavingModerator = household.data.members[uid]?.role === 'moderator';
   const otherIsModerator = others.some((id) => household.data.members[id]?.role === 'moderator');
-  if (leavingModerator && !otherIsModerator) patch[`members.${others[0]}.role`] = 'moderator';
+  if (leavingCreator) patch.createdBy = others[0];
+  if ((leavingCreator || leavingModerator) && !otherIsModerator) patch[`members.${others[0]}.role`] = 'moderator';
   batch.update(ref, patch);
 }
 
@@ -335,20 +341,24 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     [household, uid],
   );
 
-  const grantModerator = useCallback(
-    async (targetUid: string): Promise<ActionResult> => {
+  const setPartnerRole = useCallback(
+    async (targetUid: string, role: 'moderator' | 'member'): Promise<ActionResult> => {
       const firebase = getFirebase();
       if (!firebase || !household) return { ok: false, error: 'onboarding.error.generic' };
+      // Only the original creator manages roles, and never their own.
+      if (household.data.createdBy !== uid || targetUid === uid) return { ok: false, error: 'household.creatorOnly' };
       try {
-        await updateDoc(doc(firebase.db, 'households', household.id), { [`members.${targetUid}.role`]: 'moderator' });
+        await updateDoc(doc(firebase.db, 'households', household.id), { [`members.${targetUid}.role`]: role });
         return { ok: true };
       } catch (err) {
-        console.error('ChoreQuest: failed to grant moderator', err);
+        console.error('ChoreQuest: failed to change role', err);
         return { ok: false, error: 'onboarding.error.generic' };
       }
     },
-    [household],
+    [household, uid],
   );
+  const grantModerator = useCallback((targetUid: string) => setPartnerRole(targetUid, 'moderator'), [setPartnerRole]);
+  const revokeModerator = useCallback((targetUid: string) => setPartnerRole(targetUid, 'member'), [setPartnerRole]);
 
   const activeHouseholdId = household?.id ?? null;
   const householdRef = useMemo(() => {
@@ -364,14 +374,29 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       me,
       partner,
       isModerator: status === 'demo' || me?.role === 'moderator',
+      isCreator: status === 'ready' && !!uid && household?.data.createdBy === uid,
       isActive: status === 'demo' || (household?.data.memberIds.length ?? 0) >= 2,
       createHousehold,
       joinHousehold,
       leaveHousehold,
       grantModerator,
+      revokeModerator,
       deleteAccount,
     }),
-    [status, household, householdRef, me, partner, createHousehold, joinHousehold, leaveHousehold, grantModerator, deleteAccount],
+    [
+      status,
+      uid,
+      household,
+      householdRef,
+      me,
+      partner,
+      createHousehold,
+      joinHousehold,
+      leaveHousehold,
+      grantModerator,
+      revokeModerator,
+      deleteAccount,
+    ],
   );
 
   return <HouseholdContext.Provider value={value}>{children}</HouseholdContext.Provider>;

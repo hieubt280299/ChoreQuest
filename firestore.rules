@@ -6,8 +6,9 @@ rules_version = '2';
 //   householdCodes/{code}     { householdId, createdBy }       - 6-character join code lookup
 //
 // A household holds at most 2 members (husband + wife). Only moderators may change `settings`
-// (quests, prize pool), the chronicle end date or roles. Any member may update `game` and roll the
-// chronicle over once it has expired. Which character a member may act for is enforced in the app.
+// (quests, prize pool) or the chronicle end date; only the creator (`createdBy`) may grant or revoke the
+// partner's moderator role. Any member may update `game` and roll the chronicle over once it has
+// expired. Which character a member may act for is enforced in the app.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -47,6 +48,9 @@ service cloud.firestore {
       function isModerator() {
         return isMember() && data().members[request.auth.uid].role == 'moderator';
       }
+      function isCreator() {
+        return isMember() && data().createdBy == request.auth.uid;
+      }
       function unchanged(field) {
         return next()[field] == data()[field];
       }
@@ -73,13 +77,17 @@ service cloud.firestore {
         && next().members[request.auth.uid].role == 'moderator';
 
       allow update: if
-        // Playing (any member) and configuring (moderators).
+        // Playing (any member) and configuring (moderators); membership and roles stay untouched.
         (isMember()
           && unchanged('code') && unchanged('createdBy') && unchanged('createdAt')
-          && next().memberIds.size() <= 2
+          && unchanged('memberIds') && unchanged('members')
           && (isModerator()
-            || (unchanged('settings') && unchanged('members') && unchanged('memberIds')
-              && (unchanged('chronicle') || chronicleExpired()))))
+            || (unchanged('settings') && (unchanged('chronicle') || chronicleExpired()))))
+        // Roles: only the creator grants or revokes the partner's moderator role, never their own entry.
+        || (isCreator()
+          && onlyChanges(['members'])
+          && next().members.keys().hasOnly(data().members.keys())
+          && next().members[request.auth.uid] == data().members[request.auth.uid])
         // Joining through a code: add only yourself, while there is a free slot.
         || (signedIn()
           && !(request.auth.uid in data().memberIds)
@@ -88,12 +96,14 @@ service cloud.firestore {
           && next().memberIds == data().memberIds.concat([request.auth.uid])
           && onlyOwnMemberEntryChanges()
           && next().members[request.auth.uid].role == (data().memberIds.size() == 0 ? 'moderator' : 'member'))
-        // Leaving: remove only yourself.
+        // Leaving: remove only yourself. A leaving creator passes founder status (and moderation) on.
         || (isMember()
-          && onlyChanges(['memberIds', 'members'])
+          && onlyChanges(['memberIds', 'members', 'createdBy'])
           && !(request.auth.uid in next().memberIds)
           && next().memberIds.size() == data().memberIds.size() - 1
-          && onlyOwnMemberEntryChanges());
+          && (data().createdBy == request.auth.uid
+            ? next().createdBy in next().memberIds
+            : (unchanged('createdBy') && onlyOwnMemberEntryChanges())));
 
       // The last member leaving deletes the household.
       allow delete: if isMember() && data().memberIds.size() == 1;

@@ -522,3 +522,22 @@ body {
     opacity: 0.55;
   }
 }
+
+/* ---- Mastery celebration confetti ---- */
+.px-confetti {
+  animation: px-confetti-fall var(--dur, 3s) steps(18) var(--delay, 0s) infinite;
+}
+@keyframes px-confetti-fall {
+  0% {
+    transform: translateY(-5vh) rotate(0deg);
+  }
+  100% {
+    transform: translateY(105vh) rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .px-confetti {
+    animation: none;
+    display: none;
+  }
+}
