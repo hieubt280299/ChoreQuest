@@ -1,5 +1,6 @@
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { getLevelFromXp } from '../../utils/calculations';
 import { LevelBadge } from '../ui/LevelBadge';
@@ -11,12 +12,13 @@ import { PrizePreview } from './PrizePreview';
 
 export function DashboardView() {
   const { t } = useLanguage();
-  const { state, activeCharacter, setActiveCharacter, canSwitchCharacter } = useGame();
+  const { name } = useCharacterName();
+  const { state, activeCharacter } = useGame();
 
   const plate = (id: CharacterId) => (
     <span className="flex flex-col items-center gap-1">
-      <span className="bg-ink/80 px-1.5 text-sm font-bold uppercase leading-tight text-parchment-50">
-        {t(`character.${id}`)}
+      <span className="max-w-[9rem] truncate bg-ink/80 px-1.5 text-sm font-bold uppercase leading-tight text-parchment-50">
+        {name(id)}
       </span>
       <LevelBadge level={getLevelFromXp(state.characters[id].xp)} />
     </span>
@@ -34,7 +36,6 @@ export function DashboardView() {
             key={id}
             character={state.characters[id]}
             active={activeCharacter === id}
-            onSelect={canSwitchCharacter ? () => setActiveCharacter(id) : undefined}
           />
         ))}
       </div>

@@ -1,5 +1,6 @@
 import { Fire } from 'pixelarticons/react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, RewardBreakdown } from '../../types';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { Icon } from '../ui/Icon';
@@ -9,6 +10,7 @@ const fmt = (value: number) => Math.round(value);
 /** Base + skill + streak bonuses for each recipient of a completion. */
 export function RewardBreakdownTable({ breakdown }: { breakdown: Record<CharacterId, RewardBreakdown | null> }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   const recipients = (['husband', 'wife'] as CharacterId[]).filter((id) => breakdown[id]);
 
   const row = (label: string, render: (part: RewardBreakdown) => string, highlight = false) => (
@@ -35,7 +37,7 @@ export function RewardBreakdownTable({ breakdown }: { breakdown: Record<Characte
               <th key={id} scope="col" className="pb-1 text-right text-sm font-extrabold uppercase text-wood-700">
                 <span className="inline-flex items-end gap-1">
                   <CharacterAvatar id={id} scale={1} framed={false} />
-                  {t(`character.${id}`)}
+                  <span className="max-w-[7rem] truncate">{name(id)}</span>
                 </span>
               </th>
             ))}

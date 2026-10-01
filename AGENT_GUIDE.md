@@ -72,6 +72,7 @@ src/
     - **Roles:** the creator (`createdBy`) is `moderator`, and **only the creator** can grant or revoke `moderator` for the partner. Only moderators edit settings (quests, prize pool, chronicle end date). If the creator leaves, founder status and moderation pass to the remaining member.
     - **Leave Household** detaches the account and returns it to onboarding; a leaving sole moderator promotes the partner, and the last member leaving deletes the household.
     - **Character binding:** an account spends skill points only for its own character, and the partner's stats are view-only. Quests may be logged for either character or both. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
+- **Character names:** each player may rename only their own character (any in the demo) from the Home card. `customName` is at most 16 Unicode letters, digits or spaces, trimmed with inner spaces collapsed; blank means unset. The name replaces the role label throughout the app (via `useCharacterName`), except the "You are / Playing as" switcher; the Home card shows the name with the role as a subheader.
 - Each character possesses:
     - `xp`: total experience accumulated.
     - `level`: calculated from XP array index (1 to 30).

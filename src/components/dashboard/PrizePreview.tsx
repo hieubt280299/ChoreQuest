@@ -1,6 +1,7 @@
 import { Gift } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { calculatePayout } from '../../utils/calculations';
 import { Card } from '../ui/Card';
@@ -10,6 +11,7 @@ import { Vnd } from '../ui/Vnd';
 
 export function PrizePreview() {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   const { state } = useGame();
   const payout = calculatePayout(state.prizePool, state.characters.husband.gold, state.characters.wife.gold);
 
@@ -25,7 +27,7 @@ export function PrizePreview() {
           <div key={id} className="px-slot flex items-center gap-2 p-2">
             <CharacterAvatar id={id} scale={2} framed={false} />
             <div className="min-w-0">
-              <p className="text-sm font-bold uppercase text-wood-600">{t(`character.${id}`)}</p>
+              <p className="truncate text-sm font-bold uppercase text-wood-600">{name(id)}</p>
               <Vnd amount={payout[id]} className="block truncate text-[10px] text-ink" />
             </div>
           </div>

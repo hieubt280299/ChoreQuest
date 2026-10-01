@@ -2,6 +2,7 @@ import { Castle, Crown, Logout } from 'pixelarticons/react';
 import { useState } from 'react';
 import { useHousehold } from '../../context/HouseholdContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, HouseholdMember } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -14,6 +15,7 @@ import { Modal } from '../ui/Modal';
 /** Join code, members and roles, and leaving. Only shown for online households. */
 export function HouseholdCard() {
   const { t } = useLanguage();
+  const { name, role, hasCustomName } = useCharacterName();
   const { status, household, me, isCreator, grantModerator, revokeModerator, leaveHousehold } = useHousehold();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -53,7 +55,10 @@ export function HouseholdCard() {
               <CharacterAvatar id={member.characterId} scale={2} framed={false} />
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-extrabold leading-tight">
-                  {t(`character.${member.characterId}`)}
+                  {name(member.characterId)}
+                  {hasCustomName(member.characterId) && (
+                    <span className="ml-2 text-base text-wood-600">· {role(member.characterId)}</span>
+                  )}
                   {isMe && <span className="ml-2 text-base text-wood-600">({t('household.you')})</span>}
                   {member.uid === household.data.createdBy && (
                     <span className="ml-2 text-sm uppercase text-brick-600">· {t('household.creator')}</span>

@@ -2,6 +2,7 @@ import { ChevronDown, Fire, Home } from 'pixelarticons/react';
 import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { formatDateRange, parseDateKey } from '../../utils/calculations';
 import { questHistory, totalTally, type QuestTally } from '../../utils/history';
@@ -19,18 +20,18 @@ const other = (id: CharacterId): CharacterId => (id === 'husband' ? 'wife' : 'hu
 
 /** Two-colour bar showing how a total splits between the two players. */
 function ShareBar({ label, mine, theirs, me, partner }: { label: string; mine: number; theirs: number; me: CharacterId; partner: CharacterId }) {
-  const { t } = useLanguage();
+  const { name } = useCharacterName();
   const total = mine + theirs;
   const share = total > 0 ? Math.round((mine / total) * 100) : 0;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-sm font-extrabold uppercase text-wood-700">
-        <span>
-          {t(`character.${me}`)} {share}%
+      <div className="mb-1 flex justify-between gap-2 text-sm font-extrabold uppercase text-wood-700">
+        <span className="flex min-w-0 gap-1">
+          <span className="max-w-[40%] truncate">{name(me)}</span> {share}%
         </span>
         <span>{label}</span>
-        <span>
-          {t(`character.${partner}`)} {total > 0 ? 100 - share : 0}%
+        <span className="flex min-w-0 justify-end gap-1">
+          <span className="max-w-[40%] truncate">{name(partner)}</span> {total > 0 ? 100 - share : 0}%
         </span>
       </div>
       <div className="flex h-4 bg-parchment-300 shadow-[0_0_0_3px_#2b1a12]" role="img" aria-label={`${label}: ${share}% / ${total > 0 ? 100 - share : 0}%`}>
@@ -43,10 +44,11 @@ function ShareBar({ label, mine, theirs, me, partner }: { label: string; mine: n
 
 function TallyRow({ id, tally }: { id: CharacterId; tally: QuestTally }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   return (
     <div className="px-slot flex flex-wrap items-center gap-3 p-2">
       <CharacterAvatar id={id} scale={2} framed={false} />
-      <span className="min-w-20 flex-1 text-base font-extrabold uppercase">{t(`character.${id}`)}</span>
+      <span className="min-w-20 flex-1 truncate text-base font-extrabold uppercase">{name(id)}</span>
       <span className="font-arcade text-[10px]">{t('history.times', { count: tally.count })}</span>
       <span className="font-arcade text-[10px] text-moss-700">+{Math.round(tally.xp)}XP</span>
       <GoldCounter amount={tally.gold} />
@@ -56,6 +58,7 @@ function TallyRow({ id, tally }: { id: CharacterId; tally: QuestTally }) {
 
 export function HistoryView() {
   const { t, language, locale } = useLanguage();
+  const { name } = useCharacterName();
   const { state, today, activeCharacter, getStreak } = useGame();
   const [player, setPlayer] = useState<CharacterId>(activeCharacter);
   const [openTask, setOpenTask] = useState<string | null>(null);
@@ -97,7 +100,7 @@ export function HistoryView() {
               className={`px-btn justify-start gap-2 py-1.5 pl-1.5 text-lg ${selected ? 'px-btn-primary' : ''}`}
             >
               <CharacterAvatar id={id} scale={2} framed={false} />
-              <span className="flex-1 text-left">{t(`character.${id}`)}</span>
+              <span className="min-w-0 flex-1 truncate text-left">{name(id)}</span>
               <span className="font-arcade text-[10px] normal-case">{t('history.times', { count: counts[id] })}</span>
             </button>
           );

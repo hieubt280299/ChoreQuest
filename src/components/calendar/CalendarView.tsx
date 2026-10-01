@@ -1,6 +1,7 @@
 import { Gift, Trophy } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import {
   addDays,
@@ -21,6 +22,7 @@ import { Vnd } from '../ui/Vnd';
 
 export function CalendarView() {
   const { t, locale, language } = useLanguage();
+  const { name } = useCharacterName();
   const { state } = useGame();
   const { chronicle } = state;
   const today = localDateKey();
@@ -117,13 +119,13 @@ export function CalendarView() {
                   />
                 </div>
                 <div className="min-w-0 space-y-1.5">
-                  <p className="text-xl font-extrabold uppercase leading-none">{t(`character.${id}`)}</p>
+                  <p className="truncate text-xl font-extrabold uppercase leading-none">{name(id)}</p>
                   <p className="flex items-center gap-2 text-sm font-bold uppercase text-wood-600">
                     {t('character.gold')}
                     <GoldCounter amount={character.gold} />
                   </p>
                   <div>
-                    <p className="text-sm font-bold uppercase text-wood-600">{t(`calendar.${id}Share`)}</p>
+                    <p className="text-sm font-bold uppercase text-wood-600">{t('calendar.payout')}</p>
                     <Vnd amount={payout[id]} className="text-sm text-ink" />
                   </div>
                 </div>
@@ -146,8 +148,8 @@ export function CalendarView() {
                   <span className="text-base font-bold text-wood-600">{formatDateRange(entry.startDate, entry.endDate, locale)}</span>
                 </span>
                 <span className="flex flex-wrap items-center gap-3 text-base font-bold text-wood-700">
-                  {t('character.husband')} <Vnd amount={entry.payout.husband} className="text-[10px] text-ink" />
-                  {t('character.wife')} <Vnd amount={entry.payout.wife} className="text-[10px] text-ink" />
+                  {name('husband')} <Vnd amount={entry.payout.husband} className="text-[10px] text-ink" />
+                  {name('wife')} <Vnd amount={entry.payout.wife} className="text-[10px] text-ink" />
                 </span>
               </div>
             ))}
