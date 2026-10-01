@@ -26,12 +26,21 @@ export function midiToFreq(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
-type Voice = 'lead' | 'arp' | 'bass' | 'hat' | 'kick' | 'snare';
+type Voice = 'lead' | 'harmony' | 'bass' | 'hat' | 'kick' | 'snare';
 interface NoteEvent {
   voice: Voice;
   midi: number;
   /** Length in steps. */
   steps: number;
+}
+
+/** The note a diatonic third below `midi` in the given scale (pitch classes), or null if outside it. */
+function thirdBelow(midi: number, scale: readonly number[]): number | null {
+  const index = scale.indexOf(midi % 12);
+  if (index < 0) return null;
+  const target = index - 2;
+  const octaveShift = target < 0 ? -12 : 0;
+  return midi - (midi % 12) + scale[(target + scale.length) % scale.length] + octaveShift;
 }
 
 /** Flattens the song into per-step events. Exported for validation. */
@@ -50,7 +59,11 @@ export function compileSong(): NoteEvent[][] {
     if (token === '-' || token === '.') return;
     let length = 1;
     while (leadTokens[(step + length) % total] === '-' && length < total) length += 1;
-    steps[step].push({ voice: 'lead', midi: noteToMidi(token), steps: length });
+    const midi = noteToMidi(token);
+    steps[step].push({ voice: 'lead', midi, steps: length });
+    // Second square voice a diatonic third below the lead.
+    const harmony = thirdBelow(midi, SONG.scale);
+    if (harmony !== null) steps[step].push({ voice: 'harmony', midi: harmony, steps: length });
   });
 
   const { drums } = SONG;
@@ -59,13 +72,15 @@ export function compileSong(): NoteEvent[][] {
     if (!chord) throw new Error(`Song: unknown chord ${name}`);
     const base = bar * stepsPerBar;
     const [root, fifth] = chord.bass.map(noteToMidi);
-    // Driving octave-bounce bass on every eighth.
-    [root, root + 12, fifth, root + 12, root, root + 12, fifth, root + 12].forEach((midi, step) =>
-      steps[base + step].push({ voice: 'bass', midi, steps: 1 }),
-    );
-    // Rolling arpeggio under the melody.
-    const tones = chord.tones.map(noteToMidi);
-    [0, 1, 2, 1, 0, 1, 2, 1].forEach((index, step) => steps[base + step].push({ voice: 'arp', midi: tones[index], steps: 1 }));
+    // Triangle bass following the song's per-bar pattern (each hit lasts until the next).
+    const pattern = SONG.bassPattern.split('');
+    pattern.forEach((symbol, step) => {
+      if (symbol === '.') return;
+      const midi = symbol === 'F' ? fifth : symbol === 'O' ? root + 12 : root;
+      let length = 1;
+      while (step + length < pattern.length && pattern[step + length] === '.') length += 1;
+      steps[base + step].push({ voice: 'bass', midi, steps: length });
+    });
     // Drums, with a snare fill closing each phrase.
     const fill = (drums.fillBars as readonly number[]).includes(bar);
     drums.kick.forEach((step) => steps[base + step].push({ voice: 'kick', midi: 0, steps: 1 }));
@@ -75,7 +90,7 @@ export function compileSong(): NoteEvent[][] {
   return steps;
 }
 
-const MIX: Record<Voice, number> = { lead: 0.13, arp: 0.03, bass: 0.2, hat: 0.025, kick: 0.45, snare: 0.1 };
+const MIX: Record<Voice, number> = { lead: 0.12, harmony: 0.055, bass: 0.3, hat: 0.018, kick: 0.45, snare: 0.06 };
 const LOOKAHEAD_S = 0.15;
 const TICK_MS = 25;
 
@@ -84,7 +99,7 @@ export class ChiptuneEngine {
   private master!: GainNode;
   private bgmBus!: GainNode;
   private sfxBus!: GainNode;
-  private waves!: Record<'pulse12' | 'pulse25' | 'pulse50', PeriodicWave>;
+  private waves!: Record<'pulse25' | 'pulse50', PeriodicWave>;
   private noise!: AudioBuffer;
   private readonly song = compileSong();
   private readonly stepSeconds = 60 / SONG.bpm / 2;
@@ -127,7 +142,6 @@ export class ChiptuneEngine {
     this.sfxBus.connect(this.master);
 
     this.waves = {
-      pulse12: this.pulseWave(0.125),
       pulse25: this.pulseWave(0.25),
       pulse50: this.pulseWave(0.5),
     };
@@ -214,15 +228,17 @@ export class ChiptuneEngine {
 
   private playEvent(event: NoteEvent, when: number) {
     const length = event.steps * this.stepSeconds;
+    // Lone notes are short and bouncy; held notes ring for most of their length.
+    const articulated = event.steps === 1 ? this.stepSeconds * SONG.articulation : length * 0.9;
     switch (event.voice) {
       case 'lead':
-        this.tone({ bus: this.bgmBus, wave: this.waves.pulse25, midi: event.midi, when, dur: length * 0.92, gain: MIX.lead, vibrato: length > 0.5 });
+        this.tone({ bus: this.bgmBus, wave: this.waves.pulse50, midi: event.midi, when, dur: articulated, gain: MIX.lead, vibrato: event.steps >= 3 });
         break;
-      case 'arp':
-        this.tone({ bus: this.bgmBus, wave: this.waves.pulse12, midi: event.midi, when, dur: length * 0.6, gain: MIX.arp });
+      case 'harmony':
+        this.tone({ bus: this.bgmBus, wave: this.waves.pulse25, midi: event.midi, when, dur: articulated, gain: MIX.harmony });
         break;
       case 'bass':
-        this.tone({ bus: this.bgmBus, wave: 'triangle', midi: event.midi, when, dur: length * 0.85, gain: MIX.bass });
+        this.tone({ bus: this.bgmBus, wave: 'triangle', midi: event.midi, when, dur: length * 0.7, gain: MIX.bass });
         break;
       case 'hat':
         this.hat(when, MIX.hat);

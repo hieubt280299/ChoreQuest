@@ -7,7 +7,7 @@ Act as a Principal Full-Stack Engineer specializing in React, TypeScript, and Fi
 - **Frontend:** React 18 + TypeScript (Vite)
 - **Styling:** Tailwind CSS + Pixelarticons (pixel icon set) + Framer Motion (stepped, frame-by-frame animations)
 - **State Management:** React Context API + Custom Hooks
-- **Audio:** Optional chiptune BGM + SFX synthesized with the Web Audio API (`utils/chiptune.ts`, song data in `constants/chiptuneSong.ts`), controlled by `context/AudioContext.tsx` (`useAudio`). No audio files; sound is off until the player enables it (autoplay rules). The BGM is "Over the Hill Road", a lively 16-bit JRPG world-map style loop (132 BPM, with drums).
+- **Audio:** Optional chiptune BGM + SFX synthesized with the Web Audio API (`utils/chiptune.ts`, song data in `constants/chiptuneSong.ts`), controlled by `context/AudioContext.tsx` (`useAudio`). No audio files; sound is off until the player enables it (autoplay rules). The BGM is "Brickroad Bounce", an original loop in the style of NES platformer overworld themes (190 BPM; two square voices with a third-below harmony, a triangle bass and noise percussion). It must stay original: no existing game music is reproduced.
 - **Backend/Database/Auth:** Google Firebase (v10+ Modular SDK using Firestore and Auth)
 - **Localization:** i18next or simple light React i18n Context supporting **English (EN)** and **Vietnamese (VI)** with hot-swapping in settings.
 - **Hosting/Deployment:** Vercel (SPA fallback via `vercel.json`).
