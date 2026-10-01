@@ -43,6 +43,7 @@ interface AudioContextValue extends AudioSettings {
   setSfxVolume: (volume: number) => void;
   playTaskCompleteSFX: (delaySeconds?: number) => void;
   playLevelUpSFX: (delaySeconds?: number) => void;
+  playMasterySFX: (delaySeconds?: number) => void;
   playClickSFX: () => void;
 }
 
@@ -54,6 +55,7 @@ const engine = new ChiptuneEngine();
 const sfx = {
   playTaskCompleteSFX: (delay?: number) => engine.playCoin(delay),
   playLevelUpSFX: (delay?: number) => engine.playLevelUp(delay),
+  playMasterySFX: (delay?: number) => engine.playMastery(delay),
   playClickSFX: () => engine.playClick(),
 };
 

@@ -1,4 +1,4 @@
-import { Calendar, Home, Sliders, Sword, TreePine } from 'pixelarticons/react';
+import { BookOpen, Calendar, Home, Sliders, Sword, TreePine } from 'pixelarticons/react';
 import { FIRE } from '../../assets/sprites';
 import { useLanguage } from '../../context/LanguageContext';
 import type { AppView } from '../../types';
@@ -10,6 +10,7 @@ const items: { id: AppView; icon: typeof Home; label: TranslationKey }[] = [
   { id: 'dashboard', icon: Home, label: 'nav.dashboard' },
   { id: 'tasks', icon: Sword, label: 'nav.tasks' },
   { id: 'skills', icon: TreePine, label: 'nav.skills' },
+  { id: 'history', icon: BookOpen, label: 'nav.history' },
   { id: 'calendar', icon: Calendar, label: 'nav.calendar' },
   { id: 'settings', icon: Sliders, label: 'nav.settings' },
 ];

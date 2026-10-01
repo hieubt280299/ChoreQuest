@@ -1,7 +1,8 @@
 export type CharacterId = 'husband' | 'wife';
 export type Completer = CharacterId | 'both';
 export type LanguageCode = 'en' | 'vi';
-export type AppView = 'dashboard' | 'tasks' | 'skills' | 'calendar' | 'settings';
+export type AppView = 'dashboard' | 'tasks' | 'skills' | 'history' | 'calendar' | 'settings';
+export type HouseholdRole = 'moderator' | 'member';
 
 export interface CharacterSkill {
   skillId: string;
@@ -20,7 +21,7 @@ export interface SkillDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  icon: 'sparkles' | 'chef' | 'coins' | 'sun' | 'hearts' | 'shirt' | 'cart' | 'leaf' | 'moon' | 'clover';
+  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'lightbulb' | 'shield' | 'clock';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -32,23 +33,32 @@ export type SkillEffectKind =
   | 'task_category_xp'
   | 'task_category_gold'
   | 'both_bonus'
-  | 'morning_bonus'
-  | 'evening_bonus';
+  | 'group_xp'
+  | 'group_gold'
+  | 'group_both';
 
 export interface SkillEffect {
   kind: SkillEffectKind;
+  /** Bonus per skill level as a fraction, e.g. 0.08 = +8% per level. */
   perLevel: number;
   category?: TaskCategory;
+  group?: TaskGroup;
 }
 
 export type TaskCategory = 'cleaning' | 'cooking' | 'shopping' | 'laundry' | 'general';
+/** Effort tier: quick (light dailies), main (standard chores), heavy (weekly "raids"). */
+export type TaskGroup = 'quick' | 'main' | 'heavy';
 
 export interface Task {
   id: string;
+  /** Internal code (e.g. `task.laundry`), generated from the name for custom quests. */
   nameKey: string;
+  /** Player-entered names per language; built-in quests may omit them and use app translations. */
+  names?: Partial<Record<LanguageCode, string>>;
   xp: number;
   gold: number;
   category: TaskCategory;
+  group: TaskGroup;
   enabled: boolean;
 }
 
@@ -60,36 +70,147 @@ export interface TaskLog {
   xpAwarded: Record<CharacterId, number>;
   goldAwarded: Record<CharacterId, number>;
   timestamp: number;
+  /** uid of the account that logged it (absent in demo mode and older logs). */
+  loggedBy?: string;
+  /** Task values at completion time, so a log can be re-assigned even if the task was edited later. */
+  baseXp?: number;
+  baseGold?: number;
+  category?: TaskCategory;
+  group?: TaskGroup;
+  /** Streak length each recipient reached with this completion, and the bonus gold it paid (included in goldAwarded). */
+  streakDays?: Partial<Record<CharacterId, number>>;
+  streakGold?: Partial<Record<CharacterId, number>>;
 }
 
-export interface MonthlyPrize {
-  month: string;
+/**
+ * A character's run of consecutive days completing one quest (derived from the quest log, never stored).
+ * `days` counts up to today if done today, otherwise up to yesterday (a missed day makes it 0).
+ */
+export interface Streak {
+  taskId: string;
+  characterId: CharacterId;
+  days: number;
+  doneToday: boolean;
+  /** Bonus gold earned today (if done) or that completing it today would earn. */
+  bonusGold: number;
+}
+
+/** How one character's reward for a completion is made up. */
+export interface RewardBreakdown {
+  baseXp: number;
+  baseGold: number;
+  skillXp: number;
+  skillGold: number;
+  streakDays: number;
+  streakGold: number;
+  xp: number;
+  gold: number;
+}
+
+/** A season of play. Gold resets when it ends; XP, levels and skills persist. */
+export interface Chronicle {
+  /** Sequential number, starting at 1. */
+  id: number;
+  /** First day, local `YYYY-MM-DD`. */
+  startDate: string;
+  /** Last day (inclusive), local `YYYY-MM-DD`. */
+  endDate: string;
+  /** Epoch ms of local midnight after `endDate`; lets security rules check expiry. */
+  endsAtMs: number;
+}
+
+/** Settled result of a finished chronicle. */
+export interface ChronicleResult {
+  chronicleId: number;
+  startDate: string;
+  endDate: string;
   prizePool: number;
-  settled: boolean;
-  payout?: Record<CharacterId, number>;
-  goldSnapshot?: Record<CharacterId, number>;
+  payout: Record<CharacterId, number>;
+  goldSnapshot: Record<CharacterId, number>;
 }
 
 export interface RewardToast {
   id: string;
+  /** Quest code; `names` holds its display names. */
   title: string;
+  names?: Partial<Record<LanguageCode, string>>;
   xp: Record<CharacterId, number>;
   gold: Record<CharacterId, number>;
+  streakDays?: Partial<Record<CharacterId, number>>;
+  streakGold?: Partial<Record<CharacterId, number>>;
   levelUps: { characterId: CharacterId; from: number; to: number; bonusGold: number }[];
 }
 
+/** The playable game state as the UI sees it (assembled from the household document or local demo storage). */
 export interface GameState {
   characters: Record<CharacterId, Character>;
   tasks: Task[];
   logs: TaskLog[];
   prizePool: number;
-  activeMonth: string;
-  prizeHistory: MonthlyPrize[];
-  language: LanguageCode;
-  activeCharacter: CharacterId;
+  chronicle: Chronicle;
+  prizeHistory: ChronicleResult[];
+  /**
+   * When levels and skills were last reset after a player reached the level cap (epoch ms).
+   * Quest entries logged before it can no longer be undone or re-assigned.
+   */
+  levelResetAt?: number;
 }
 
 export interface HouseholdUser {
   uid: string;
   email: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Firestore schema
+// ---------------------------------------------------------------------------
+
+export interface HouseholdMember {
+  uid: string;
+  characterId: CharacterId;
+  role: HouseholdRole;
+  email: string | null;
+  joinedAt: number;
+}
+
+/** `households/{householdId}`: one couple, max 2 members. */
+export interface HouseholdDoc {
+  /** 6-character join code, mirrored in `householdCodes/{code}`. */
+  code: string;
+  /**
+   * uid of the household's creator (the spec's `createdById`). Only the creator may grant or revoke the
+   * partner's moderator role; if the creator leaves, this passes to the remaining member.
+   */
+  createdBy: string;
+  createdAt: number;
+  /** Member uids (max 2); duplicated from `members` so security rules can check membership and size. */
+  memberIds: string[];
+  members: Record<string, HouseholdMember>;
+  /** Moderator-only configuration. */
+  settings: {
+    tasks: Task[];
+    prizePool: number;
+  };
+  /** Moderators may change the end date; any member may roll it over once expired. */
+  chronicle: Chronicle;
+  /** Shared play state any member may update. */
+  game: {
+    characters: Record<CharacterId, Character>;
+    logs: TaskLog[];
+    prizeHistory: ChronicleResult[];
+    levelResetAt?: number;
+  };
+}
+
+/** `householdCodes/{code}`: join-code lookup. */
+export interface HouseholdCodeDoc {
+  householdId: string;
+  createdBy: string;
+}
+
+/** `users/{uid}` */
+export interface UserProfileDoc {
+  householdId: string | null;
+  email: string | null;
+  updatedAt: number;
 }

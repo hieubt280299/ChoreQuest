@@ -1,0 +1,56 @@
+import { Reload } from 'pixelarticons/react';
+import { useState } from 'react';
+import { useGame } from '../../context/GameContext';
+import { useLanguage } from '../../context/LanguageContext';
+import type { TranslationKey } from '../../utils/i18n';
+import { Button } from '../ui/Button';
+import { Icon } from '../ui/Icon';
+import { Modal } from '../ui/Modal';
+
+/** Moderator action: replace the household's quests with the current default list, after confirming. */
+export function ResetQuestsButton() {
+  const { t } = useLanguage();
+  const { canEditSettings, resetTasksToDefaults } = useGame();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<TranslationKey | null>(null);
+
+  return (
+    <>
+      <Button variant="secondary" disabled={!canEditSettings} onClick={() => setOpen(true)}>
+        <Icon as={Reload} size={24} />
+        {t('settings.resetQuests')}
+      </Button>
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setError(null);
+        }}
+        title={t('settings.resetQuestsTitle')}
+      >
+        <p className="mb-4 text-base">{t('settings.resetQuestsWarning')}</p>
+        {error && (
+          <p className="mb-4 bg-brick-600 px-3 py-2 text-base font-bold text-parchment-50 shadow-[0_0_0_3px_#2b1a12]" role="alert">
+            {t(error)}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button variant="secondary" onClick={() => setOpen(false)}>
+            {t('tasks.cancel')}
+          </Button>
+          <Button
+            variant="brick"
+            onClick={() => {
+              const result = resetTasksToDefaults();
+              if (result.ok) setOpen(false);
+              else setError(result.error);
+            }}
+          >
+            <Icon as={Reload} size={24} />
+            {t('settings.resetQuestsConfirm')}
+          </Button>
+        </div>
+      </Modal>
+    </>
+  );
+}

@@ -1,4 +1,4 @@
-import type { Character, CharacterId, SkillDefinition, Task } from '../types';
+import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup } from '../types';
 
 export const XP_CURVE = [
   230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100,
@@ -8,20 +8,60 @@ export const XP_CURVE = [
 export const MAX_LEVEL = 30;
 export const MAX_SKILLS_PER_CHARACTER = 6;
 export const MAX_SKILL_LEVEL = 4;
+/** Points needed to max every skill slot (6 x 4); earned points stop growing here (reached at level 24). */
+export const MAX_SKILL_POINTS = MAX_SKILLS_PER_CHARACTER * MAX_SKILL_LEVEL;
 export const STANDARD_LEVEL_GOLD = 50;
 export const HIGH_TIER_LEVEL_GOLD = 300;
+/** Reaching the level cap (mastery) pays a much bigger bonus. */
+export const MASTERY_LEVEL_GOLD = 2000;
 export const DEFAULT_PRIZE_POOL = 1_000_000;
 
+export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
+
+// Rewards scale with time and effort (0.75 pleasant, 1 normal, 1.3 physical or unpleasant, 1.5 heavy,
+// 1.8 hardest): XP ~ 1 per minute x effort (halved from 2/min so levelling feels earned, min 5);
+// gold ~ 1.2 per minute x effort, rounded to 5 (min 5).
 export const DEFAULT_TASKS: Task[] = [
-  { id: 'dishes', nameKey: 'task.dishes', xp: 30, gold: 20, category: 'cleaning', enabled: true },
-  { id: 'cooking', nameKey: 'task.cooking', xp: 50, gold: 35, category: 'cooking', enabled: true },
-  { id: 'grocery', nameKey: 'task.grocery', xp: 40, gold: 30, category: 'shopping', enabled: true },
-  { id: 'laundry', nameKey: 'task.laundry', xp: 35, gold: 25, category: 'laundry', enabled: true },
-  { id: 'vacuum', nameKey: 'task.vacuum', xp: 30, gold: 20, category: 'cleaning', enabled: true },
-  { id: 'trash', nameKey: 'task.trash', xp: 15, gold: 10, category: 'general', enabled: true },
-  { id: 'beds', nameKey: 'task.beds', xp: 12, gold: 8, category: 'general', enabled: true },
-  { id: 'bathroom', nameKey: 'task.bathroom', xp: 45, gold: 30, category: 'cleaning', enabled: true },
+  // Quick tasks: light, ~5-10 minutes
+  { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn dẹp giường' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'feedPet', nameKey: 'task.feedPet', names: { en: 'Feed Pet', vi: 'Cho thú cưng ăn' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'trash', nameKey: 'task.trash', names: { en: 'Take Out Trash', vi: 'Đổ rác' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 5, gold: 5, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'collectClothes', nameKey: 'task.collectClothes', names: { en: 'Collect Dried Clothes', vi: 'Thu quần áo' }, xp: 5, gold: 5, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'cleanLitter', nameKey: 'task.cleanLitter', names: { en: 'Clean Litter Box', vi: 'Dọn khay cát thú cưng' }, xp: 8, gold: 10, category: 'general', group: 'quick', enabled: true },
+  { id: 'dryClothes', nameKey: 'task.dryClothes', names: { en: 'Hang / Dry Clothes', vi: 'Phơi quần áo' }, xp: 10, gold: 10, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'groceryDaily', nameKey: 'task.groceryDaily', names: { en: 'Daily Grocery Shopping', vi: 'Đi chợ hằng ngày' }, xp: 10, gold: 10, category: 'shopping', group: 'quick', enabled: true },
+  // Moderate tasks: normal effort, ~10-60 minutes
+  { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 13, gold: 15, category: 'laundry', group: 'main', enabled: true },
+  { id: 'cleanFridge', nameKey: 'task.cleanFridge', names: { en: 'Clean Fridge', vi: 'Lau dọn tủ lạnh' }, xp: 15, gold: 20, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'sweep', nameKey: 'task.sweep', names: { en: 'Sweep House', vi: 'Quét nhà' }, xp: 20, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 20, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 20, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dustFurniture', nameKey: 'task.dustFurniture', names: { en: 'Dust Furniture', vi: 'Lau bụi bàn ghế & kệ' }, xp: 30, gold: 35, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 45, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 45, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 45, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 45, gold: 55, category: 'shopping', group: 'main', enabled: true },
+  // Heavy tasks: physically demanding, ~30 minutes
+  { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 40, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 45, gold: 55, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 55, gold: 65, category: 'cleaning', group: 'heavy', enabled: true },
 ];
+
+const DEFAULT_GROUP_BY_ID = new Map(DEFAULT_TASKS.map((task) => [task.id, task.group]));
+const GROUP_BY_CATEGORY: Record<TaskCategory, TaskGroup> = {
+  general: 'quick',
+  cleaning: 'main',
+  cooking: 'main',
+  shopping: 'main',
+  laundry: 'main',
+};
+
+/** Group for quests saved before groups existed: the built-in's group, else a guess from its category. */
+export function inferTaskGroup(task: Pick<Task, 'id' | 'category'> & { group?: unknown }): TaskGroup {
+  if (task.group === 'quick' || task.group === 'main' || task.group === 'heavy') return task.group;
+  return DEFAULT_GROUP_BY_ID.get(task.id) ?? GROUP_BY_CATEGORY[task.category] ?? 'main';
+}
 
 export const SKILL_POOL: SkillDefinition[] = [
   {
@@ -49,12 +89,12 @@ export const SKILL_POOL: SkillDefinition[] = [
     effect: { kind: 'gold_mult', perLevel: 0.05 },
   },
   {
-    id: 'early-bird',
-    nameKey: 'skill.earlyBird.name',
-    descriptionKey: 'skill.earlyBird.desc',
-    icon: 'sun',
+    id: 'quick-hands',
+    nameKey: 'skill.quickHands.name',
+    descriptionKey: 'skill.quickHands.desc',
+    icon: 'zap',
     maxLevel: 4,
-    effect: { kind: 'morning_bonus', perLevel: 0.08 },
+    effect: { kind: 'group_both', perLevel: 0.1, group: 'quick' },
   },
   {
     id: 'team-player',
@@ -84,27 +124,37 @@ export const SKILL_POOL: SkillDefinition[] = [
     id: 'zen-housekeeper',
     nameKey: 'skill.zenHousekeeper.name',
     descriptionKey: 'skill.zenHousekeeper.desc',
-    icon: 'leaf',
+    icon: 'lightbulb',
     maxLevel: 4,
     effect: { kind: 'xp_all', perLevel: 0.04 },
   },
   {
-    id: 'night-owl',
-    nameKey: 'skill.nightOwl.name',
-    descriptionKey: 'skill.nightOwl.desc',
-    icon: 'moon',
+    id: 'raid-master',
+    nameKey: 'skill.raidMaster.name',
+    descriptionKey: 'skill.raidMaster.desc',
+    icon: 'shield',
     maxLevel: 4,
-    effect: { kind: 'evening_bonus', perLevel: 0.08 },
+    effect: { kind: 'group_gold', perLevel: 0.15, group: 'heavy' },
   },
   {
-    id: 'lucky-charm',
-    nameKey: 'skill.luckyCharm.name',
-    descriptionKey: 'skill.luckyCharm.desc',
-    icon: 'clover',
+    id: 'steady-worker',
+    nameKey: 'skill.steadyWorker.name',
+    descriptionKey: 'skill.steadyWorker.desc',
+    icon: 'clock',
     maxLevel: 4,
-    effect: { kind: 'gold_all', perLevel: 0.05 },
+    effect: { kind: 'group_both', perLevel: 0.06, group: 'main' },
   },
 ];
+
+/**
+ * Retired skills and their replacements (time-of-day bonuses became task-group bonuses; Lucky Charm
+ * duplicated Golden Touch). Owned levels carry over, so no skill points are lost.
+ */
+export const SKILL_MIGRATIONS: Record<string, string> = {
+  'early-bird': 'quick-hands',
+  'night-owl': 'raid-master',
+  'lucky-charm': 'steady-worker',
+};
 
 export function createDefaultCharacter(id: CharacterId, name: string): Character {
   return { id, name, xp: 0, gold: 0, skills: [] };

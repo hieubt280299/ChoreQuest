@@ -11,7 +11,7 @@ import { PrizePreview } from './PrizePreview';
 
 export function DashboardView() {
   const { t } = useLanguage();
-  const { state, setActiveCharacter } = useGame();
+  const { state, activeCharacter, setActiveCharacter, canSwitchCharacter } = useGame();
 
   const plate = (id: CharacterId) => (
     <span className="flex flex-col items-center gap-1">
@@ -33,8 +33,8 @@ export function DashboardView() {
           <CharacterCard
             key={id}
             character={state.characters[id]}
-            active={state.activeCharacter === id}
-            onSelect={() => setActiveCharacter(id)}
+            active={activeCharacter === id}
+            onSelect={canSwitchCharacter ? () => setActiveCharacter(id) : undefined}
           />
         ))}
       </div>

@@ -7,6 +7,7 @@ import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { SkillIcon } from '../ui/SkillIcon';
+import { SkillDescription } from './SkillDescription';
 import { TierPips } from './SkillsView';
 
 export function SkillPickerModal({
@@ -19,8 +20,8 @@ export function SkillPickerModal({
   onClose: () => void;
 }) {
   const { t } = useLanguage();
-  const { state, unlockSkill, upgradeSkill } = useGame();
-  if (!characterId) return null;
+  const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
+  if (!characterId || !canActAs(characterId)) return null;
 
   const character = state.characters[characterId];
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
@@ -41,7 +42,7 @@ export function SkillPickerModal({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
-                <p className="text-sm leading-snug text-wood-600">{t(skill.descriptionKey as TranslationKey)}</p>
+                <SkillDescription skill={skill} level={owned?.level ?? 0} className="text-sm leading-snug text-wood-600" />
                 <div className="mt-1.5">
                   <TierPips level={owned?.level ?? 0} />
                 </div>
