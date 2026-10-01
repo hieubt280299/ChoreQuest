@@ -10,6 +10,7 @@ import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { LevelBadge } from '../ui/LevelBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { SkillIcon } from '../ui/SkillIcon';
+import { SkillDescription } from './SkillDescription';
 
 /** Four chunky tier pips. */
 export function TierPips({ level }: { level: number }) {
@@ -27,7 +28,7 @@ export function TierPips({ level }: { level: number }) {
 
 export function SkillsView() {
   const { t } = useLanguage();
-  const { state, unlockSkill, upgradeSkill } = useGame();
+  const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
 
   return (
     <section className="space-y-6">
@@ -37,6 +38,8 @@ export function SkillsView() {
           const character = state.characters[id];
           const level = getLevelFromXp(character.xp);
           const points = skillPointsAvailable(level, character.skills);
+          // You can only spend your own skill points; the partner's tree is view-only.
+          const editable = canActAs(id);
           return (
             <div key={id} className="space-y-5">
               <Card tone="wood" className="flex items-center gap-3 p-3">
@@ -45,6 +48,7 @@ export function SkillsView() {
                   <h2 className="text-2xl font-extrabold uppercase leading-none text-parchment-50">{t(`character.${id}`)}</h2>
                   <p className="text-base font-bold text-parchment-300">
                     {t('skills.owned', { count: character.skills.length })}
+                    {!editable && <span className="ml-2 bg-ink/60 px-1.5 uppercase text-parchment-100">{t('household.viewOnly')}</span>}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
@@ -71,14 +75,14 @@ export function SkillsView() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-xl font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
-                          <p className="text-base leading-snug text-wood-600">{t(skill.descriptionKey as TranslationKey)}</p>
+                          <SkillDescription skill={skill} level={owned?.level ?? 0} className="text-base leading-snug text-wood-600" />
                           <div className="mt-2">
                             <TierPips level={owned?.level ?? 0} />
                           </div>
                         </div>
                         {owned?.level === 4 ? (
                           <span className="text-base font-extrabold uppercase text-moss-700">{t('skills.maxed')}</span>
-                        ) : owned ? (
+                        ) : !editable ? null : owned ? (
                           <Button disabled={!canUpgrade} onClick={() => upgradeSkill(id, skill.id)}>
                             {t('skills.upgrade')}
                           </Button>

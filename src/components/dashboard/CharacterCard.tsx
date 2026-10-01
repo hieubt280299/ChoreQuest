@@ -26,16 +26,9 @@ export function CharacterCard({
   const progress = getXpProgress(character.xp);
   const points = skillPointsAvailable(progress.level, character.skills);
 
-  return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
-      <button
-        type="button"
-        aria-pressed={active}
-        className={`px-panel px-focus block w-full p-4 text-left transition-transform ${
-          active ? 'px-panel-ember -translate-y-1' : ''
-        }`}
-        onClick={onSelect}
-      >
+  const frame = `px-panel block w-full p-4 transition-transform ${active ? 'px-panel-ember -translate-y-1' : ''}`;
+  const body = (
+    <>
         <div className="flex gap-4">
           <CharacterAvatar id={character.id} scale={4} />
           <div className="min-w-0 flex-1 space-y-2">
@@ -78,7 +71,19 @@ export function CharacterCard({
             })}
           </div>
         )}
-      </button>
+    </>
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
+      {/* Selectable only where you can switch characters (demo); otherwise a plain card. */}
+      {onSelect ? (
+        <button type="button" aria-pressed={active} className={`${frame} px-focus text-left`} onClick={onSelect}>
+          {body}
+        </button>
+      ) : (
+        <div className={frame}>{body}</div>
+      )}
     </motion.div>
   );
 }

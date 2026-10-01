@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { BottomNav, SideNav } from './components/auth/Navigation';
+import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { ProfileSwitcher } from './components/auth/ProfileSwitcher';
 import { CalendarView } from './components/calendar/CalendarView';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { InviteBanner } from './components/dashboard/InviteBanner';
 import { SettingsView } from './components/settings/SettingsView';
 import { SkillPickerModal } from './components/skills/SkillPickerModal';
 import { SkillsView } from './components/skills/SkillsView';
@@ -13,22 +15,23 @@ import { AudioToggle } from './components/ui/AudioToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
+import { useHousehold } from './context/HouseholdContext';
 import type { AppView, CharacterId } from './types';
 import { getLevelFromXp, skillPointsAvailable } from './utils/calculations';
 
 export default function App() {
   const { user, demoMode, loading: authLoading } = useAuth();
-  const { state, loading: gameLoading } = useGame();
+  const { status } = useHousehold();
+  const { state, loading: gameLoading, activeCharacter, canActAs } = useGame();
   const [view, setView] = useState<AppView>('dashboard');
   const [skillCharacter, setSkillCharacter] = useState<CharacterId | null>(null);
 
-  if (authLoading || gameLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user && !demoMode) {
-    return <AuthScreen />;
-  }
+  if (authLoading) return <LoadingScreen />;
+  if (!user && !demoMode) return <AuthScreen />;
+  // Online play requires a household; only the offline demo skips this.
+  if (status === 'loading') return <LoadingScreen />;
+  if (status === 'none') return <OnboardingScreen />;
+  if (gameLoading) return <LoadingScreen />;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl gap-8 px-4 pb-32 pt-6 md:pb-10">
@@ -41,6 +44,7 @@ export default function App() {
             <ProfileSwitcher />
           </div>
         </div>
+        <InviteBanner />
         {view === 'dashboard' && <DashboardView />}
         {view === 'tasks' && <TasksView />}
         {view === 'skills' && <SkillsView />}
@@ -52,17 +56,13 @@ export default function App() {
         onAssignSkills={() => {
           const leveled = (['husband', 'wife'] as CharacterId[]).find((id) => {
             const character = state.characters[id];
-            return skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
+            return canActAs(id) && skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
           });
-          setSkillCharacter(leveled ?? state.activeCharacter);
+          setSkillCharacter(leveled ?? activeCharacter);
           setView('skills');
         }}
       />
-      <SkillPickerModal
-        open={!!skillCharacter}
-        characterId={skillCharacter}
-        onClose={() => setSkillCharacter(null)}
-      />
+      <SkillPickerModal open={!!skillCharacter} characterId={skillCharacter} onClose={() => setSkillCharacter(null)} />
     </div>
   );
 }

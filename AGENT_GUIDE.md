@@ -66,10 +66,16 @@ src/
 #### 1. Characters & Accounts
 
 - Two persistent characters: **Husband** and **Wife**.
+- **Household:** `households/{id}` holds at most **2 accounts** (1 Husband, 1 Wife), joined via a unique 6-character `code` (`householdCodes/{code}`). `users/{uid}.householdId` links an account to it.
+    - Signed-in accounts without a household see the **Onboarding Screen**: *Create Household* (creator picks their character, becomes `moderator`) or *Join Household* (6-character code; only while it has fewer than 2 members; joiner gets the remaining character).
+    - Online play requires a household; only the **Offline Demo** bypasses this. The household is *active* once both partners have joined; quests and skills unlock then.
+    - **Roles:** the creator is `moderator` and can grant `moderator` to the partner. Only moderators edit settings (quests, prize pool, chronicle end date).
+    - **Leave Household** detaches the account and returns it to onboarding; a leaving sole moderator promotes the partner, and the last member leaving deletes the household.
+    - **Character binding:** an account acts (complete quests, spend skill points) only for its own character; the partner's stats are view-only. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
 - Each character possesses:
     - `xp`: total experience accumulated.
     - `level`: calculated from XP array index (1 to 30).
-    - `gold`: current monthly accumulated gold.
+    - `gold`: gold accumulated in the current chronicle.
     - `skills`: array of unlocked skills with current level (Max 6 skills per character, Max level 4 per skill).
     - `skillPointsAvailable`: calculated as `(level - totalSkillLevelsAllocated)`. Unlocks 1 point at level 1.
 
@@ -88,24 +94,28 @@ src/
 - **Completion Rules:**
     - Tasks can be completed by **Husband**, **Wife**, or **Both**.
     - If completed by **Both**, the task's base XP and Gold bounty are split **50/50** between them.
+    - A player logs a completion for their own character or **Both**.
 - Tasks reset daily at 00:00 local time or can be marked done per date entry.
+- **Audit:** completed entries in the current chronicle can be **undone** (XP, gold and any level-up bonus gold are revoked; refused if those levels' skill points were spent) or **re-assigned** (Husband / Wife / Both), by the logger, the affected character, or a moderator.
 
 #### 4. Skills Pool (10 Configurable Skills)
 
 - Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_).
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
+- Descriptions list every level's value Dota-style with the active level highlighted, e.g. "Gain 8% / 16% / **24%** / 32% more XP from cleaning quests" (values come from `effect.perLevel`).
 
-#### 5. Monthly Calendar & Prize Pool
+#### 5. Chronicles (Seasons) & Prize Pool
 
-- Tracks the real-time active month.
+- Play is organised in **Chronicles**: `chronicle = { id, startDate, endDate }` (local dates, `endDate` inclusive). Moderators can change `endDate`; the default length is **1 month**.
 - **Prize Pool Split:**
-    - Configurable monthly cash/reward pool (Default: `1,000,000 VND`).
-    - At the end of the month, calculates payout ratio based on gold earned:
+    - Configurable prize pool per chronicle (Default: `1,000,000 VND`), entered with live thousand separators.
+    - At the end of the chronicle, calculates payout ratio based on gold earned:
       $$\text{Payout}_{\text{Husband}} = \text{PrizePool} \times \left( \frac{\text{Gold}_{\text{Husband}}}{\text{Gold}_{\text{Husband}} + \text{Gold}_{\text{Wife}}} \right)$$
-- **Month Transition Rule:**
-    - **Reset:** Gold resets to `0` at 00:00 on the 1st of every month.
-    - **Persistent:** Character XP, Levels, and Skills are **NEVER** reset at month end.
+- **Chronicle Transition Rule:**
+    - **Rollover:** after `endDate`, the result is settled into `prizeHistory` and a new 1-month chronicle starts the next calendar day.
+    - **Reset:** Gold resets to `0` at rollover.
+    - **Persistent:** Character XP, Levels, and Skills are **NEVER** reset.
 
 ---
 

@@ -1,10 +1,102 @@
 rules_version = '2';
 
+// ChoreQuest data model
+//   users/{uid}               { householdId }                 - the signed-in user's own profile
+//   households/{householdId}  { code, createdBy, memberIds, members, settings, chronicle, game }
+//   householdCodes/{code}     { householdId, createdBy }       - 6-character join code lookup
+//
+// A household holds at most 2 members (husband + wife). Only moderators may change `settings`
+// (quests, prize pool), the chronicle end date or roles. Any member may update `game` and roll the
+// chronicle over once it has expired. Which character a member may act for is enforced in the app.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each signed-in household account can only read/write its own game document.
-    match /households/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /householdCodes/{code} {
+      // Knowing the code is what grants the ability to look a household up.
+      allow get: if signedIn();
+      allow list: if false;
+      // Created in the same batch as its household. Creating an existing code is an update,
+      // which is denied, so codes stay unique.
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && getAfter(/databases/$(database)/documents/households/$(request.resource.data.householdId)).data.createdBy == request.auth.uid;
+      allow update: if false;
+      // Removed together with its household when the last member leaves.
+      allow delete: if signedIn()
+        && !existsAfter(/databases/$(database)/documents/households/$(resource.data.householdId));
+    }
+
+    match /households/{householdId} {
+      function data() {
+        return resource.data;
+      }
+      function next() {
+        return request.resource.data;
+      }
+      function isMember() {
+        return signedIn() && request.auth.uid in data().memberIds;
+      }
+      function isModerator() {
+        return isMember() && data().members[request.auth.uid].role == 'moderator';
+      }
+      function unchanged(field) {
+        return next()[field] == data()[field];
+      }
+      function onlyChanges(fields) {
+        return next().diff(data()).affectedKeys().hasOnly(fields);
+      }
+      function chronicleExpired() {
+        return request.time.toMillis() >= data().chronicle.endsAtMs;
+      }
+      function onlyOwnMemberEntryChanges() {
+        return next().members.diff(data().members).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // Members read their household; a joiner may read it while it still has a free slot.
+      allow get: if isMember() || (signedIn() && data().memberIds.size() < 2);
+      allow list: if false;
+
+      // Pre-household data stored at households/{uid}: its owner may read it (import) and delete it.
+      allow get, delete: if signedIn() && householdId == request.auth.uid && !('memberIds' in data());
+
+      allow create: if signedIn()
+        && next().createdBy == request.auth.uid
+        && next().memberIds == [request.auth.uid]
+        && next().members[request.auth.uid].role == 'moderator';
+
+      allow update: if
+        // Playing (any member) and configuring (moderators).
+        (isMember()
+          && unchanged('code') && unchanged('createdBy') && unchanged('createdAt')
+          && next().memberIds.size() <= 2
+          && (isModerator()
+            || (unchanged('settings') && unchanged('members') && unchanged('memberIds')
+              && (unchanged('chronicle') || chronicleExpired()))))
+        // Joining through a code: add only yourself, while there is a free slot.
+        || (signedIn()
+          && !(request.auth.uid in data().memberIds)
+          && data().memberIds.size() < 2
+          && onlyChanges(['memberIds', 'members'])
+          && next().memberIds == data().memberIds.concat([request.auth.uid])
+          && onlyOwnMemberEntryChanges()
+          && next().members[request.auth.uid].role == (data().memberIds.size() == 0 ? 'moderator' : 'member'))
+        // Leaving: remove only yourself.
+        || (isMember()
+          && onlyChanges(['memberIds', 'members'])
+          && !(request.auth.uid in next().memberIds)
+          && next().memberIds.size() == data().memberIds.size() - 1
+          && onlyOwnMemberEntryChanges());
+
+      // The last member leaving deletes the household.
+      allow delete: if isMember() && data().memberIds.size() == 1;
     }
 
     // Deny everything else by default.

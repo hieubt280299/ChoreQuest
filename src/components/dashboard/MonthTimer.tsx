@@ -1,16 +1,20 @@
 import { Hourglass } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
+import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { formatCountdown, msUntilNextMonth } from '../../utils/calculations';
+import { endOfDayMs, formatCountdown } from '../../utils/calculations';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
 
 export function MonthTimer() {
   const { t } = useLanguage();
-  const [ms, setMs] = useState(msUntilNextMonth());
+  const { state } = useGame();
+  const endsAt = endOfDayMs(state.chronicle.endDate);
+  const [now, setNow] = useState(Date.now);
+  const ms = Math.max(0, endsAt - now);
 
   useEffect(() => {
-    const id = window.setInterval(() => setMs(msUntilNextMonth()), 30_000);
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -27,6 +31,7 @@ export function MonthTimer() {
       <div className="mb-3 flex items-center gap-2 text-brick-600">
         <Icon as={Hourglass} size={24} />
         <p className="text-lg font-extrabold uppercase tracking-wide">{t('dashboard.monthTimer')}</p>
+        <span className="ml-auto text-base font-bold text-wood-600">{t('chronicle.label', { id: state.chronicle.id })}</span>
       </div>
       {/* Retro LCD-style countdown */}
       <div

@@ -20,7 +20,7 @@ function label(nameKey: string, t: (key: TranslationKey) => string) {
 
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t } = useLanguage();
-  const { state, reward, clearReward } = useGame();
+  const { state, reward, clearReward, canActAs } = useGame();
   const { playTaskCompleteSFX, playLevelUpSFX } = useAudio();
 
   // Coin jingle for every completed quest, then a fanfare if anyone levelled up.
@@ -31,9 +31,10 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
     playTaskCompleteSFX();
     if (leveledUp) playLevelUpSFX(0.35);
   }, [rewardId, leveledUp, playTaskCompleteSFX, playLevelUpSFX]);
+  // Only offer the skill picker for a character this player controls.
   const needsSkills = reward?.levelUps.some((levelUp) => {
     const character = state.characters[levelUp.characterId];
-    return skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
+    return canActAs(levelUp.characterId) && skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
   });
 
   return (
