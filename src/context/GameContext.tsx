@@ -1,9 +1,19 @@
 import { updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
-import type { CharacterId, Completer, GameState, RewardToast, Task, TaskCategory, TaskLog } from '../types';
+import type {
+  CharacterId,
+  Completer,
+  GameState,
+  RewardBreakdown,
+  RewardToast,
+  Streak,
+  Task,
+  TaskCategory,
+  TaskLog,
+} from '../types';
 import {
-  computeRewardSplit,
+  computeRewardBreakdown,
   endOfDayMs,
   getLevelFromXp,
   grantRewards,
@@ -11,6 +21,7 @@ import {
   localDateKey,
   revokeRewards,
   skillPointsAvailable,
+  splitFromBreakdown,
 } from '../utils/calculations';
 import {
   applyChronicleRollover,
@@ -21,6 +32,7 @@ import {
   pruneLogs,
 } from '../utils/gameState';
 import type { TranslationKey } from '../utils/i18n';
+import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 
@@ -73,9 +85,35 @@ interface GameContextValue {
   upgradeSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   isTaskDoneToday: (taskId: string) => boolean;
   getTodayLog: (taskId: string) => TaskLog | undefined;
+  /** A character's live streak on a quest. */
+  getStreak: (taskId: string, characterId: CharacterId) => Streak;
+  /** Exact reward breakdown completing a quest today would give, per character (null = not a recipient). */
+  previewReward: (taskId: string, completer: Completer) => Record<CharacterId, RewardBreakdown | null> | null;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
+
+/** Streak day each recipient would reach by completing `taskId` on `date`. */
+function recipientStreaks(index: StreakIndex, taskId: string, completer: Completer, date: string) {
+  const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
+  const days: Partial<Record<CharacterId, number>> = {};
+  for (const id of recipients) days[id] = streakIfCompletedOn(index, taskId, id, date);
+  return days;
+}
+
+/** Streak fields stored on a log: only recipients that reached a streak. */
+function streakFields(breakdown: Record<CharacterId, RewardBreakdown | null>) {
+  const streakDays: Partial<Record<CharacterId, number>> = {};
+  const streakGold: Partial<Record<CharacterId, number>> = {};
+  for (const id of ['husband', 'wife'] as CharacterId[]) {
+    const part = breakdown[id];
+    if (part) {
+      streakDays[id] = part.streakDays;
+      streakGold[id] = part.streakGold;
+    }
+  }
+  return { streakDays, streakGold };
+}
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -184,8 +222,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (!task) return fail('tasks.error.missing');
       if (current.logs.some((log) => log.taskId === taskId && log.date === date)) return fail('tasks.alreadyDone');
 
-      const hour = new Date().getHours();
-      const split = computeRewardSplit(task, completer, current.characters, SKILL_POOL, hour);
+      const breakdown = computeRewardBreakdown(
+        task,
+        completer,
+        current.characters,
+        SKILL_POOL,
+        recipientStreaks(buildStreakIndex(current.logs), taskId, completer, date),
+      );
+      const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(current.characters, split);
       const log: TaskLog = {
         id: `${taskId}-${date}-${Date.now()}`,
@@ -196,16 +240,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
         goldAwarded: { husband: split.husband.gold, wife: split.wife.gold },
         timestamp: Date.now(),
         loggedBy: demo ? undefined : user?.uid,
-        hour,
         baseXp: task.xp,
         baseGold: task.gold,
         category: task.category,
+        group: task.group,
+        ...streakFields(breakdown),
       };
       commit({ ...current, characters, logs: [log, ...current.logs] });
-      setReward({ id: log.id, title: task.nameKey, names: task.names, xp: log.xpAwarded, gold: log.goldAwarded, levelUps });
+      setReward({
+        id: log.id,
+        title: task.nameKey,
+        names: task.names,
+        xp: log.xpAwarded,
+        gold: log.goldAwarded,
+        streakDays: log.streakDays,
+        streakGold: log.streakGold,
+        levelUps,
+      });
       return OK;
     },
-    [canPlay, commit, demo, myCharacter, user?.uid],
+    [canPlay, commit, demo, user?.uid],
   );
 
   const undoLog = useCallback(
@@ -233,23 +287,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const xp = log.baseXp ?? task?.xp;
       const gold = log.baseGold ?? task?.gold;
       const category = log.category ?? task?.category;
-      if (xp === undefined || gold === undefined || !category) return fail('tasks.error.missing');
+      const group = log.group ?? task?.group;
+      if (xp === undefined || gold === undefined || !category || !group) return fail('tasks.error.missing');
 
       const revoked = revokeRewards(current.characters, log.xpAwarded, log.goldAwarded);
       if (!revoked.ok) return fail('tasks.error.skillsSpent');
-      const hour = log.hour ?? new Date(log.timestamp).getHours();
-      const split = computeRewardSplit({ xp, gold, category }, completer, revoked.characters, SKILL_POOL, hour);
+      // Streaks as of that entry's day, not counting the entry itself. Later entries keep the bonus they earned.
+      const index = buildStreakIndex(current.logs, log.id);
+      const breakdown = computeRewardBreakdown(
+        { xp, gold, category, group },
+        completer,
+        revoked.characters,
+        SKILL_POOL,
+        recipientStreaks(index, log.taskId, completer, log.date),
+      );
+      const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(revoked.characters, split);
       const updated: TaskLog = {
         ...log,
         completedBy: completer,
         xpAwarded: { husband: split.husband.xp, wife: split.wife.xp },
         goldAwarded: { husband: split.husband.gold, wife: split.wife.gold },
+        ...streakFields(breakdown),
       };
       commit({ ...current, characters, logs: current.logs.map((item) => (item.id === logId ? updated : item)) });
       // Celebrate any level-up the re-assignment caused.
       if (levelUps.length > 0) {
-        setReward({ id: `${log.id}-reassign-${Date.now()}`, title: task?.nameKey ?? log.taskId, names: task?.names, xp: updated.xpAwarded, gold: updated.goldAwarded, levelUps });
+        setReward({
+          id: `${log.id}-reassign-${Date.now()}`,
+          title: task?.nameKey ?? log.taskId,
+          names: task?.names,
+          xp: updated.xpAwarded,
+          gold: updated.goldAwarded,
+          streakDays: updated.streakDays,
+          streakGold: updated.streakGold,
+          levelUps,
+        });
       }
       return OK;
     },
@@ -277,6 +350,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     },
     [canActAs, commit],
   );
+
+  const streakIndex = useMemo(() => buildStreakIndex(state.logs), [state.logs]);
 
   const value = useMemo<GameContextValue>(
     () => ({
@@ -353,6 +428,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }),
       isTaskDoneToday: (taskId) => state.logs.some((log) => log.taskId === taskId && log.date === today),
       getTodayLog: (taskId) => state.logs.find((log) => log.taskId === taskId && log.date === today),
+      getStreak: (taskId, characterId) => currentStreak(streakIndex, taskId, characterId, today),
+      previewReward: (taskId, completer) => {
+        const task = state.tasks.find((item) => item.id === taskId);
+        if (!task) return null;
+        return computeRewardBreakdown(
+          task,
+          completer,
+          state.characters,
+          SKILL_POOL,
+          recipientStreaks(streakIndex, taskId, completer, today),
+        );
+      },
     }),
     [
       state,
@@ -370,6 +457,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       reassignLog,
       withSettings,
       changeSkill,
+      streakIndex,
     ],
   );
 

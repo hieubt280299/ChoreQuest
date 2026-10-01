@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Star } from 'pixelarticons/react';
+import { Fire, Sparkles, Star } from 'pixelarticons/react';
 import { useEffect } from 'react';
 import { COIN } from '../../assets/sprites';
 import { useAudio } from '../../context/AudioContext';
@@ -73,6 +73,12 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                     <p className="text-base font-extrabold uppercase text-wood-700">{t(`character.${id}`)}</p>
                     <p className="font-arcade text-[10px] text-moss-700">+{Math.round(reward.xp[id])}XP</p>
                     <GoldCounter amount={reward.gold[id]} />
+                    {(reward.streakGold?.[id] ?? 0) > 0 && (
+                      <p className="flex items-center gap-1 bg-ember-400 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]">
+                        <Icon as={Fire} size={12} className="text-brick-700" />
+                        {t('streak.days', { days: reward.streakDays?.[id] ?? 0 })} ({t('streak.bonus', { gold: reward.streakGold?.[id] ?? 0 })})
+                      </p>
+                    )}
                   </div>
                 );
               })}

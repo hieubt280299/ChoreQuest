@@ -1,9 +1,10 @@
 import { Calendar, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { LanguageCode } from '../../types';
+import type { LanguageCode, TaskGroup } from '../../types';
 import { formatDateRange, localDateKey } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
@@ -127,6 +128,18 @@ export function SettingsView() {
             return (
               <div key={task.id} className="px-slot flex flex-wrap items-center gap-3 p-3">
                 <p className="min-w-40 flex-1 text-lg font-extrabold">{name}</p>
+                <select
+                  value={task.group}
+                  aria-label={`${name}: ${t('tasks.group')}`}
+                  onChange={(event) => upsertTask({ ...task, group: event.target.value as TaskGroup })}
+                  className="px-input w-auto py-1 text-base"
+                >
+                  {TASK_GROUPS.map((group) => (
+                    <option key={group} value={group}>
+                      {t(`group.${group}`)}
+                    </option>
+                  ))}
+                </select>
                 <select
                   value={task.category}
                   aria-label={`${name}: ${t('tasks.category')}`}

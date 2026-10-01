@@ -21,7 +21,7 @@ export interface SkillDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  icon: 'sparkles' | 'chef' | 'coins' | 'sun' | 'hearts' | 'shirt' | 'cart' | 'leaf' | 'moon' | 'clover';
+  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'leaf' | 'sword' | 'clock';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -33,17 +33,21 @@ export type SkillEffectKind =
   | 'task_category_xp'
   | 'task_category_gold'
   | 'both_bonus'
-  | 'morning_bonus'
-  | 'evening_bonus';
+  | 'group_xp'
+  | 'group_gold'
+  | 'group_both';
 
 export interface SkillEffect {
   kind: SkillEffectKind;
   /** Bonus per skill level as a fraction, e.g. 0.08 = +8% per level. */
   perLevel: number;
   category?: TaskCategory;
+  group?: TaskGroup;
 }
 
 export type TaskCategory = 'cleaning' | 'cooking' | 'shopping' | 'laundry' | 'general';
+/** Effort tier: quick (light dailies), main (standard chores), heavy (weekly "raids"). */
+export type TaskGroup = 'quick' | 'main' | 'heavy';
 
 export interface Task {
   id: string;
@@ -54,6 +58,7 @@ export interface Task {
   xp: number;
   gold: number;
   category: TaskCategory;
+  group: TaskGroup;
   enabled: boolean;
 }
 
@@ -67,12 +72,39 @@ export interface TaskLog {
   timestamp: number;
   /** uid of the account that logged it (absent in demo mode and older logs). */
   loggedBy?: string;
-  /** Local hour of completion, used to recompute time-of-day skill bonuses on re-assign. */
-  hour?: number;
   /** Task values at completion time, so a log can be re-assigned even if the task was edited later. */
   baseXp?: number;
   baseGold?: number;
   category?: TaskCategory;
+  group?: TaskGroup;
+  /** Streak length each recipient reached with this completion, and the bonus gold it paid (included in goldAwarded). */
+  streakDays?: Partial<Record<CharacterId, number>>;
+  streakGold?: Partial<Record<CharacterId, number>>;
+}
+
+/**
+ * A character's run of consecutive days completing one quest (derived from the quest log, never stored).
+ * `days` counts up to today if done today, otherwise up to yesterday (a missed day makes it 0).
+ */
+export interface Streak {
+  taskId: string;
+  characterId: CharacterId;
+  days: number;
+  doneToday: boolean;
+  /** Bonus gold earned today (if done) or that completing it today would earn. */
+  bonusGold: number;
+}
+
+/** How one character's reward for a completion is made up. */
+export interface RewardBreakdown {
+  baseXp: number;
+  baseGold: number;
+  skillXp: number;
+  skillGold: number;
+  streakDays: number;
+  streakGold: number;
+  xp: number;
+  gold: number;
 }
 
 /** A season of play. Gold resets when it ends; XP, levels and skills persist. */
@@ -104,6 +136,8 @@ export interface RewardToast {
   names?: Partial<Record<LanguageCode, string>>;
   xp: Record<CharacterId, number>;
   gold: Record<CharacterId, number>;
+  streakDays?: Partial<Record<CharacterId, number>>;
+  streakGold?: Partial<Record<CharacterId, number>>;
   levelUps: { characterId: CharacterId; from: number; to: number; bonusGold: number }[];
 }
 
@@ -138,6 +172,10 @@ export interface HouseholdMember {
 export interface HouseholdDoc {
   /** 6-character join code, mirrored in `householdCodes/{code}`. */
   code: string;
+  /**
+   * uid of the household's creator (the spec's `createdById`). Only the creator may grant or revoke the
+   * partner's moderator role; if the creator leaves, this passes to the remaining member.
+   */
   createdBy: string;
   createdAt: number;
   /** Member uids (max 2); duplicated from `members` so security rules can check membership and size. */

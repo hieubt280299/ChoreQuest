@@ -7,7 +7,7 @@ Act as a Principal Full-Stack Engineer specializing in React, TypeScript, and Fi
 - **Frontend:** React 18 + TypeScript (Vite)
 - **Styling:** Tailwind CSS + Pixelarticons (pixel icon set) + Framer Motion (stepped, frame-by-frame animations)
 - **State Management:** React Context API + Custom Hooks
-- **Audio:** Optional chiptune BGM + SFX synthesized with the Web Audio API (`utils/chiptune.ts`, song data in `constants/chiptuneSong.ts`), controlled by `context/AudioContext.tsx` (`useAudio`). No audio files; sound is off until the player enables it (autoplay rules).
+- **Audio:** Optional chiptune BGM + SFX synthesized with the Web Audio API (`utils/chiptune.ts`, song data in `constants/chiptuneSong.ts`), controlled by `context/AudioContext.tsx` (`useAudio`). No audio files; sound is off until the player enables it (autoplay rules). The BGM is "Over the Hill Road", a lively 16-bit JRPG world-map style loop (132 BPM, with drums).
 - **Backend/Database/Auth:** Google Firebase (v10+ Modular SDK using Firestore and Auth)
 - **Localization:** i18next or simple light React i18n Context supporting **English (EN)** and **Vietnamese (VI)** with hot-swapping in settings.
 - **Hosting/Deployment:** Vercel (SPA fallback via `vercel.json`).
@@ -69,7 +69,7 @@ src/
 - **Household:** `households/{id}` holds at most **2 accounts** (1 Husband, 1 Wife), joined via a unique 6-character `code` (`householdCodes/{code}`). `users/{uid}.householdId` links an account to it.
     - Signed-in accounts without a household see the **Onboarding Screen**: *Create Household* (creator picks their character, becomes `moderator`) or *Join Household* (6-character code; only while it has fewer than 2 members; joiner gets the remaining character).
     - Online play requires a household; only the **Offline Demo** bypasses this. The household is *active* once both partners have joined; quests and skills unlock then.
-    - **Roles:** the creator is `moderator` and can grant `moderator` to the partner. Only moderators edit settings (quests, prize pool, chronicle end date).
+    - **Roles:** the creator (`createdBy`) is `moderator`, and **only the creator** can grant or revoke `moderator` for the partner. Only moderators edit settings (quests, prize pool, chronicle end date). If the creator leaves, founder status and moderation pass to the remaining member.
     - **Leave Household** detaches the account and returns it to onboarding; a leaving sole moderator promotes the partner, and the last member leaving deletes the household.
     - **Character binding:** an account spends skill points only for its own character, and the partner's stats are view-only. Quests may be logged for either character or both. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
 - Each character possesses:
@@ -96,11 +96,15 @@ src/
     - If completed by **Both**, the task's base XP and Gold bounty are split **50/50** between them.
     - Either player may log a completion for **Husband**, **Wife** or **Both** (logging for the spouse is allowed); skill points are only spent on one's own character.
 - Tasks reset daily at 00:00 local time or can be marked done per date entry.
+- **Groups:** every task has a `group` alongside its `category`: **Quick Dailies** (`quick`, light: feed pet, clean litter box, make the bed, take out trash), **Main Chores** (`main`, standard daily: wash / hang / fold clothes, cook lunch and dinner, lunch and dinner dishes, sweep) and **Heavy Raids** (`heavy`, weekly: vacuum, mop, clean bathroom, change sheets, grocery shopping, clean fridge, dust furniture). Default quests carry their own EN/VI names. Older tasks get a group inferred from the built-in defaults or their category.
+- **Streaks:** consecutive days a character completes the same task (alone or as "Both"); missing a day resets it to 0. From day 3 a completion pays bonus gold following Fibonacci: day 3–10 = `[1, 1, 2, 3, 5, 8, 13, 21]`, capped at +21/day. The streak bonus is **not** split for "Both": each streaking partner gets their full bonus on top of their 50% share. Streaks are derived from the quest log (`utils/streaks.ts`), so undo/re-assign keep them correct.
+- **Reward:** `Base share + skill bonuses (on the share) + streak gold`, previewed per option in the "Who did it?" dialog (`computeRewardBreakdown`).
+- **Quest board:** sort by your streak / XP / gold / name, group by group / category / none (remembered per device); streak badges show on each task.
 - **Audit:** completed entries in the current chronicle can be **undone** (XP, gold and any level-up bonus gold are revoked; refused if those levels' skill points were spent) or **re-assigned** (Husband / Wife / Both), by the logger, the affected character, or a moderator.
 
 #### 4. Skills Pool (10 Configurable Skills)
 
-- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_).
+- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Raid Master: +15% gold from Heavy Raids per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
 - Descriptions list every level's value Dota-style with the active level highlighted, e.g. "Gain 8% / 16% / **24%** / 32% more XP from cleaning quests" (values come from `effect.perLevel`).

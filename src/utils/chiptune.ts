@@ -26,7 +26,7 @@ export function midiToFreq(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
-type Voice = 'lead' | 'arp' | 'bass' | 'hat';
+type Voice = 'lead' | 'arp' | 'bass' | 'hat' | 'kick' | 'snare';
 interface NoteEvent {
   voice: Voice;
   midi: number;
@@ -53,23 +53,29 @@ export function compileSong(): NoteEvent[][] {
     steps[step].push({ voice: 'lead', midi: noteToMidi(token), steps: length });
   });
 
+  const { drums } = SONG;
   chords.forEach((name, bar) => {
     const chord = CHORDS[name];
     if (!chord) throw new Error(`Song: unknown chord ${name}`);
     const base = bar * stepsPerBar;
     const [root, fifth] = chord.bass.map(noteToMidi);
-    // "Oom-pah" bass on the quarter notes.
-    [root, fifth, root + 12, fifth].forEach((midi, beat) => steps[base + beat * 2].push({ voice: 'bass', midi, steps: 2 }));
-    // Soft rolling arpeggio on every eighth.
+    // Driving octave-bounce bass on every eighth.
+    [root, root + 12, fifth, root + 12, root, root + 12, fifth, root + 12].forEach((midi, step) =>
+      steps[base + step].push({ voice: 'bass', midi, steps: 1 }),
+    );
+    // Rolling arpeggio under the melody.
     const tones = chord.tones.map(noteToMidi);
     [0, 1, 2, 1, 0, 1, 2, 1].forEach((index, step) => steps[base + step].push({ voice: 'arp', midi: tones[index], steps: 1 }));
-    // Gentle shaker on the off-beats.
-    [2, 6].forEach((step) => steps[base + step].push({ voice: 'hat', midi: 0, steps: 1 }));
+    // Drums, with a snare fill closing each phrase.
+    const fill = (drums.fillBars as readonly number[]).includes(bar);
+    drums.kick.forEach((step) => steps[base + step].push({ voice: 'kick', midi: 0, steps: 1 }));
+    (fill ? drums.fill : drums.snare).forEach((step) => steps[base + step].push({ voice: 'snare', midi: 0, steps: 1 }));
+    drums.hat.forEach((step) => steps[base + step].push({ voice: 'hat', midi: 0, steps: 1 }));
   });
   return steps;
 }
 
-const MIX: Record<Voice, number> = { lead: 0.14, arp: 0.035, bass: 0.26, hat: 0.03 };
+const MIX: Record<Voice, number> = { lead: 0.13, arp: 0.03, bass: 0.2, hat: 0.025, kick: 0.45, snare: 0.1 };
 const LOOKAHEAD_S = 0.15;
 const TICK_MS = 25;
 
@@ -107,10 +113,10 @@ export class ChiptuneEngine {
     this.master.gain.value = this.muted ? 0 : 1;
     this.master.connect(ctx.destination);
 
-    // Music goes through a warm low-pass so square waves stay cozy rather than harsh.
+    // Music goes through a gentle low-pass so square waves stay bright but never harsh.
     const warmth = ctx.createBiquadFilter();
     warmth.type = 'lowpass';
-    warmth.frequency.value = 3800;
+    warmth.frequency.value = 5000;
     warmth.connect(this.master);
     this.bgmBus = ctx.createGain();
     this.bgmBus.gain.value = 0;
@@ -221,6 +227,12 @@ export class ChiptuneEngine {
       case 'hat':
         this.hat(when, MIX.hat);
         break;
+      case 'kick':
+        this.kick(when, MIX.kick);
+        break;
+      case 'snare':
+        this.snare(when, MIX.snare);
+        break;
     }
   }
 
@@ -276,6 +288,48 @@ export class ChiptuneEngine {
       env.disconnect();
       lfo?.disconnect();
     };
+  }
+
+  /** Punchy pitch-drop kick. */
+  private kick(when: number, gain: number) {
+    const ctx = this.ctx!;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, when);
+    osc.frequency.exponentialRampToValueAtTime(45, when + 0.11);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(gain, when);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
+    osc.connect(env).connect(this.bgmBus);
+    osc.start(when);
+    osc.stop(when + 0.16);
+    osc.onended = () => {
+      osc.disconnect();
+      env.disconnect();
+    };
+  }
+
+  /** NES-style snare: band-passed noise burst plus a short tonal body. */
+  private snare(when: number, gain: number) {
+    const ctx = this.ctx!;
+    const source = ctx.createBufferSource();
+    source.buffer = this.noise;
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 1800;
+    band.Q.value = 0.8;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(gain, when);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.12);
+    source.connect(band).connect(env).connect(this.bgmBus);
+    source.start(when);
+    source.stop(when + 0.14);
+    source.onended = () => {
+      source.disconnect();
+      band.disconnect();
+      env.disconnect();
+    };
+    this.tone({ bus: this.bgmBus, wave: 'triangle', midi: noteToMidi('G3'), when, dur: 0.04, gain: gain * 0.8 });
   }
 
   private hat(when: number, gain: number) {

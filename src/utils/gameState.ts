@@ -1,5 +1,21 @@
-import { createDefaultCharacter, DEFAULT_PRIZE_POOL, DEFAULT_TASKS } from '../constants/gameRules';
-import type { Character, CharacterId, Chronicle, ChronicleResult, GameState, HouseholdDoc, TaskLog } from '../types';
+import {
+  createDefaultCharacter,
+  DEFAULT_PRIZE_POOL,
+  DEFAULT_TASKS,
+  inferTaskGroup,
+  SKILL_MIGRATIONS,
+} from '../constants/gameRules';
+import type {
+  Character,
+  CharacterId,
+  CharacterSkill,
+  Chronicle,
+  ChronicleResult,
+  GameState,
+  HouseholdDoc,
+  Task,
+  TaskLog,
+} from '../types';
 import {
   addDays,
   calculatePayout,
@@ -76,6 +92,18 @@ function parseHistory(raw: unknown): ChronicleResult[] {
   });
 }
 
+/** Replaces retired skills with their successors, keeping the higher level if both are owned. */
+function migrateSkills(skills: unknown): CharacterSkill[] {
+  if (!Array.isArray(skills)) return [];
+  const byId = new Map<string, number>();
+  for (const skill of skills as CharacterSkill[]) {
+    if (!skill?.skillId) continue;
+    const id = SKILL_MIGRATIONS[skill.skillId] ?? skill.skillId;
+    byId.set(id, Math.max(byId.get(id) ?? 0, skill.level ?? 1));
+  }
+  return [...byId].map(([skillId, level]) => ({ skillId, level }));
+}
+
 /**
  * Builds a valid GameState from stored data (current shape, or the older month-based shape),
  * then applies any due chronicle rollover.
@@ -88,11 +116,15 @@ export function parseGameState(raw: unknown, today = localDateKey()): GameState 
     ...createDefaultCharacter(id, id === 'husband' ? 'Husband' : 'Wife'),
     ...data.characters![id],
     id,
+    skills: migrateSkills(data.characters![id].skills),
   });
   return applyChronicleRollover(
     {
       characters: { husband: character('husband'), wife: character('wife') },
-      tasks: Array.isArray(data.tasks) && data.tasks.length ? data.tasks : DEFAULT_TASKS.map((task) => ({ ...task })),
+      tasks:
+        Array.isArray(data.tasks) && data.tasks.length
+          ? (data.tasks as Task[]).map((task) => ({ ...task, group: inferTaskGroup(task) }))
+          : DEFAULT_TASKS.map((task) => ({ ...task })),
       logs: Array.isArray(data.logs) ? data.logs : [],
       prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
       chronicle: parseChronicle(data.chronicle, data.activeMonth, today),

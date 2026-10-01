@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { LanguageCode, Task, TaskCategory } from '../../types';
+import type { LanguageCode, Task, TaskCategory, TaskGroup } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { completeTaskNames, editableTaskNames, generateTaskKey } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
@@ -32,6 +33,7 @@ export function TaskEditorModal({
   const [xp, setXp] = useState(initial?.xp ?? 20);
   const [gold, setGold] = useState(initial?.gold ?? 15);
   const [category, setCategory] = useState<TaskCategory>(initial?.category ?? 'general');
+  const [group, setGroup] = useState<TaskGroup>(initial?.group ?? 'main');
   // Show the field for the current language first.
   const fields = [...NAME_FIELDS].sort((a, b) => Number(b.language === language) - Number(a.language === language));
 
@@ -58,6 +60,7 @@ export function TaskEditorModal({
             xp: Number(xp),
             gold: Number(gold),
             category,
+            group,
             enabled: initial?.enabled ?? true,
           });
           onClose();
@@ -108,6 +111,16 @@ export function TaskEditorModal({
             />
           </label>
         </div>
+        <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
+          {t('tasks.group')}
+          <select value={group} onChange={(event) => setGroup(event.target.value as TaskGroup)} className="px-input mt-2">
+            {TASK_GROUPS.map((item) => (
+              <option key={item} value={item}>
+                {t(`group.${item}`)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           {t('tasks.category')}
           <select

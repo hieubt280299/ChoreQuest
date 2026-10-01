@@ -14,7 +14,7 @@ import { Modal } from '../ui/Modal';
 /** Join code, members and roles, and leaving. Only shown for online households. */
 export function HouseholdCard() {
   const { t } = useLanguage();
-  const { status, household, me, isModerator, grantModerator, leaveHousehold } = useHousehold();
+  const { status, household, me, isCreator, grantModerator, revokeModerator, leaveHousehold } = useHousehold();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
@@ -55,6 +55,9 @@ export function HouseholdCard() {
                 <p className="text-lg font-extrabold leading-tight">
                   {t(`character.${member.characterId}`)}
                   {isMe && <span className="ml-2 text-base text-wood-600">({t('household.you')})</span>}
+                  {member.uid === household.data.createdBy && (
+                    <span className="ml-2 text-sm uppercase text-brick-600">· {t('household.creator')}</span>
+                  )}
                 </p>
                 {member.email && <p className="truncate text-sm text-wood-600">{member.email}</p>}
               </div>
@@ -66,10 +69,16 @@ export function HouseholdCard() {
               ) : (
                 <span className="text-sm font-extrabold uppercase text-wood-600">{t('household.member')}</span>
               )}
-              {isModerator && !isMe && member.role !== 'moderator' && (
-                <Button variant="secondary" disabled={busy} onClick={() => void run(() => grantModerator(member.uid))}>
+              {isCreator && !isMe && (
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(() => (member.role === 'moderator' ? revokeModerator(member.uid) : grantModerator(member.uid)))
+                  }
+                >
                   <Icon as={Crown} size={24} />
-                  {t('household.makeModerator')}
+                  {member.role === 'moderator' ? t('household.revokeModerator') : t('household.makeModerator')}
                 </Button>
               )}
             </li>
