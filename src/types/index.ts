@@ -21,7 +21,7 @@ export interface SkillDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'leaf' | 'sword' | 'clock';
+  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'lightbulb' | 'shield' | 'clock';
   maxLevel: 4;
   effect: SkillEffect;
 }

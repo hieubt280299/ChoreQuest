@@ -6,7 +6,7 @@ import { SkillDescription } from '../skills/SkillDescription';
 import { SkillIcon } from '../ui/SkillIcon';
 
 /**
- * Learned-skill chip ("Raid Master lv. 1"). Hover, focus or tap shows a tooltip with the full
+ * Learned-skill chip ("Heavy Lifter lv. 1"). Hover, focus or tap shows a tooltip with the full
  * description and the current level's value highlighted; Escape or tapping elsewhere closes it.
  */
 export function SkillChip({ skill, level }: { skill: SkillDefinition; level: number }) {
@@ -54,7 +54,7 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
           <span className="mb-1 block text-base font-extrabold leading-tight">
             {t(skill.nameKey as TranslationKey)} · {t('skills.levelShort', { level })}
           </span>
-          <SkillDescription skill={skill} level={level} className="text-sm leading-snug text-wood-700" />
+          <SkillDescription skill={skill} level={level} interactive={false} className="text-sm leading-snug text-wood-700" />
         </span>
       )}
     </span>

@@ -54,7 +54,10 @@ function CharacterSkillHeader({ character, viewOnly }: { character: Character; v
   );
 }
 
-/** Your character's full tree: every skill, learned ones first, with unlock/upgrade actions. */
+/**
+ * Your character's full tree with unlock/upgrade actions. Skills keep a fixed order: re-sorting after an
+ * unlock moved cards under the pointer, so a following click could land on a different skill.
+ */
 function SkillTree({ characterId }: { characterId: CharacterId }) {
   const { t } = useLanguage();
   const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
@@ -62,13 +65,12 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
   const editable = canActAs(characterId);
   const levelOf = (skillId: string) => character.skills.find((item) => item.skillId === skillId)?.level ?? 0;
-  const ordered = [...SKILL_POOL].sort((a, b) => Number(levelOf(b.id) > 0) - Number(levelOf(a.id) > 0));
 
   return (
     <div className="space-y-5">
       <CharacterSkillHeader character={character} />
       <div className="grid gap-5">
-        {ordered.map((skill) => {
+        {SKILL_POOL.map((skill) => {
           const level = levelOf(skill.id);
           const canUnlock = level === 0 && points > 0 && character.skills.length < 6;
           const canUpgrade = level > 0 && level < 4 && points > 0;

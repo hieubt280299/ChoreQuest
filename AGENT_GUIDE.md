@@ -77,7 +77,7 @@ src/
     - `level`: calculated from XP array index (1 to 30).
     - `gold`: gold accumulated in the current chronicle.
     - `skills`: array of unlocked skills with current level (Max 6 skills per character, Max level 4 per skill).
-    - `skillPointsAvailable`: calculated as `(level - totalSkillLevelsAllocated)`. Unlocks 1 point at level 1.
+    - `skillPointsAvailable`: calculated as `(min(level, 24) - totalSkillLevelsAllocated)`. Unlocks 1 point at level 1; capped at 24 (6 skills x 4 levels), reached at level 24.
 
 #### 2. Leveling & Rewards
 
@@ -109,7 +109,7 @@ src/
 
 #### 4. Skills Pool (10 Configurable Skills)
 
-- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Raid Master: +15% gold from heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
+- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Golden Touch"_, _"Laundry Pro"_, _"Fast Learner"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Heavy Lifter: +15% gold from Heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
 - Descriptions list every level's value Dota-style with the active level highlighted, e.g. "Gain 8% / 16% / **24%** / 32% more XP from cleaning quests" (values come from `effect.perLevel`).

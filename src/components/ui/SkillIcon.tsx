@@ -1,4 +1,4 @@
-import { Cake, Clock, Coins, Heart, Leaf, Shirt, ShoppingCart, Sparkles, Sword, Zap } from 'pixelarticons/react';
+import { Cake, Clock, Coins, Heart, Lightbulb, Shield, Shirt, ShoppingCart, Sparkles, Zap } from 'pixelarticons/react';
 import type { SkillDefinition } from '../../types';
 import { Icon } from './Icon';
 
@@ -10,8 +10,8 @@ const icons = {
   hearts: Heart,
   shirt: Shirt,
   cart: ShoppingCart,
-  leaf: Leaf,
-  sword: Sword,
+  lightbulb: Lightbulb,
+  shield: Shield,
   clock: Clock,
 };
 

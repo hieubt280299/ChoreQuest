@@ -1,4 +1,11 @@
-import { HIGH_TIER_LEVEL_GOLD, MASTERY_LEVEL_GOLD, MAX_LEVEL, STANDARD_LEVEL_GOLD, XP_CURVE } from '../constants/gameRules';
+import {
+  HIGH_TIER_LEVEL_GOLD,
+  MASTERY_LEVEL_GOLD,
+  MAX_LEVEL,
+  MAX_SKILL_POINTS,
+  STANDARD_LEVEL_GOLD,
+  XP_CURVE,
+} from '../constants/gameRules';
 import type {
   Character,
   CharacterId,
@@ -121,9 +128,14 @@ export function monthKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Skill points earned by a level: one per level, capped at what all skill slots can hold (24). */
+export function skillPointsEarned(level: number): number {
+  return Math.min(level, MAX_SKILL_POINTS);
+}
+
 export function skillPointsAvailable(level: number, skills: CharacterSkill[]): number {
   const allocated = skills.reduce((sum, skill) => sum + skill.level, 0);
-  return Math.max(0, level - allocated);
+  return Math.max(0, skillPointsEarned(level) - allocated);
 }
 
 export function msUntilNextMonth(date = new Date()): number {
@@ -380,7 +392,7 @@ export function revokeRewards(
     const fromLevel = getLevelFromXp(prev.xp);
     const toLevel = getLevelFromXp(xp);
     const allocated = prev.skills.reduce((sum, skill) => sum + skill.level, 0);
-    if (allocated > toLevel) return { ok: false, characterId: id };
+    if (allocated > skillPointsEarned(toLevel)) return { ok: false, characterId: id };
     const lostBonus = goldForLevelRange(toLevel, fromLevel);
     next[id] = { ...prev, xp, gold: Math.max(0, prev.gold - (goldAwarded[id] ?? 0) - lostBonus) };
   }

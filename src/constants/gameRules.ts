@@ -8,6 +8,8 @@ export const XP_CURVE = [
 export const MAX_LEVEL = 30;
 export const MAX_SKILLS_PER_CHARACTER = 6;
 export const MAX_SKILL_LEVEL = 4;
+/** Points needed to max every skill slot (6 x 4); earned points stop growing here (reached at level 24). */
+export const MAX_SKILL_POINTS = MAX_SKILLS_PER_CHARACTER * MAX_SKILL_LEVEL;
 export const STANDARD_LEVEL_GOLD = 50;
 export const HIGH_TIER_LEVEL_GOLD = 300;
 /** Reaching the level cap (mastery) pays a much bigger bonus. */
@@ -122,7 +124,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     id: 'zen-housekeeper',
     nameKey: 'skill.zenHousekeeper.name',
     descriptionKey: 'skill.zenHousekeeper.desc',
-    icon: 'leaf',
+    icon: 'lightbulb',
     maxLevel: 4,
     effect: { kind: 'xp_all', perLevel: 0.04 },
   },
@@ -130,7 +132,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     id: 'raid-master',
     nameKey: 'skill.raidMaster.name',
     descriptionKey: 'skill.raidMaster.desc',
-    icon: 'sword',
+    icon: 'shield',
     maxLevel: 4,
     effect: { kind: 'group_gold', perLevel: 0.15, group: 'heavy' },
   },
@@ -146,7 +148,7 @@ export const SKILL_POOL: SkillDefinition[] = [
 
 /**
  * Retired skills and their replacements (time-of-day bonuses became task-group bonuses; Lucky Charm
- * duplicated Gold Doubler). Owned levels carry over, so no skill points are lost.
+ * duplicated Golden Touch). Owned levels carry over, so no skill points are lost.
  */
 export const SKILL_MIGRATIONS: Record<string, string> = {
   'early-bird': 'quick-hands',
