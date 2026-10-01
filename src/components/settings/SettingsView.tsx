@@ -17,6 +17,7 @@ import { AudioSettingsCard } from './AudioSettingsCard';
 import { DeleteAccountButton } from './DeleteAccountButton';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
+import { NewLegendCard } from './NewLegendCard';
 import { ResetQuestsButton } from './ResetQuestsButton';
 
 function SectionTitle({ icon, children }: { icon: typeof Coins; children: string }) {
@@ -120,6 +121,7 @@ export function SettingsView() {
         </Card>
       </div>
       <ChronicleCard />
+      <NewLegendCard />
       <Card>
         <SectionTitle icon={Script}>{t('settings.tasks')}</SectionTitle>
         {!canEditSettings && <ModeratorOnlyNote />}

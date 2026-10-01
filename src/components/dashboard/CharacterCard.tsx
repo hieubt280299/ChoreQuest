@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { Sparkles } from 'pixelarticons/react';
-import { SKILL_POOL } from '../../constants/gameRules';
+import { Crown, Sparkles } from 'pixelarticons/react';
+import { MAX_LEVEL, SKILL_POOL } from '../../constants/gameRules';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Character } from '../../types';
 import { getXpProgress, skillPointsAvailable } from '../../utils/calculations';
@@ -31,9 +31,15 @@ export function CharacterCard({
         <div className="flex gap-4">
           <CharacterAvatar id={character.id} scale={4} />
           <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               <h3 className="text-2xl font-extrabold uppercase leading-none">{t(`character.${character.id}`)}</h3>
-              <LevelBadge level={progress.level} />
+              {progress.level >= MAX_LEVEL && (
+                <span className="inline-flex items-center gap-1 bg-flame-300 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]">
+                  <Icon as={Crown} size={12} className="text-brick-700" />
+                  {t('mastery.badge')}
+                </span>
+              )}
+              <LevelBadge level={progress.level} className="ml-auto" />
             </div>
             <div className="flex items-center justify-between gap-2 text-base font-bold text-wood-700">
               <span>

@@ -149,6 +149,11 @@ export interface GameState {
   prizePool: number;
   chronicle: Chronicle;
   prizeHistory: ChronicleResult[];
+  /**
+   * When levels and skills were last reset after a player reached the level cap (epoch ms).
+   * Quest entries logged before it can no longer be undone or re-assigned.
+   */
+  levelResetAt?: number;
 }
 
 export interface HouseholdUser {
@@ -193,6 +198,7 @@ export interface HouseholdDoc {
     characters: Record<CharacterId, Character>;
     logs: TaskLog[];
     prizeHistory: ChronicleResult[];
+    levelResetAt?: number;
   };
 }
 

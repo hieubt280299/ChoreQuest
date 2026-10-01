@@ -407,4 +407,58 @@ export class ChiptuneEngine {
       this.bgmBus.gain.setTargetAtTime(this.bgmVolume, t + 1.3, 0.3);
     }
   }
+
+  /** Grand ~3s mastery fanfare: snare roll, three rising arpeggios, then a held chord over the bass. */
+  playMastery(delay = 0) {
+    if (!this.sfxReady()) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + 0.01 + delay;
+    const roll = this.snareRollAt(t);
+    const phrases: [string[], number][] = [
+      [['C5', 'E5', 'G5', 'C6'], roll],
+      [['F5', 'A5', 'C6', 'F6'], roll + 0.42],
+      [['G5', 'B5', 'D6', 'G6'], roll + 0.84],
+    ];
+    for (const [notes, start] of phrases) {
+      notes.forEach((note, index) =>
+        this.tone({ bus: this.sfxBus, wave: this.waves.pulse50, midi: noteToMidi(note), when: start + index * 0.09, dur: 0.1, gain: 0.18 }),
+      );
+      this.tone({ bus: this.sfxBus, wave: 'triangle', midi: noteToMidi(notes[0]) - 24, when: start, dur: 0.36, gain: 0.3 });
+    }
+    const hold = roll + 1.3;
+    ['C6', 'E6', 'G6', 'C7'].forEach((note) =>
+      this.tone({ bus: this.sfxBus, wave: this.waves.pulse25, midi: noteToMidi(note), when: hold, dur: 1.4, gain: 0.09, vibrato: true }),
+    );
+    this.tone({ bus: this.sfxBus, wave: 'triangle', midi: noteToMidi('C3'), when: hold, dur: 1.4, gain: 0.35 });
+
+    if (this.timer !== undefined) {
+      this.bgmBus.gain.setTargetAtTime(this.bgmVolume * 0.15, t, 0.05);
+      this.bgmBus.gain.setTargetAtTime(this.bgmVolume, hold + 1.6, 0.4);
+    }
+  }
+
+  /** Quick snare roll on the effects bus; returns when it ends. */
+  private snareRollAt(when: number): number {
+    const ctx = this.ctx!;
+    for (let index = 0; index < 6; index += 1) {
+      const at = when + index * 0.05;
+      const source = ctx.createBufferSource();
+      source.buffer = this.noise;
+      const band = ctx.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 2000;
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.05 + index * 0.02, at);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
+      source.connect(band).connect(env).connect(this.sfxBus);
+      source.start(at);
+      source.stop(at + 0.07);
+      source.onended = () => {
+        source.disconnect();
+        band.disconnect();
+        env.disconnect();
+      };
+    }
+    return when + 0.32;
+  }
 }

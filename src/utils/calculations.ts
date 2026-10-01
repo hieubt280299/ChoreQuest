@@ -1,4 +1,4 @@
-import { HIGH_TIER_LEVEL_GOLD, MAX_LEVEL, STANDARD_LEVEL_GOLD, XP_CURVE } from '../constants/gameRules';
+import { HIGH_TIER_LEVEL_GOLD, MASTERY_LEVEL_GOLD, MAX_LEVEL, STANDARD_LEVEL_GOLD, XP_CURVE } from '../constants/gameRules';
 import type {
   Character,
   CharacterId,
@@ -57,6 +57,7 @@ export function getXpProgress(xp: number): {
 export function getLevelUpGold(newLevel: number): number {
   if (newLevel < 2 || newLevel > MAX_LEVEL) return 0;
   if (newLevel <= 24) return STANDARD_LEVEL_GOLD;
+  if (newLevel === MAX_LEVEL) return MASTERY_LEVEL_GOLD;
   return HIGH_TIER_LEVEL_GOLD;
 }
 

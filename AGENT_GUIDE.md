@@ -85,8 +85,10 @@ src/
   `[230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100, 2350, 2600, 3500, 4500, 5500, 6500, 7500]`
 - **Level Cap:** Max Level 30.
 - **Level Up Gold Bonus:**
-    - Levels 2 – 24: Standard bonus (e.g., +50 Gold/level).
-    - Levels 25 – 30: High-tier bonus (e.g., +300 Gold/level).
+    - Levels 2 – 24: Standard bonus (+50 Gold/level).
+    - Levels 25 – 29: High-tier bonus (+300 Gold/level).
+    - Level 30 (mastery): +2,000 Gold, with a full-screen "Mastery achieved!" celebration (confetti, fanfare) and a permanent "Master" badge.
+- **New legend (anti-inflation):** once any player reaches level 30, a moderator can reset both players to level 1 with no skills from Settings. Gold, the chronicle, quests and history are kept; quest entries logged before the reset (`levelResetAt`) can no longer be undone or re-assigned.
 
 #### 3. Tasks & Bounties
 
@@ -97,7 +99,7 @@ src/
     - Either player may log a completion for **Husband**, **Wife** or **Both** (logging for the spouse is allowed); skill points are only spent on one's own character.
 - Tasks reset daily at 00:00 local time or can be marked done per date entry.
 - **Groups:** every task has a `group` alongside its `category`, shown as **Quick tasks** (`quick`: light, ~5–10 min), **Moderate tasks** (`main`: normal effort, ~10–60 min) and **Heavy tasks** (`heavy`: physically demanding). Groups describe effort, not reward tier. Older tasks get a group inferred from the built-in defaults or their category.
-- **Default rewards:** XP = 2 per minute × effort (0.75 pleasant, 1 normal, 1.3 physical/unpleasant, 1.5 heavy, 1.8 hardest), rounded to 5 (min 10); gold ≈ 60% of XP (min 5). Paired lunch/dinner quests are equal. Default quests carry their own EN/VI names.
+- **Default rewards:** XP ≈ 1 per minute × effort (0.75 pleasant, 1 normal, 1.3 physical/unpleasant, 1.5 heavy, 1.8 hardest; halved from 2/min so levelling feels earned, min 5); gold ≈ 1.2 per minute × effort, rounded to 5 (min 5). Paired lunch/dinner quests are equal. Default quests carry their own EN/VI names.
 - **Streaks:** consecutive days a character completes the same task (alone or as "Both"); missing a day resets it to 0. From day 3 a completion pays bonus gold following Fibonacci: day 3–10 = `[1, 1, 2, 3, 5, 8, 13, 21]`, capped at +21/day. The streak bonus is **not** split for "Both": each streaking partner gets their full bonus on top of their 50% share. Streaks are derived from the quest log (`utils/streaks.ts`), so undo/re-assign keep them correct.
 - **Reward:** `Base share + skill bonuses (on the share) + streak gold`, previewed per option in the "Who did it?" dialog (`computeRewardBreakdown`).
 - **Quest board:** sort by your streak / XP / gold / name, group by group / category / none (remembered per device); streak badges show on each task.

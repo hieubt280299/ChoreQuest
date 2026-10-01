@@ -129,6 +129,7 @@ export function parseGameState(raw: unknown, today = localDateKey()): GameState 
       prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
       chronicle: parseChronicle(data.chronicle, data.activeMonth, today),
       prizeHistory: parseHistory(data.prizeHistory),
+      ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
     },
     today,
   );
@@ -174,7 +175,27 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
   return {
     settings: { tasks: state.tasks, prizePool: state.prizePool },
     chronicle: state.chronicle,
-    game: { characters: state.characters, logs: state.logs, prizeHistory: state.prizeHistory },
+    game: {
+      characters: state.characters,
+      logs: state.logs,
+      prizeHistory: state.prizeHistory,
+      ...(state.levelResetAt !== undefined ? { levelResetAt: state.levelResetAt } : {}),
+    },
+  };
+}
+
+/**
+ * "New legend": once a player has mastered the game (level cap), both players go back to level 1 with
+ * no skills to keep levels meaningful. Gold, the chronicle, quests and history are kept.
+ */
+export function resetLevelsAndSkills(state: GameState, now = Date.now()): GameState {
+  return {
+    ...state,
+    characters: {
+      husband: { ...state.characters.husband, xp: 0, skills: [] },
+      wife: { ...state.characters.wife, xp: 0, skills: [] },
+    },
+    levelResetAt: now,
   };
 }
 

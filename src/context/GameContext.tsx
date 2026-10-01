@@ -1,6 +1,6 @@
 import { updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { DEFAULT_TASKS, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
+import { DEFAULT_TASKS, MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
 import type {
   CharacterId,
   Completer,
@@ -30,6 +30,7 @@ import {
   fromHouseholdDoc,
   parseGameState,
   pruneLogs,
+  resetLevelsAndSkills,
 } from '../utils/gameState';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
@@ -81,6 +82,10 @@ interface GameContextValue {
   removeTask: (taskId: string) => ActionResult;
   /** Moderator: replace the quest list with the current defaults (logs and streaks keep matching ids). */
   resetTasksToDefaults: () => ActionResult;
+  /** A player has reached the level cap, so levels and skills may be reset ("new legend"). */
+  levelResetUnlocked: boolean;
+  /** Moderator: reset both players to level 1 with no skills; gold and chronicle are kept. */
+  resetLevels: () => ActionResult;
   setPrizePool: (amount: number) => ActionResult;
   setChronicleEndDate: (date: string) => ActionResult;
   unlockSkill: (characterId: CharacterId, skillId: string) => ActionResult;
@@ -207,8 +212,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const canManageLog = useCallback(
     (log: TaskLog) => {
-      // Gold of finished chronicles is already settled, so only current-chronicle logs can change.
+      // Gold of finished chronicles is already settled, so only current-chronicle logs can change; and XP
+      // from before a level reset is gone, so those entries can't be undone either.
       if (log.date < stateRef.current.chronicle.startDate || !canPlay) return false;
+      if (stateRef.current.levelResetAt !== undefined && log.timestamp < stateRef.current.levelResetAt) return false;
       if (demo || isModerator) return true;
       return log.loggedBy === user?.uid || log.completedBy === myCharacter || log.completedBy === 'both';
     },
@@ -354,6 +361,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const streakIndex = useMemo(() => buildStreakIndex(state.logs), [state.logs]);
+  const levelResetUnlocked = (['husband', 'wife'] as CharacterId[]).some(
+    (id) => getLevelFromXp(state.characters[id].xp) >= MAX_LEVEL,
+  );
 
   const value = useMemo<GameContextValue>(
     () => ({
@@ -384,6 +394,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
             tasks: exists ? current.tasks.map((item) => (item.id === task.id ? task : item)) : [...current.tasks, task],
           };
         }),
+      levelResetUnlocked,
+      resetLevels: () =>
+        withSettings((current) =>
+          (['husband', 'wife'] as CharacterId[]).some((id) => getLevelFromXp(current.characters[id].xp) >= MAX_LEVEL)
+            ? resetLevelsAndSkills(current)
+            : fail('settings.newLegendLocked'),
+        ),
       resetTasksToDefaults: () =>
         withSettings((current) => ({ ...current, tasks: DEFAULT_TASKS.map((task) => ({ ...task, names: { ...task.names } })) })),
       removeTask: (taskId) =>
@@ -462,6 +479,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       withSettings,
       changeSkill,
       streakIndex,
+      levelResetUnlocked,
     ],
   );
 
