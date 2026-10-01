@@ -4,14 +4,13 @@ import { SKILL_POOL } from '../../constants/gameRules';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Character } from '../../types';
 import { getXpProgress, skillPointsAvailable } from '../../utils/calculations';
-import type { TranslationKey } from '../../utils/i18n';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { LevelBadge } from '../ui/LevelBadge';
 import { pixelEase } from '../ui/Modal';
 import { ProgressBar } from '../ui/ProgressBar';
-import { SkillIcon } from '../ui/SkillIcon';
+import { SkillChip } from './SkillChip';
 
 export function CharacterCard({
   character,
@@ -53,37 +52,30 @@ export function CharacterCard({
             )}
           </div>
         </div>
-        {character.skills.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {character.skills.map((owned) => {
-              const def = SKILL_POOL.find((skill) => skill.id === owned.skillId);
-              if (!def) return null;
-              return (
-                <span
-                  key={owned.skillId}
-                  className="px-slot inline-flex items-center gap-1 px-2 py-0.5 text-sm font-bold text-wood-800"
-                >
-                  <SkillIcon icon={def.icon} size={12} />
-                  {t(def.nameKey as TranslationKey)}
-                  <span className="font-arcade text-[8px] text-brick-600">{owned.level}</span>
-                </span>
-              );
-            })}
-          </div>
-        )}
     </>
   );
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
-      {/* Selectable only where you can switch characters (demo); otherwise a plain card. */}
-      {onSelect ? (
-        <button type="button" aria-pressed={active} className={`${frame} px-focus text-left`} onClick={onSelect}>
-          {body}
-        </button>
-      ) : (
-        <div className={frame}>{body}</div>
-      )}
+      <div className={frame}>
+        {/* Selectable only where you can switch characters (demo). The skill chips sit outside the
+            button so each can be its own tooltip trigger. */}
+        {onSelect ? (
+          <button type="button" aria-pressed={active} className="px-focus block w-full text-left" onClick={onSelect}>
+            {body}
+          </button>
+        ) : (
+          body
+        )}
+        {character.skills.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {character.skills.map((owned) => {
+              const def = SKILL_POOL.find((skill) => skill.id === owned.skillId);
+              return def ? <SkillChip key={owned.skillId} skill={def} level={owned.level} /> : null;
+            })}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

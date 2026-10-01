@@ -1,6 +1,6 @@
 import { updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
+import { DEFAULT_TASKS, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
 import type {
   CharacterId,
   Completer,
@@ -79,6 +79,8 @@ interface GameContextValue {
   reassignLog: (logId: string, completer: Completer) => ActionResult;
   upsertTask: (task: Task) => ActionResult;
   removeTask: (taskId: string) => ActionResult;
+  /** Moderator: replace the quest list with the current defaults (logs and streaks keep matching ids). */
+  resetTasksToDefaults: () => ActionResult;
   setPrizePool: (amount: number) => ActionResult;
   setChronicleEndDate: (date: string) => ActionResult;
   unlockSkill: (characterId: CharacterId, skillId: string) => ActionResult;
@@ -382,6 +384,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
             tasks: exists ? current.tasks.map((item) => (item.id === task.id ? task : item)) : [...current.tasks, task],
           };
         }),
+      resetTasksToDefaults: () =>
+        withSettings((current) => ({ ...current, tasks: DEFAULT_TASKS.map((task) => ({ ...task, names: { ...task.names } })) })),
       removeTask: (taskId) =>
         withSettings((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== taskId) })),
       setPrizePool: (amount) =>

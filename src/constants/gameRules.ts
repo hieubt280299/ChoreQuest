@@ -14,29 +14,33 @@ export const DEFAULT_PRIZE_POOL = 1_000_000;
 
 export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
 
+// Rewards scale with time and effort: XP = 2 per minute x effort (0.75 pleasant, 1 normal, 1.3 physical
+// or unpleasant, 1.5 heavy, 1.8 hardest), rounded to 5 (min 10); gold is ~60% of XP (min 5).
 export const DEFAULT_TASKS: Task[] = [
-  // Quick Dailies: light, every day
-  { id: 'feedPet', nameKey: 'task.feedPet', names: { en: 'Feed Pet', vi: 'Cho thú cưng ăn' }, xp: 20, gold: 10, category: 'general', group: 'quick', enabled: true },
-  { id: 'cleanLitter', nameKey: 'task.cleanLitter', names: { en: 'Clean Litter Box', vi: 'Dọn khay cát thú cưng' }, xp: 30, gold: 15, category: 'general', group: 'quick', enabled: true },
-  { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn dẹp giường' }, xp: 15, gold: 5, category: 'general', group: 'quick', enabled: true },
-  { id: 'trash', nameKey: 'task.trash', names: { en: 'Take Out Trash', vi: 'Đổ rác' }, xp: 20, gold: 10, category: 'general', group: 'quick', enabled: true },
-  // Main Chores: standard daily effort (laundry flow, meals and kitchen, floors)
-  { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 25, gold: 15, category: 'laundry', group: 'main', enabled: true },
-  { id: 'dryClothes', nameKey: 'task.dryClothes', names: { en: 'Hang / Dry Clothes', vi: 'Phơi quần áo' }, xp: 30, gold: 20, category: 'laundry', group: 'main', enabled: true },
-  { id: 'foldClothes', nameKey: 'task.foldClothes', names: { en: 'Collect & Fold Dried Clothes', vi: 'Gấp & thu dọn quần áo phơi' }, xp: 35, gold: 20, category: 'laundry', group: 'main', enabled: true },
-  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 50, gold: 30, category: 'cooking', group: 'main', enabled: true },
-  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 60, gold: 35, category: 'cooking', group: 'main', enabled: true },
-  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishes & Kitchen Counter', vi: 'Rửa bát & lau bếp bữa trưa' }, xp: 45, gold: 25, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishes & Kitchen Counter', vi: 'Rửa bát & lau bếp bữa tối' }, xp: 50, gold: 30, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'sweep', nameKey: 'task.sweep', names: { en: 'Sweep House', vi: 'Quét nhà' }, xp: 30, gold: 15, category: 'cleaning', group: 'main', enabled: true },
-  // Heavy Raids: weekly, high effort
-  { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 70, gold: 40, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 80, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 120, gold: 80, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 80, gold: 45, category: 'laundry', group: 'heavy', enabled: true },
-  { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Grocery Shopping', vi: 'Đi chợ / Siêu thị' }, xp: 90, gold: 50, category: 'shopping', group: 'heavy', enabled: true },
-  { id: 'cleanFridge', nameKey: 'task.cleanFridge', names: { en: 'Clean Fridge', vi: 'Lau dọn tủ lạnh' }, xp: 70, gold: 40, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'dustFurniture', nameKey: 'task.dustFurniture', names: { en: 'Dust Furniture', vi: 'Lau bụi bàn ghế & kệ' }, xp: 60, gold: 35, category: 'cleaning', group: 'heavy', enabled: true },
+  // Quick tasks: light, ~5-10 minutes
+  { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn dẹp giường' }, xp: 10, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'feedPet', nameKey: 'task.feedPet', names: { en: 'Feed Pet', vi: 'Cho thú cưng ăn' }, xp: 10, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'trash', nameKey: 'task.trash', names: { en: 'Take Out Trash', vi: 'Đổ rác' }, xp: 10, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 10, gold: 5, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'collectClothes', nameKey: 'task.collectClothes', names: { en: 'Collect Dried Clothes', vi: 'Thu quần áo' }, xp: 10, gold: 5, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'cleanLitter', nameKey: 'task.cleanLitter', names: { en: 'Clean Litter Box', vi: 'Dọn khay cát thú cưng' }, xp: 15, gold: 10, category: 'general', group: 'quick', enabled: true },
+  { id: 'dryClothes', nameKey: 'task.dryClothes', names: { en: 'Hang / Dry Clothes', vi: 'Phơi quần áo' }, xp: 20, gold: 10, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'groceryDaily', nameKey: 'task.groceryDaily', names: { en: 'Daily Grocery Shopping', vi: 'Đi chợ hằng ngày' }, xp: 20, gold: 10, category: 'shopping', group: 'quick', enabled: true },
+  // Moderate tasks: normal effort, ~10-60 minutes
+  { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 25, gold: 15, category: 'laundry', group: 'main', enabled: true },
+  { id: 'cleanFridge', nameKey: 'task.cleanFridge', names: { en: 'Clean Fridge', vi: 'Lau dọn tủ lạnh' }, xp: 30, gold: 20, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'sweep', nameKey: 'task.sweep', names: { en: 'Sweep House', vi: 'Quét nhà' }, xp: 40, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 40, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 40, gold: 25, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dustFurniture', nameKey: 'task.dustFurniture', names: { en: 'Dust Furniture', vi: 'Lau bụi bàn ghế & kệ' }, xp: 60, gold: 35, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 90, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 90, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 90, gold: 55, category: 'cooking', group: 'main', enabled: true },
+  { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 90, gold: 55, category: 'shopping', group: 'main', enabled: true },
+  // Heavy tasks: physically demanding, ~30 minutes
+  { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 80, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 90, gold: 55, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 110, gold: 65, category: 'cleaning', group: 'heavy', enabled: true },
 ];
 
 const DEFAULT_GROUP_BY_ID = new Map(DEFAULT_TASKS.map((task) => [task.id, task.group]));

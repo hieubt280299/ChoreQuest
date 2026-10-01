@@ -96,15 +96,18 @@ src/
     - If completed by **Both**, the task's base XP and Gold bounty are split **50/50** between them.
     - Either player may log a completion for **Husband**, **Wife** or **Both** (logging for the spouse is allowed); skill points are only spent on one's own character.
 - Tasks reset daily at 00:00 local time or can be marked done per date entry.
-- **Groups:** every task has a `group` alongside its `category`: **Quick Dailies** (`quick`, light: feed pet, clean litter box, make the bed, take out trash), **Main Chores** (`main`, standard daily: wash / hang / fold clothes, cook lunch and dinner, lunch and dinner dishes, sweep) and **Heavy Raids** (`heavy`, weekly: vacuum, mop, clean bathroom, change sheets, grocery shopping, clean fridge, dust furniture). Default quests carry their own EN/VI names. Older tasks get a group inferred from the built-in defaults or their category.
+- **Groups:** every task has a `group` alongside its `category`, shown as **Quick tasks** (`quick`: light, ~5–10 min), **Moderate tasks** (`main`: normal effort, ~10–60 min) and **Heavy tasks** (`heavy`: physically demanding). Groups describe effort, not reward tier. Older tasks get a group inferred from the built-in defaults or their category.
+- **Default rewards:** XP = 2 per minute × effort (0.75 pleasant, 1 normal, 1.3 physical/unpleasant, 1.5 heavy, 1.8 hardest), rounded to 5 (min 10); gold ≈ 60% of XP (min 5). Paired lunch/dinner quests are equal. Default quests carry their own EN/VI names.
 - **Streaks:** consecutive days a character completes the same task (alone or as "Both"); missing a day resets it to 0. From day 3 a completion pays bonus gold following Fibonacci: day 3–10 = `[1, 1, 2, 3, 5, 8, 13, 21]`, capped at +21/day. The streak bonus is **not** split for "Both": each streaking partner gets their full bonus on top of their 50% share. Streaks are derived from the quest log (`utils/streaks.ts`), so undo/re-assign keep them correct.
 - **Reward:** `Base share + skill bonuses (on the share) + streak gold`, previewed per option in the "Who did it?" dialog (`computeRewardBreakdown`).
 - **Quest board:** sort by your streak / XP / gold / name, group by group / category / none (remembered per device); streak badges show on each task.
+- **History tab:** per player, the quests completed in the current chronicle (ordered by count) with completion count and current streak (from day 3); expanding one compares that player's XP and gold from it with the partner's.
+- **Home:** learned-skill chips read "Name lv. x" and show the skill description (current level highlighted) on hover, focus or tap.
 - **Audit:** completed entries in the current chronicle can be **undone** (XP, gold and any level-up bonus gold are revoked; refused if those levels' skill points were spent) or **re-assigned** (Husband / Wife / Both), by the logger, the affected character, or a moderator.
 
 #### 4. Skills Pool (10 Configurable Skills)
 
-- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Raid Master: +15% gold from Heavy Raids per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
+- Shared pool of 10 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Gold Doubler"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Raid Master: +15% gold from heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
 - Descriptions list every level's value Dota-style with the active level highlighted, e.g. "Gain 8% / 16% / **24%** / 32% more XP from cleaning quests" (values come from `effect.perLevel`).

@@ -1,7 +1,7 @@
 export type CharacterId = 'husband' | 'wife';
 export type Completer = CharacterId | 'both';
 export type LanguageCode = 'en' | 'vi';
-export type AppView = 'dashboard' | 'tasks' | 'skills' | 'calendar' | 'settings';
+export type AppView = 'dashboard' | 'tasks' | 'skills' | 'history' | 'calendar' | 'settings';
 export type HouseholdRole = 'moderator' | 'member';
 
 export interface CharacterSkill {

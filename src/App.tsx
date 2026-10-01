@@ -6,6 +6,7 @@ import { ProfileSwitcher } from './components/auth/ProfileSwitcher';
 import { CalendarView } from './components/calendar/CalendarView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { InviteBanner } from './components/dashboard/InviteBanner';
+import { HistoryView } from './components/history/HistoryView';
 import { SettingsView } from './components/settings/SettingsView';
 import { SkillPickerModal } from './components/skills/SkillPickerModal';
 import { SkillsView } from './components/skills/SkillsView';
@@ -48,6 +49,7 @@ export default function App() {
         {view === 'dashboard' && <DashboardView />}
         {view === 'tasks' && <TasksView />}
         {view === 'skills' && <SkillsView />}
+        {view === 'history' && <HistoryView />}
         {view === 'calendar' && <CalendarView />}
         {view === 'settings' && <SettingsView />}
       </main>

@@ -232,7 +232,7 @@ export function TasksView() {
                         <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
                         <GoldCounter amount={task.gold} />
                         <span className="text-sm font-bold uppercase text-wood-500">
-                          {t(`group.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
+                          {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
                         </span>
                       </div>
                       {streaks.some((streak) => streak.days >= 2) && (

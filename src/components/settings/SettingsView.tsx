@@ -17,6 +17,7 @@ import { AudioSettingsCard } from './AudioSettingsCard';
 import { DeleteAccountButton } from './DeleteAccountButton';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
+import { ResetQuestsButton } from './ResetQuestsButton';
 
 function SectionTitle({ icon, children }: { icon: typeof Coins; children: string }) {
   return (
@@ -185,6 +186,9 @@ export function SettingsView() {
             );
           })}
         </fieldset>
+        <div className="mt-5">
+          <ResetQuestsButton />
+        </div>
       </Card>
       <Card>
         <SectionTitle icon={User}>{t('settings.account')}</SectionTitle>
