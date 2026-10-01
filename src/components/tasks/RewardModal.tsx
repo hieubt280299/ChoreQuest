@@ -6,7 +6,7 @@ import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
-import { translations, type TranslationKey } from '../../utils/i18n';
+import { taskName } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
@@ -14,12 +14,8 @@ import { Icon } from '../ui/Icon';
 import { pixelEase } from '../ui/Modal';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
 
-function label(nameKey: string, t: (key: TranslationKey) => string) {
-  return nameKey in translations.en ? t(nameKey as TranslationKey) : nameKey;
-}
-
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { state, reward, clearReward, canActAs } = useGame();
   const { playTaskCompleteSFX, playLevelUpSFX } = useAudio();
 
@@ -67,7 +63,7 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
             <h2 className="px-title text-4xl uppercase text-flame-300" style={{ textShadow: '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' }}>
               {t('tasks.reward')}
             </h2>
-            <p className="mb-5 mt-1 text-xl font-bold text-wood-600">{label(reward.title, t)}</p>
+            <p className="mb-5 mt-1 text-xl font-bold text-wood-600">{taskName({ nameKey: reward.title, names: reward.names }, language)}</p>
             <div className="mb-4 grid grid-cols-2 gap-4">
               {(['husband', 'wife'] as const).map((id) => {
                 const earned = reward.xp[id] > 0 || reward.gold[id] > 0;

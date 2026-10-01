@@ -71,7 +71,7 @@ src/
     - Online play requires a household; only the **Offline Demo** bypasses this. The household is *active* once both partners have joined; quests and skills unlock then.
     - **Roles:** the creator is `moderator` and can grant `moderator` to the partner. Only moderators edit settings (quests, prize pool, chronicle end date).
     - **Leave Household** detaches the account and returns it to onboarding; a leaving sole moderator promotes the partner, and the last member leaving deletes the household.
-    - **Character binding:** an account acts (complete quests, spend skill points) only for its own character; the partner's stats are view-only. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
+    - **Character binding:** an account spends skill points only for its own character, and the partner's stats are view-only. Quests may be logged for either character or both. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
 - Each character possesses:
     - `xp`: total experience accumulated.
     - `level`: calculated from XP array index (1 to 30).
@@ -94,7 +94,7 @@ src/
 - **Completion Rules:**
     - Tasks can be completed by **Husband**, **Wife**, or **Both**.
     - If completed by **Both**, the task's base XP and Gold bounty are split **50/50** between them.
-    - A player logs a completion for their own character or **Both**.
+    - Either player may log a completion for **Husband**, **Wife** or **Both** (logging for the spouse is allowed); skill points are only spent on one's own character.
 - Tasks reset daily at 00:00 local time or can be marked done per date entry.
 - **Audit:** completed entries in the current chronicle can be **undone** (XP, gold and any level-up bonus gold are revoked; refused if those levels' skill points were spent) or **re-assigned** (Husband / Wife / Both), by the logger, the affected character, or a moderator.
 

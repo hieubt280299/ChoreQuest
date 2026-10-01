@@ -122,6 +122,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       doc(firebase.db, 'users', uid),
       { includeMetadataChanges: true },
       (snap) => {
+        // Only follow server-confirmed profiles: right after creating/joining, the local copy points at
+        // a household the server may not have committed yet, and reading it then is denied.
+        if (snap.metadata.hasPendingWrites) return;
         // A cache miss isn't proof the profile is missing; wait for the server.
         if (!snap.exists() && snap.metadata.fromCache) return;
         const householdId = snap.exists() ? ((snap.data().householdId as string | null) ?? null) : null;

@@ -178,7 +178,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const completeTask = useCallback(
     (taskId: string, completer: Completer): ActionResult => {
       if (!canPlay) return fail('household.error.inactive');
-      if (!demo && completer !== myCharacter && completer !== 'both') return fail('household.error.ownCharacter');
       const current = stateRef.current;
       const date = localDateKey();
       const task = current.tasks.find((item) => item.id === taskId && item.enabled);
@@ -203,7 +202,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         category: task.category,
       };
       commit({ ...current, characters, logs: [log, ...current.logs] });
-      setReward({ id: log.id, title: task.nameKey, xp: log.xpAwarded, gold: log.goldAwarded, levelUps });
+      setReward({ id: log.id, title: task.nameKey, names: task.names, xp: log.xpAwarded, gold: log.goldAwarded, levelUps });
       return OK;
     },
     [canPlay, commit, demo, myCharacter, user?.uid],
@@ -250,7 +249,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       commit({ ...current, characters, logs: current.logs.map((item) => (item.id === logId ? updated : item)) });
       // Celebrate any level-up the re-assignment caused.
       if (levelUps.length > 0) {
-        setReward({ id: `${log.id}-reassign-${Date.now()}`, title: task?.nameKey ?? log.taskId, xp: updated.xpAwarded, gold: updated.goldAwarded, levelUps });
+        setReward({ id: `${log.id}-reassign-${Date.now()}`, title: task?.nameKey ?? log.taskId, names: task?.names, xp: updated.xpAwarded, gold: updated.goldAwarded, levelUps });
       }
       return OK;
     },
@@ -294,7 +293,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canActAs,
       canPlay,
       canEditSettings,
-      completerOptions: demo ? ['husband', 'wife', 'both'] : [myCharacter, 'both'],
+      // Either partner may log a quest for themselves, their spouse, or both.
+      completerOptions: ['husband', 'wife', 'both'],
       canManageLog,
       completeTask,
       undoLog,

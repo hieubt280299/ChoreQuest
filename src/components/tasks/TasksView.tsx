@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Completer, Task, TaskCategory, TaskLog } from '../../types';
-import { translations, type TranslationKey } from '../../utils/i18n';
+import type { TranslationKey } from '../../utils/i18n';
+import { taskName } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -20,10 +21,6 @@ export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
   laundry: Shirt,
   general: Home,
 };
-
-function taskLabel(nameKey: string, t: (key: TranslationKey) => string) {
-  return nameKey in translations.en ? t(nameKey as TranslationKey) : nameKey;
-}
 
 function CompleterLabel({ who }: { who: Completer }) {
   const { t } = useLanguage();
@@ -87,7 +84,7 @@ function ErrorNote({ error }: { error: TranslationKey | null }) {
 }
 
 export function TasksView() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const {
     state,
     activeCharacter,
@@ -150,7 +147,7 @@ export function TasksView() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className={`truncate text-xl font-extrabold leading-tight ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
-                    {taskLabel(task.nameKey, t)}
+                    {taskName(task, language)}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-3">
                     <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>

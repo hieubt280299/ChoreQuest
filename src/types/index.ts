@@ -47,7 +47,10 @@ export type TaskCategory = 'cleaning' | 'cooking' | 'shopping' | 'laundry' | 'ge
 
 export interface Task {
   id: string;
+  /** Internal code (e.g. `task.laundry`), generated from the name for custom quests. */
   nameKey: string;
+  /** Player-entered names per language; built-in quests may omit them and use app translations. */
+  names?: Partial<Record<LanguageCode, string>>;
   xp: number;
   gold: number;
   category: TaskCategory;
@@ -96,7 +99,9 @@ export interface ChronicleResult {
 
 export interface RewardToast {
   id: string;
+  /** Quest code; `names` holds its display names. */
   title: string;
+  names?: Partial<Record<LanguageCode, string>>;
   xp: Record<CharacterId, number>;
   gold: Record<CharacterId, number>;
   levelUps: { characterId: CharacterId; from: number; to: number; bonusGold: number }[];

@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import { TASK_CATEGORIES } from '../../context/GameContext';
+import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { Task, TaskCategory } from '../../types';
+import type { LanguageCode, Task, TaskCategory } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
+import { completeTaskNames, editableTaskNames, generateTaskKey } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+
+const NAME_FIELDS: { language: LanguageCode; label: TranslationKey }[] = [
+  { language: 'en', label: 'tasks.nameEn' },
+  { language: 'vi', label: 'tasks.nameVi' },
+];
 
 export function TaskEditorModal({
   open,
@@ -19,22 +25,36 @@ export function TaskEditorModal({
   onSave: (task: Task) => void;
   onDelete?: () => void;
 }) {
-  const { t } = useLanguage();
-  const [nameKey, setNameKey] = useState(initial?.nameKey ?? '');
+  const { t, language } = useLanguage();
+  const { state } = useGame();
+  const [names, setNames] = useState(() => editableTaskNames(initial));
+  const [nameError, setNameError] = useState(false);
   const [xp, setXp] = useState(initial?.xp ?? 20);
   const [gold, setGold] = useState(initial?.gold ?? 15);
   const [category, setCategory] = useState<TaskCategory>(initial?.category ?? 'general');
+  // Show the field for the current language first.
+  const fields = [...NAME_FIELDS].sort((a, b) => Number(b.language === language) - Number(a.language === language));
 
   return (
     <Modal open={open} onClose={onClose} title={initial ? t('tasks.edit') : t('tasks.create')}>
       <form
         className="space-y-4"
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          const id = initial?.id ?? `custom-${Date.now()}`;
+          const complete = completeTaskNames(names);
+          if (!complete) {
+            setNameError(true);
+            return;
+          }
+          // Built-in and existing quests keep their code; new quests get one generated from the name.
+          const nameKey =
+            initial?.nameKey ??
+            generateTaskKey(complete.en, state.tasks.map((task) => task.nameKey));
           onSave({
-            id,
-            nameKey: nameKey.trim() || id,
+            id: initial?.id ?? `custom-${Date.now()}`,
+            nameKey,
+            names: complete,
             xp: Number(xp),
             gold: Number(gold),
             category,
@@ -43,15 +63,29 @@ export function TaskEditorModal({
           onClose();
         }}
       >
-        <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
-          {t('tasks.name')}
-          <input
-            value={nameKey}
-            onChange={(event) => setNameKey(event.target.value)}
-            className="px-input mt-2"
-            required
-          />
-        </label>
+        {fields.map(({ language: fieldLanguage, label }) => (
+          <label key={fieldLanguage} className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
+            {t(label)}
+            <input
+              lang={fieldLanguage}
+              value={names[fieldLanguage]}
+              onChange={(event) => {
+                setNames((prev) => ({ ...prev, [fieldLanguage]: event.target.value }));
+                setNameError(false);
+              }}
+              aria-invalid={nameError}
+              aria-describedby="task-name-hint"
+              className="px-input mt-2 normal-case tracking-normal"
+            />
+          </label>
+        ))}
+        <p
+          id="task-name-hint"
+          role={nameError ? 'alert' : undefined}
+          className={`text-base ${nameError ? 'font-bold text-brick-600' : 'text-wood-600'}`}
+        >
+          {nameError ? t('tasks.error.name') : t('tasks.nameHint')}
+        </p>
         <div className="grid grid-cols-2 gap-4">
           <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
             {t('tasks.xp')}

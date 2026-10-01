@@ -5,7 +5,8 @@ import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { LanguageCode } from '../../types';
 import { formatDateRange, localDateKey } from '../../utils/calculations';
-import { translations, type TranslationKey } from '../../utils/i18n';
+import type { TranslationKey } from '../../utils/i18n';
+import { taskName } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
@@ -122,7 +123,7 @@ export function SettingsView() {
         {!canEditSettings && <ModeratorOnlyNote />}
         <fieldset disabled={!canEditSettings} className="space-y-4 disabled:opacity-70">
           {state.tasks.map((task) => {
-            const name = task.nameKey in translations.en ? t(task.nameKey as TranslationKey) : task.nameKey;
+            const name = taskName(task, language);
             return (
               <div key={task.id} className="px-slot flex flex-wrap items-center gap-3 p-3">
                 <p className="min-w-40 flex-1 text-lg font-extrabold">{name}</p>
