@@ -11,7 +11,10 @@ export interface CharacterSkill {
 
 export interface Character {
   id: CharacterId;
+  /** Legacy internal label ("Husband"/"Wife"); not shown. */
   name: string;
+  /** Player-chosen display name (max 16 letters/digits/spaces); unset = show the role. */
+  customName?: string;
   xp: number;
   gold: number;
   skills: CharacterSkill[];

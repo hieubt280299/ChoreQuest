@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
@@ -30,7 +31,8 @@ export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
 
 function CompleterLabel({ who }: { who: Completer }) {
   const { t } = useLanguage();
-  return <>{who === 'both' ? t('tasks.both') : t(`character.${who}`)}</>;
+  const { name } = useCharacterName();
+  return <span className="block max-w-full truncate">{who === 'both' ? t('tasks.both') : name(who)}</span>;
 }
 
 /** Character-select tiles for "Who did it?". */
@@ -125,6 +127,7 @@ function ErrorNote({ error }: { error: TranslationKey | null }) {
 
 export function TasksView() {
   const { t, language, locale } = useLanguage();
+  const { name } = useCharacterName();
   const [prefs, setPrefs] = useQuestViewPrefs();
   const {
     state,
@@ -268,7 +271,7 @@ export function TasksView() {
                           )}
                         </span>
                         {t('tasks.doneBy', {
-                          who: log.completedBy === 'both' ? t('tasks.both') : t(`character.${log.completedBy}`),
+                          who: log.completedBy === 'both' ? t('tasks.both') : name(log.completedBy),
                         })}
                       </span>
                       {canManageLog(log) && (

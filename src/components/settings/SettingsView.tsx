@@ -1,5 +1,5 @@
 import { Calendar, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
@@ -47,6 +47,18 @@ function ChronicleCard() {
   const { chronicle } = state;
   const today = localDateKey();
   const min = chronicle.startDate > today ? chronicle.startDate : today;
+  // Edits stay a draft until Save, so picking a date doesn't end the chronicle mid-typing.
+  const [draft, setDraft] = useState(chronicle.endDate);
+  useEffect(() => {
+    setDraft(chronicle.endDate);
+    setError(null);
+  }, [chronicle.endDate]);
+  const dirty = draft !== chronicle.endDate;
+
+  const save = () => {
+    const result = setChronicleEndDate(draft);
+    setError(result.ok ? null : result.error);
+  };
 
   return (
     <Card>
@@ -56,19 +68,32 @@ function ChronicleCard() {
         {t('chronicle.label', { id: chronicle.id })}
         <span className="ml-2 text-base font-bold text-wood-600">{formatDateRange(chronicle.startDate, chronicle.endDate, locale)}</span>
       </p>
-      <input
-        type="date"
-        className="px-input"
-        aria-label={t('chronicle.endDate')}
-        aria-describedby="chronicle-end-hint"
-        value={chronicle.endDate}
-        min={min}
-        disabled={!canEditSettings}
-        onChange={(event) => {
-          const result = setChronicleEndDate(event.target.value);
-          setError(result.ok ? null : result.error);
+      <form
+        className="flex flex-wrap items-center gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save();
         }}
-      />
+      >
+        <input
+          type="date"
+          className="px-input min-w-0 flex-1"
+          aria-label={t('chronicle.endDate')}
+          aria-describedby="chronicle-end-hint"
+          value={draft}
+          min={min}
+          disabled={!canEditSettings}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setError(null);
+          }}
+        />
+        {canEditSettings && dirty && (
+          <Button type="submit" disabled={!draft}>
+            {t('tasks.save')}
+          </Button>
+        )}
+      </form>
       {error && (
         <p className="mt-3 text-base font-bold text-brick-600" role="alert">
           {t(error)}

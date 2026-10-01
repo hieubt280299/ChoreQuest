@@ -32,6 +32,7 @@ import {
   pruneLogs,
   resetLevelsAndSkills,
 } from '../utils/gameState';
+import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
 import { useAuth } from './AuthContext';
@@ -75,6 +76,10 @@ interface GameContextValue {
   /** "Who did it?" options this player may choose when completing a quest. */
   completerOptions: Completer[];
   canManageLog: (log: TaskLog) => boolean;
+  /** A player may rename only their own character (any in the demo). */
+  canRename: (characterId: CharacterId) => boolean;
+  /** Set (or clear, with a blank name) a character's display name. */
+  setCharacterName: (characterId: CharacterId, name: string) => ActionResult;
   completeTask: (taskId: string, completer: Completer) => ActionResult;
   undoLog: (logId: string) => ActionResult;
   reassignLog: (logId: string, completer: Completer) => ActionResult;
@@ -208,6 +213,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const canActAs = useCallback(
     (characterId: CharacterId) => demo || (isActive && me?.characterId === characterId),
     [demo, isActive, me?.characterId],
+  );
+
+  const canRename = useCallback(
+    (characterId: CharacterId) => demo || me?.characterId === characterId,
+    [demo, me?.characterId],
+  );
+
+  const setCharacterName = useCallback(
+    (characterId: CharacterId, name: string): ActionResult => {
+      if (!canRename(characterId)) return fail('household.error.ownCharacter');
+      const clean = normalizeCharacterName(name);
+      if (clean === null) return fail('character.nameInvalid');
+      const current = stateRef.current;
+      const { customName: _previous, ...rest } = current.characters[characterId];
+      commit({
+        ...current,
+        characters: { ...current.characters, [characterId]: clean ? { ...rest, customName: clean } : rest },
+      });
+      return OK;
+    },
+    [canRename, commit],
   );
 
   const canManageLog = useCallback(
@@ -383,6 +409,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Either partner may log a quest for themselves, their spouse, or both.
       completerOptions: ['husband', 'wife', 'both'],
       canManageLog,
+      canRename,
+      setCharacterName,
       completeTask,
       undoLog,
       reassignLog,
@@ -473,6 +501,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canPlay,
       canEditSettings,
       canManageLog,
+      canRename,
+      setCharacterName,
       completeTask,
       undoLog,
       reassignLog,

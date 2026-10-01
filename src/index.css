@@ -13,6 +13,12 @@ body,
   min-height: 100%;
 }
 
+/* No pull-to-refresh: an accidental swipe down shouldn't reload the app (Chrome / Android PWA). */
+html,
+body {
+  overscroll-behavior-y: contain;
+}
+
 body {
   margin: 0;
   font-family: Handjet, system-ui, sans-serif;

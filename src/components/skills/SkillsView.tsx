@@ -1,6 +1,7 @@
 import { SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character, CharacterId } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
@@ -28,13 +29,16 @@ export function TierPips({ level }: { level: number }) {
 
 function CharacterSkillHeader({ character, viewOnly }: { character: Character; viewOnly?: boolean }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   const level = getLevelFromXp(character.xp);
   const points = skillPointsAvailable(level, character.skills);
   return (
     <Card tone="wood" className="flex items-center gap-3 p-3">
       <CharacterAvatar id={character.id} scale={2} />
       <div className="min-w-0 flex-1">
-        <h2 className="text-2xl font-extrabold uppercase leading-none text-parchment-50">{t(`character.${character.id}`)}</h2>
+        <h2 className="truncate text-2xl font-extrabold uppercase leading-none text-parchment-50" title={name(character.id)}>
+          {name(character.id)}
+        </h2>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold text-parchment-300">
           {t('skills.owned', { count: character.skills.length })}
           {viewOnly && (
@@ -114,6 +118,7 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
 /** The partner's learned skills only, read-only and compact. */
 function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   const { state } = useGame();
   const character = state.characters[characterId];
   const learned = character.skills
@@ -122,11 +127,11 @@ function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
     .sort((a, b) => b.owned.level - a.owned.level);
 
   return (
-    <section className="space-y-4" aria-label={t('skills.partnerLoadout', { name: t(`character.${characterId}`) })}>
+    <section className="space-y-4" aria-label={t('skills.partnerLoadout', { name: name(characterId) })}>
       <CharacterSkillHeader character={character} viewOnly />
       <Card className="p-4">
         <p className="mb-3 text-base font-extrabold uppercase text-brick-600">
-          {t('skills.partnerLoadout', { name: t(`character.${characterId}`) })}
+          {t('skills.partnerLoadout', { name: name(characterId) })}
         </p>
         {learned.length === 0 ? (
           <p className="text-base text-wood-600">{t('skills.partnerNone')}</p>

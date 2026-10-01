@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Crown } from 'pixelarticons/react';
 import type { CSSProperties } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -33,6 +34,7 @@ export function MasteryCelebration({
   onContinue: () => void;
 }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   return (
     <motion.div
       className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4"
@@ -85,7 +87,7 @@ export function MasteryCelebration({
         <h2 className="px-title text-4xl uppercase text-flame-300" style={{ textShadow: '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' }}>
           {t('mastery.title')}
         </h2>
-        <p className="mb-4 mt-2 text-lg font-bold">{t('mastery.subtitle', { name: t(`character.${characterId}`) })}</p>
+        <p className="mb-4 mt-2 text-lg font-bold">{t('mastery.subtitle', { name: name(characterId) })}</p>
         <div className="mb-4 flex items-center justify-center gap-4">
           <LevelBadge level={level} className="scale-150" />
           <span className="px-slot inline-flex items-center gap-2 px-3 py-1">

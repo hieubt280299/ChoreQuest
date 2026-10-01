@@ -6,6 +6,7 @@ import { MAX_LEVEL } from '../../constants/gameRules';
 import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import { taskName } from '../../utils/taskNames';
 import { Button } from '../ui/Button';
@@ -18,6 +19,7 @@ import { MasteryCelebration } from './MasteryCelebration';
 
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t, language } = useLanguage();
+  const { name } = useCharacterName();
   const { state, reward, clearReward, canActAs } = useGame();
   const { playTaskCompleteSFX, playLevelUpSFX, playMasterySFX } = useAudio();
   // Reaching the level cap gets a full-screen celebration before the usual reward card.
@@ -88,7 +90,7 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                 return (
                   <div key={id} className={`px-slot flex flex-col items-center gap-2 p-3 ${earned ? '' : 'opacity-50'}`}>
                     <CharacterAvatar id={id} scale={2} framed={false} />
-                    <p className="text-base font-extrabold uppercase text-wood-700">{t(`character.${id}`)}</p>
+                    <p className="max-w-full truncate text-base font-extrabold uppercase text-wood-700">{name(id)}</p>
                     <p className="font-arcade text-[10px] text-moss-700">+{Math.round(reward.xp[id])}XP</p>
                     <GoldCounter amount={reward.gold[id]} />
                     {(reward.streakGold?.[id] ?? 0) > 0 && (
@@ -110,7 +112,7 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                 className="px-level mb-2 w-full justify-center py-2 font-sans text-lg font-extrabold uppercase"
               >
                 <Icon as={Star} size={24} className="px-blink text-flame-300" />
-                {t('tasks.levelUp')} {t(`character.${levelUp.characterId}`)} {levelUp.from}→{levelUp.to}
+                {t('tasks.levelUp')} {name(levelUp.characterId)} {levelUp.from}→{levelUp.to}
               </motion.p>
             ))}
             {needsSkills && onAssignSkills && (

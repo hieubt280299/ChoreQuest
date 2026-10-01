@@ -5,6 +5,7 @@ import {
   inferTaskGroup,
   SKILL_MIGRATIONS,
 } from '../constants/gameRules';
+import { normalizeCharacterName } from './characterName';
 import type {
   Character,
   CharacterId,
@@ -112,12 +113,18 @@ export function parseGameState(raw: unknown, today = localDateKey()): GameState 
   if (!raw || typeof raw !== 'object') return null;
   const data = raw as Partial<GameState> & { activeMonth?: string };
   if (!data.characters?.husband || !data.characters?.wife) return null;
-  const character = (id: CharacterId): Character => ({
-    ...createDefaultCharacter(id, id === 'husband' ? 'Husband' : 'Wife'),
-    ...data.characters![id],
-    id,
-    skills: migrateSkills(data.characters![id].skills),
-  });
+  const character = (id: CharacterId): Character => {
+    const { customName, ...rest } = data.characters![id];
+    // Keep only valid, non-blank custom names.
+    const cleanName = typeof customName === 'string' ? normalizeCharacterName(customName) : null;
+    return {
+      ...createDefaultCharacter(id, id === 'husband' ? 'Husband' : 'Wife'),
+      ...rest,
+      id,
+      skills: migrateSkills(rest.skills),
+      ...(cleanName ? { customName: cleanName } : {}),
+    };
+  };
   return applyChronicleRollover(
     {
       characters: { husband: character('husband'), wife: character('wife') },

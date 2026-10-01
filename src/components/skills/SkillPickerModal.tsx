@@ -1,6 +1,7 @@
 import { SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
@@ -20,6 +21,7 @@ export function SkillPickerModal({
   onClose: () => void;
 }) {
   const { t } = useLanguage();
+  const { name } = useCharacterName();
   const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
   if (!characterId || !canActAs(characterId)) return null;
 
@@ -27,7 +29,7 @@ export function SkillPickerModal({
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
 
   return (
-    <Modal open={open} onClose={onClose} title={`${t('skills.picker')} · ${t(`character.${characterId}`)}`}>
+    <Modal open={open} onClose={onClose} title={`${t('skills.picker')} · ${name(characterId)}`}>
       <p className="mb-1 text-lg font-extrabold uppercase text-moss-700">{t('character.skillPoints', { count: points })}</p>
       {points < 1 && <p className="mb-2 text-base text-wood-600">{t('skills.noPoints')}</p>}
       <div className="-mx-1 max-h-[55vh] space-y-4 overflow-y-auto px-2 py-2">

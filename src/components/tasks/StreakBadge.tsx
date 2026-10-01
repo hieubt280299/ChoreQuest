@@ -5,14 +5,13 @@ import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { Icon } from '../ui/Icon';
 
 /**
- * "🔥 4-Day Streak (+1 G)" chip for a character's live streak on a quest. Shown from 2 days so players
- * see a streak building; the bonus is what today's completion earned (or would earn).
+ * "🔥 4-Day Streak" chip for a character's live streak on a quest. Shown from 2 days so players see a
+ * streak building; it turns ember once the streak pays bonus gold (amounts are in the reward preview).
  */
 export function StreakBadge({ streak, showAvatar }: { streak: Streak; showAvatar: boolean }) {
   const { t } = useLanguage();
   if (streak.days < 2) return null;
-  const bonus = streak.bonusGold > 0 ? (streak.doneToday ? t('streak.bonus', { gold: streak.bonusGold }) : t('streak.next', { gold: streak.bonusGold })) : null;
-  const label = `${t('streak.days', { days: streak.days })}${bonus ? ` (${bonus})` : ''}`;
+  const label = t('streak.days', { days: streak.days });
 
   return (
     <span
