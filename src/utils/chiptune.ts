@@ -437,6 +437,78 @@ export class ChiptuneEngine {
     }
   }
 
+  /** Wheel tick as a slice passes the pointer. */
+  playTick() {
+    if (!this.sfxReady()) return;
+    const t = this.ctx!.currentTime + 0.003;
+    this.tone({ bus: this.sfxBus, wave: this.waves.pulse25, midi: noteToMidi('E6'), when: t, dur: 0.018, gain: 0.09 });
+  }
+
+  /** Wheel win jingle: the coin pickup, longer for bigger prizes (tier 0 small, 1 normal, 2 big). */
+  playWheelWin(tier: 0 | 1 | 2, delay = 0) {
+    if (!this.sfxReady()) return;
+    const t = this.ctx!.currentTime + 0.01 + delay;
+    const runs = [['B5', 'E6'], ['G5', 'B5', 'E6'], ['E5', 'G5', 'B5', 'E6', 'G6', 'B6']][tier];
+    runs.forEach((note, index) =>
+      this.tone({
+        bus: this.sfxBus,
+        wave: this.waves.pulse50,
+        midi: noteToMidi(note),
+        when: t + index * 0.07,
+        dur: index === runs.length - 1 ? 0.3 : 0.07,
+        gain: 0.2,
+      }),
+    );
+  }
+
+  /** Sad trombone "wah-wah" for a miss. */
+  playWheelMiss(delay = 0) {
+    if (!this.sfxReady()) return;
+    const t = this.ctx!.currentTime + 0.01 + delay;
+    ['G4', 'F#4', 'F4'].forEach((note, index) =>
+      this.tone({ bus: this.sfxBus, wave: this.waves.pulse25, midi: noteToMidi(note), when: t + index * 0.26, dur: 0.22, gain: 0.16 }),
+    );
+    this.tone({
+      bus: this.sfxBus,
+      wave: this.waves.pulse25,
+      midi: noteToMidi('E4'),
+      when: t + 0.78,
+      dur: 0.6,
+      gain: 0.16,
+      vibrato: true,
+    });
+  }
+
+  /**
+   * Jackpot: a shower of coin chimes, then a "ta-ta-ta TAAA" fanfare over a held chord. Distinct from
+   * the level-up arpeggio and the mastery march.
+   */
+  playJackpot(delay = 0) {
+    if (!this.sfxReady()) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + 0.01 + delay;
+    for (let index = 0; index < 10; index += 1) {
+      const at = t + index * 0.06;
+      this.tone({ bus: this.sfxBus, wave: this.waves.pulse50, midi: noteToMidi(index % 2 ? 'E7' : 'B6'), when: at, dur: 0.05, gain: 0.12 });
+    }
+    const fanfare = this.snareRollAt(t + 0.6);
+    ['G5', 'G5', 'G5'].forEach((note, index) =>
+      this.tone({ bus: this.sfxBus, wave: this.waves.pulse50, midi: noteToMidi(note), when: fanfare + index * 0.13, dur: 0.09, gain: 0.2 }),
+    );
+    const hold = fanfare + 0.42;
+    ['C6', 'E6', 'G6'].forEach((note) =>
+      this.tone({ bus: this.sfxBus, wave: this.waves.pulse25, midi: noteToMidi(note), when: hold, dur: 1.2, gain: 0.12, vibrato: true }),
+    );
+    this.tone({ bus: this.sfxBus, wave: this.waves.pulse50, midi: noteToMidi('C7'), when: hold + 0.3, dur: 0.9, gain: 0.08, vibrato: true });
+    this.tone({ bus: this.sfxBus, wave: 'triangle', midi: noteToMidi('C3'), when: hold, dur: 1.2, gain: 0.35 });
+    this.tone({ bus: this.sfxBus, wave: 'triangle', midi: noteToMidi('G2'), when: fanfare, dur: 0.4, gain: 0.3, slideTo: noteToMidi('C3') });
+
+    if (this.timer !== undefined) {
+      this.bgmBus.gain.setTargetAtTime(this.bgmVolume * 0.15, t, 0.05);
+      this.bgmBus.gain.setTargetAtTime(this.bgmVolume, hold + 1.4, 0.4);
+    }
+  }
+
   /** Quick snare roll on the effects bus; returns when it ends. */
   private snareRollAt(when: number): number {
     const ctx = this.ctx!;

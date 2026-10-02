@@ -2,8 +2,7 @@ import { Crown, Flag, Gift, Trophy } from 'pixelarticons/react';
 import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useCharacterName } from '../../hooks/useCharacterName';
-import type { CharacterId, TaskLog } from '../../types';
+import type { CharacterId, GameEvent, TaskLog } from '../../types';
 import {
   addDays,
   calculatePayout,
@@ -14,6 +13,7 @@ import {
   localDateKey,
   parseDateKey,
 } from '../../utils/calculations';
+import { CharacterName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
@@ -25,7 +25,6 @@ import { DayLog } from './DayLog';
 
 export function CalendarView() {
   const { t, locale, language } = useLanguage();
-  const { name } = useCharacterName();
   const { state } = useGame();
   const { chronicle } = state;
   const today = localDateKey();
@@ -47,7 +46,13 @@ export function CalendarView() {
     for (const log of state.logs) map.set(log.date, [...(map.get(log.date) ?? []), log]);
     return map;
   }, [state.logs]);
-  // Best day: the most gold earned in one day, once there are at least two active days to compare.
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, GameEvent[]>();
+    for (const event of state.events) map.set(event.date, [...(map.get(event.date) ?? []), event]);
+    return map;
+  }, [state.events]);
+  // Best day: the most quest gold earned in one day (like the day's MVP, wheel and interest gold don't
+  // count), once there are at least two active days to compare.
   const bestDay = useMemo(() => {
     const active = days
       .map((date) => ({
@@ -132,9 +137,13 @@ export function CalendarView() {
             );
           })}
         </div>
-        <p className="mt-3 text-center text-sm font-bold uppercase text-wood-500">{t('calendar.tapHint')}</p>
       </Card>
-      <DayLog date={selectedDay} logs={logsByDay.get(selectedDay) ?? []} bestDay={bestDay} />
+      <DayLog
+        date={selectedDay}
+        logs={logsByDay.get(selectedDay) ?? []}
+        events={eventsByDay.get(selectedDay) ?? []}
+        bestDay={bestDay}
+      />
       <Card>
         <div className="mb-3 flex items-center gap-2 text-brick-600">
           <Icon as={Trophy} size={24} />
@@ -171,7 +180,7 @@ export function CalendarView() {
                   />
                 </div>
                 <div className="min-w-0 space-y-1.5">
-                  <p className="truncate text-xl font-extrabold uppercase leading-none">{name(id)}</p>
+                  <p className="truncate text-xl font-extrabold uppercase leading-none"><CharacterName id={id} /></p>
                   <p className="flex items-center gap-2 text-sm font-bold uppercase text-wood-600">
                     {t('character.gold')}
                     <GoldCounter amount={character.gold} />
@@ -200,8 +209,8 @@ export function CalendarView() {
                   <span className="text-base font-bold text-wood-600">{formatDateRange(entry.startDate, entry.endDate, locale)}</span>
                 </span>
                 <span className="flex flex-wrap items-center gap-3 text-base font-bold text-wood-700">
-                  {name('husband')} <Vnd amount={entry.payout.husband} className="text-[10px] text-ink" />
-                  {name('wife')} <Vnd amount={entry.payout.wife} className="text-[10px] text-ink" />
+                  <CharacterName id={'husband'} /> <Vnd amount={entry.payout.husband} className="text-[10px] text-ink" />
+                  <CharacterName id={'wife'} /> <Vnd amount={entry.payout.wife} className="text-[10px] text-ink" />
                 </span>
               </div>
             ))}

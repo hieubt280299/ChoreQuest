@@ -45,6 +45,10 @@ interface AudioContextValue extends AudioSettings {
   playLevelUpSFX: (delaySeconds?: number) => void;
   playMasterySFX: (delaySeconds?: number) => void;
   playClickSFX: () => void;
+  playWheelTickSFX: () => void;
+  playWheelWinSFX: (tier: 0 | 1 | 2) => void;
+  playWheelMissSFX: () => void;
+  playJackpotSFX: () => void;
 }
 
 const AudioSettingsContext = createContext<AudioContextValue | null>(null);
@@ -57,6 +61,10 @@ const sfx = {
   playLevelUpSFX: (delay?: number) => engine.playLevelUp(delay),
   playMasterySFX: (delay?: number) => engine.playMastery(delay),
   playClickSFX: () => engine.playClick(),
+  playWheelTickSFX: () => engine.playTick(),
+  playWheelWinSFX: (tier: 0 | 1 | 2) => engine.playWheelWin(tier),
+  playWheelMissSFX: () => engine.playWheelMiss(),
+  playJackpotSFX: () => engine.playJackpot(),
 };
 
 /** Elements that get the retro click tick. */

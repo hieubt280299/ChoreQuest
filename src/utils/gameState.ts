@@ -4,6 +4,9 @@ import {
   DEFAULT_TASKS,
   inferTaskGroup,
   SKILL_MIGRATIONS,
+  SKILL_POOL,
+  skillEffectValue,
+  skillLevel,
 } from '../constants/gameRules';
 import { normalizeCharacterName } from './characterName';
 import type {
@@ -12,10 +15,11 @@ import type {
   CharacterSkill,
   Chronicle,
   ChronicleResult,
+  GameEvent,
   GameState,
   HouseholdDoc,
   Task,
-  TaskLog,
+  WheelPrize,
 } from '../types';
 import {
   addDays,
@@ -23,18 +27,36 @@ import {
   daysInMonth,
   defaultChronicle,
   endOfDayMs,
+  getLevelFromXp,
   isDateKey,
   localDateKey,
+  parseDateKey,
 } from './calculations';
 
 // Firestore documents are capped at 1 MiB, so keep only recent logs (the UI reads the current chronicle).
 const LOG_RETENTION_DAYS = 120;
 const HISTORY_LIMIT = 24;
 
-export function pruneLogs(logs: TaskLog[], today = localDateKey()): TaskLog[] {
+export function pruneLogs<T extends { date: string }>(logs: T[], today = localDateKey()): T[] {
   const cutoff = addDays(today, -LOG_RETENTION_DAYS);
   return logs.filter((log) => log.date >= cutoff);
 }
+
+const WHEEL_PRIZE_IDS: WheelPrize[] = ['small', 'normal', 'big', 'jackpot', 'none'];
+
+function parseEvents(raw: unknown): GameEvent[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is GameEvent => {
+    const event = item as Partial<GameEvent> | null;
+    if (!event || typeof event.id !== 'string' || !isDateKey(event.date)) return false;
+    if (event.characterId !== 'husband' && event.characterId !== 'wife') return false;
+    if (typeof event.gold !== 'number' || typeof event.timestamp !== 'number') return false;
+    return event.type === 'interest' || (event.type === 'spin' && WHEEL_PRIZE_IDS.includes(event.prize as WheelPrize));
+  });
+}
+
+const count = (value: unknown, fallback = 0) =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
 
 export function createInitialState(today = localDateKey()): GameState {
   return {
@@ -47,6 +69,8 @@ export function createInitialState(today = localDateKey()): GameState {
     prizePool: DEFAULT_PRIZE_POOL,
     chronicle: defaultChronicle(1, today),
     prizeHistory: [],
+    wheel: { jackpotBonus: 0 },
+    events: [],
   };
 }
 
@@ -107,39 +131,109 @@ function migrateSkills(skills: unknown): CharacterSkill[] {
 
 /**
  * Builds a valid GameState from stored data (current shape, or the older month-based shape),
- * then applies any due chronicle rollover.
+ * then (unless `advance` is false) settles any days that passed: interest and chronicle rollover.
  */
-export function parseGameState(raw: unknown, today = localDateKey()): GameState | null {
+export function parseGameState(raw: unknown, today = localDateKey(), advance = true): GameState | null {
   if (!raw || typeof raw !== 'object') return null;
   const data = raw as Partial<GameState> & { activeMonth?: string };
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
-    const { customName, ...rest } = data.characters![id];
+    // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, ...rest } = data.characters![id] as Character & {
+      interestGold?: unknown;
+    };
     // Keep only valid, non-blank custom names.
     const cleanName = typeof customName === 'string' ? normalizeCharacterName(customName) : null;
+    const xp = count(rest.xp);
     return {
       ...createDefaultCharacter(id, id === 'husband' ? 'Husband' : 'Wife'),
       ...rest,
       id,
+      xp,
+      gold: count(rest.gold),
       skills: migrateSkills(rest.skills),
+      tickets: Math.floor(count(rest.tickets)),
+      // Characters from before tickets existed start counting from their current level (no back pay).
+      ticketLevel: Math.floor(count(rest.ticketLevel, getLevelFromXp(xp))) || 1,
       ...(cleanName ? { customName: cleanName } : {}),
+      ...(isDateKey(ticketClaimedOn) ? { ticketClaimedOn } : {}),
+      ...(isDateKey(interestOn) ? { interestOn } : {}),
     };
   };
-  return applyChronicleRollover(
-    {
-      characters: { husband: character('husband'), wife: character('wife') },
-      tasks:
-        Array.isArray(data.tasks) && data.tasks.length
-          ? (data.tasks as Task[]).map((task) => ({ ...task, group: inferTaskGroup(task) }))
-          : DEFAULT_TASKS.map((task) => ({ ...task })),
-      logs: Array.isArray(data.logs) ? data.logs : [],
-      prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
-      chronicle: parseChronicle(data.chronicle, data.activeMonth, today),
-      prizeHistory: parseHistory(data.prizeHistory),
-      ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
-    },
-    today,
-  );
+  const state: GameState = {
+    characters: { husband: character('husband'), wife: character('wife') },
+    tasks:
+      Array.isArray(data.tasks) && data.tasks.length
+        ? (data.tasks as Task[]).map((task) => ({ ...task, group: inferTaskGroup(task) }))
+        : DEFAULT_TASKS.map((task) => ({ ...task })),
+    logs: Array.isArray(data.logs) ? data.logs : [],
+    prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
+    chronicle: parseChronicle(data.chronicle, data.activeMonth, today),
+    prizeHistory: parseHistory(data.prizeHistory),
+    wheel: { jackpotBonus: count(data.wheel?.jackpotBonus) },
+    events: parseEvents(data.events),
+    ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
+  };
+  return advance ? advanceDays(state, today) : state;
+}
+
+const GOLD_INTEREST = SKILL_POOL.find((skill) => skill.id === 'gold-interest')!;
+const FORTUNES_FAVOR = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor')!;
+
+/**
+ * Gold Interest: at the start of each day after `interestOn`, up to `upTo`, a character with the skill
+ * gains its rate of their current gold (rounded) as ordinary gold, so it counts for the payout. Each
+ * payout is also logged as an `interest` event, which keeps it out of the day's MVP. A chronicle's first
+ * day never pays (gold has just reset). Derived only from stored data, so every device computes the
+ * same result whoever opens the app first.
+ */
+export function applyDailyInterest(state: GameState, upTo: string): GameState {
+  let changed = false;
+  const characters = { ...state.characters };
+  const events = [...state.events];
+  for (const id of ['husband', 'wife'] as CharacterId[]) {
+    const character = characters[id];
+    const level = skillLevel(character, GOLD_INTEREST.id);
+    if (level === 0) continue;
+    if (!character.interestOn) {
+      // Interest starts the day after the skill is learned.
+      characters[id] = { ...character, interestOn: upTo };
+      changed = true;
+      continue;
+    }
+    if (character.interestOn >= upTo) continue;
+    const rate = skillEffectValue(GOLD_INTEREST, level);
+    let gold = character.gold;
+    for (let day = addDays(character.interestOn, 1); day <= upTo; day = addDays(day, 1)) {
+      if (day <= state.chronicle.startDate) continue;
+      const interest = Math.round(gold * rate);
+      if (interest <= 0) continue;
+      gold += interest;
+      events.unshift({
+        id: `interest-${id}-${day}`,
+        type: 'interest',
+        characterId: id,
+        date: day,
+        timestamp: parseDateKey(day).getTime(),
+        gold: interest,
+      });
+    }
+    characters[id] = { ...character, gold, interestOn: upTo };
+    changed = true;
+  }
+  return changed ? { ...state, characters, events } : state;
+}
+
+/**
+ * Settles every day up to `today`: interest for days still inside the chronicle, then the rollover
+ * (gold resets), then interest for the new chronicle's days (on zero gold, so it only moves the marker).
+ * Returns the same object when nothing was due.
+ */
+export function advanceDays(state: GameState, today = localDateKey()): GameState {
+  const inChronicle = today < state.chronicle.endDate ? today : state.chronicle.endDate;
+  const settled = applyDailyInterest(state, inChronicle);
+  const rolled = applyChronicleRollover(settled, today);
+  return rolled === settled ? settled : applyDailyInterest(rolled, today);
 }
 
 /**
@@ -161,14 +255,17 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
   };
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
+  // Gold (and interest) reset; Fortune's Favor hands out its tickets for the new chronicle.
+  const fresh = (id: CharacterId) => {
+    const character = state.characters[id];
+    const bonusTickets = skillEffectValue(FORTUNES_FAVOR, skillLevel(character, FORTUNES_FAVOR.id));
+    return { ...character, gold: 0, tickets: character.tickets + bonusTickets };
+  };
   return {
     ...state,
     chronicle: next,
     prizeHistory: [result, ...state.prizeHistory].slice(0, HISTORY_LIMIT),
-    characters: {
-      husband: { ...state.characters.husband, gold: 0 },
-      wife: { ...state.characters.wife, gold: 0 },
-    },
+    characters: { husband: fresh('husband'), wife: fresh('wife') },
   };
 }
 
@@ -186,6 +283,8 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       characters: state.characters,
       logs: state.logs,
       prizeHistory: state.prizeHistory,
+      wheel: state.wheel,
+      events: state.events,
       ...(state.levelResetAt !== undefined ? { levelResetAt: state.levelResetAt } : {}),
     },
   };
@@ -199,14 +298,14 @@ export function resetLevelsAndSkills(state: GameState, now = Date.now()): GameSt
   return {
     ...state,
     characters: {
-      husband: { ...state.characters.husband, xp: 0, skills: [] },
-      wife: { ...state.characters.wife, xp: 0, skills: [] },
+      husband: { ...state.characters.husband, xp: 0, skills: [], ticketLevel: 1 },
+      wife: { ...state.characters.wife, xp: 0, skills: [], ticketLevel: 1 },
     },
     levelResetAt: now,
   };
 }
 
-export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKey()): GameState | null {
+export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKey(), advance = true): GameState | null {
   return parseGameState(
     {
       ...doc.game,
@@ -215,6 +314,7 @@ export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKe
       chronicle: doc.chronicle,
     },
     today,
+    advance,
   );
 }
 

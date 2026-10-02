@@ -16,15 +16,27 @@ export interface Character {
   /** Player-chosen display name (max 16 letters/digits/spaces); unset = show the role. */
   customName?: string;
   xp: number;
+  /** Gold earned this chronicle (quests, wheel, interest); decides the payout split. */
   gold: number;
   skills: CharacterSkill[];
+  /** Wheel of Fortune tickets on hand. */
+  tickets: number;
+  /** Last local day (`YYYY-MM-DD`) the free daily ticket was claimed. */
+  ticketClaimedOn?: string;
+  /**
+   * Highest level that has paid its level-up ticket, so undoing and redoing a quest around a level-up
+   * can't farm tickets. Reset with the levels ("new legend").
+   */
+  ticketLevel: number;
+  /** Last local day whose interest has been settled (set once the skill is learned). */
+  interestOn?: string;
 }
 
 export interface SkillDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'lightbulb' | 'shield' | 'clock';
+  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'lightbulb' | 'shield' | 'clock' | 'ticket' | 'trending';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -38,12 +50,18 @@ export type SkillEffectKind =
   | 'both_bonus'
   | 'group_xp'
   | 'group_gold'
-  | 'group_both';
+  | 'group_both'
+  /** Extra wheel tickets at the start of each chronicle: base + perLevel x level. */
+  | 'chronicle_tickets'
+  /** Daily interest on current gold: perLevel x level. */
+  | 'daily_interest';
 
 export interface SkillEffect {
   kind: SkillEffectKind;
   /** Bonus per skill level as a fraction, e.g. 0.08 = +8% per level. */
   perLevel: number;
+  /** Flat amount added to the per-level value (chronicle_tickets: 2 / 3 / 4 / 5). */
+  base?: number;
   category?: TaskCategory;
   group?: TaskGroup;
 }
@@ -141,8 +159,54 @@ export interface RewardToast {
   gold: Record<CharacterId, number>;
   streakDays?: Partial<Record<CharacterId, number>>;
   streakGold?: Partial<Record<CharacterId, number>>;
-  levelUps: { characterId: CharacterId; from: number; to: number; bonusGold: number }[];
+  levelUps: LevelUpReward[];
 }
+
+/** What one character got for levelling up. */
+export interface LevelUpReward {
+  characterId: CharacterId;
+  from: number;
+  to: number;
+  bonusGold: number;
+  /** Wheel tickets granted (one per level not rewarded before). */
+  tickets: number;
+  /** Skill points gained (stop growing once every slot can be maxed). */
+  skillPoints: number;
+}
+
+// ---------------------------------------------------------------------------
+// Wheel of Fortune and interest
+// ---------------------------------------------------------------------------
+
+export type WheelPrize = 'small' | 'normal' | 'big' | 'jackpot' | 'none';
+
+/** Shared wheel state: the jackpot grows with every miss until someone hits it. */
+export interface WheelState {
+  jackpotBonus: number;
+}
+
+/** One spin of the wheel. */
+export interface WheelSpinEvent {
+  id: string;
+  type: 'spin';
+  characterId: CharacterId;
+  date: string;
+  timestamp: number;
+  prize: WheelPrize;
+  gold: number;
+}
+
+/** Gold Interest paid at the start of a day (counts for the payout, not for the day's MVP). */
+export interface InterestEvent {
+  id: string;
+  type: 'interest';
+  characterId: CharacterId;
+  date: string;
+  timestamp: number;
+  gold: number;
+}
+
+export type GameEvent = WheelSpinEvent | InterestEvent;
 
 /** The playable game state as the UI sees it (assembled from the household document or local demo storage). */
 export interface GameState {
@@ -152,6 +216,9 @@ export interface GameState {
   prizePool: number;
   chronicle: Chronicle;
   prizeHistory: ChronicleResult[];
+  wheel: WheelState;
+  /** Wheel spins and interest payouts, kept as long as quest logs. */
+  events: GameEvent[];
   /**
    * When levels and skills were last reset after a player reached the level cap (epoch ms).
    * Quest entries logged before it can no longer be undone or re-assigned.
@@ -201,6 +268,8 @@ export interface HouseholdDoc {
     characters: Record<CharacterId, Character>;
     logs: TaskLog[];
     prizeHistory: ChronicleResult[];
+    wheel?: WheelState;
+    events?: GameEvent[];
     levelResetAt?: number;
   };
 }

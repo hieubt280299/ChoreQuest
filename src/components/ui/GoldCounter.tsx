@@ -7,16 +7,19 @@ export function GoldCounter({
   className = '',
   spin = false,
   size = 'sm',
+  color = 'text-ink',
 }: {
   amount: number;
   className?: string;
   /** Animate the coin; keep for hero spots so long lists stay calm. */
   spin?: boolean;
   size?: 'sm' | 'lg';
+  /** Text colour class (ink by default; use a light one on dark panels). */
+  color?: string;
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-arcade text-ink ${size === 'lg' ? 'text-[14px]' : 'text-[10px]'} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-arcade ${color} ${size === 'lg' ? 'text-[14px]' : 'text-[10px]'} ${className}`}
     >
       <PixelSprite frames={spin ? COIN : [COIN[0]]} fps={6} scale={size === 'lg' ? 3 : 2} />
       {formatGold(amount)}

@@ -5,17 +5,19 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, HouseholdMember } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
+import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { HouseholdCode } from '../ui/HouseholdCode';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Modal } from '../ui/Modal';
 
 /** Join code, members and roles, and leaving. Only shown for online households. */
 export function HouseholdCard() {
   const { t } = useLanguage();
-  const { name, role, hasCustomName } = useCharacterName();
+  const { role, hasCustomName } = useCharacterName();
   const { status, household, me, isCreator, grantModerator, revokeModerator, leaveHousehold } = useHousehold();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,10 +45,15 @@ export function HouseholdCard() {
         <Icon as={Castle} size={24} />
         {t('household.title')}
       </h2>
-      <p className="mb-2 text-base font-extrabold uppercase text-wood-700">{t('household.code')}</p>
-      <HouseholdCode code={household.data.code} />
+      {/* The join code only matters while a slot is free. */}
+      {members.length < 2 && (
+        <div className="mb-5">
+          <p className="mb-2 text-base font-extrabold uppercase text-wood-700">{t('household.code')}</p>
+          <HouseholdCode code={household.data.code} />
+        </div>
+      )}
 
-      <p className="mb-3 mt-5 text-base font-extrabold uppercase text-wood-700">{t('household.members')}</p>
+      <p className="mb-3 text-base font-extrabold uppercase text-wood-700">{t('household.members')}</p>
       <ul className="space-y-3">
         {members.map((member) => {
           const isMe = member.uid === me.uid;
@@ -55,7 +62,7 @@ export function HouseholdCard() {
               <CharacterAvatar id={member.characterId} scale={2} framed={false} />
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-extrabold leading-tight">
-                  {name(member.characterId)}
+                  <CharacterName id={member.characterId} />
                   {hasCustomName(member.characterId) && (
                     <span className="ml-2 text-base text-wood-600">· {role(member.characterId)}</span>
                   )}
@@ -75,16 +82,16 @@ export function HouseholdCard() {
                 <span className="text-sm font-extrabold uppercase text-wood-600">{t('household.member')}</span>
               )}
               {isCreator && !isMe && (
-                <Button
-                  variant="secondary"
+                <IconButton
+                  icon={Crown}
+                  align="right"
+                  variant={member.role === 'moderator' ? 'secondary' : 'primary'}
+                  label={member.role === 'moderator' ? t('household.revokeModerator') : t('household.makeModerator')}
                   disabled={busy}
                   onClick={() =>
                     void run(() => (member.role === 'moderator' ? revokeModerator(member.uid) : grantModerator(member.uid)))
                   }
-                >
-                  <Icon as={Crown} size={24} />
-                  {member.role === 'moderator' ? t('household.revokeModerator') : t('household.makeModerator')}
-                </Button>
+                />
               )}
             </li>
           );
