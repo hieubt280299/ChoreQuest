@@ -3,15 +3,16 @@ import { Fragment, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
+import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Modal } from '../ui/Modal';
 import { PageHeader } from '../ui/PageHeader';
 import { QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
@@ -31,8 +32,7 @@ export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
 
 function CompleterLabel({ who }: { who: Completer }) {
   const { t } = useLanguage();
-  const { name } = useCharacterName();
-  return <span className="block max-w-full truncate">{who === 'both' ? t('tasks.both') : name(who)}</span>;
+  return <span className="block max-w-full truncate">{who === 'both' ? t('tasks.both') : <CharacterName id={who} />}</span>;
 }
 
 /** Character-select tiles for "Who did it?". */
@@ -127,7 +127,6 @@ function ErrorNote({ error }: { error: TranslationKey | null }) {
 
 export function TasksView() {
   const { t, language, locale } = useLanguage();
-  const { name } = useCharacterName();
   const [prefs, setPrefs] = useQuestViewPrefs();
   const {
     state,
@@ -154,10 +153,15 @@ export function TasksView() {
   const [error, setError] = useState<TranslationKey | null>(null);
 
   const enabled = state.tasks.filter((task) => task.enabled);
-  // Sorted, then split into sections (a single untitled section when not grouping).
+  // Filtered by "Show", sorted, then split into sections (a single untitled section when not grouping).
   const sections = useMemo(() => {
+    const shown = enabled.filter((task) => {
+      if (prefs.show === 'all') return true;
+      const done = !!getTodayLog(task.id);
+      return prefs.show === 'completed' ? done : !done;
+    });
     const sorted = sortTasks(
-      enabled,
+      shown,
       prefs,
       (task) => taskName(task, language),
       (task) => getStreak(task.id, activeCharacter).days,
@@ -172,7 +176,7 @@ export function TasksView() {
         tasks: sorted.filter((task) => (prefs.groupBy === 'group' ? task.group : task.category) === key),
       }))
       .filter((section) => section.tasks.length > 0);
-  }, [enabled, prefs, language, locale, getStreak, activeCharacter, t]);
+  }, [enabled, prefs, language, locale, getStreak, getTodayLog, activeCharacter, t]);
 
   const previews = useMemo(() => {
     if (!pending) return undefined;
@@ -206,6 +210,9 @@ export function TasksView() {
       {!pending && !fixing && <ErrorNote error={error} />}
       <QuestViewControls prefs={prefs} onChange={setPrefs} />
       {enabled.length === 0 && <Card>{t('tasks.empty')}</Card>}
+      {enabled.length > 0 && sections.length === 0 && (
+        <Card>{t(prefs.show === 'completed' ? 'tasks.noneCompleted' : 'tasks.allCompleted')}</Card>
+      )}
       {sections.map((section) => (
         <Fragment key={section.key}>
           {section.title && (
@@ -214,52 +221,44 @@ export function TasksView() {
               <span className="font-arcade text-[10px] text-parchment-300">{section.tasks.length}</span>
             </h2>
           )}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {section.tasks.map((task) => {
               const log = getTodayLog(task.id);
               const done = !!log;
               const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
               return (
-                <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-4">
+                <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-3">
                   <div className="flex items-center gap-3">
                     <span
-                      className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-12 w-12 items-center justify-center`}
+                      className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-10 w-10 shrink-0 items-center justify-center`}
                     >
                       <Icon as={done ? Check : CATEGORY_ICONS[task.category]} size={24} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-xl font-extrabold leading-tight ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
-                        {taskName(task, language)}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-3">
+                      {/* Name and streak chips share the first line; chips drop below only when it's too narrow. */}
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className={`min-w-0 text-xl font-extrabold leading-tight [overflow-wrap:anywhere] ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
+                          {taskName(task, language)}
+                        </p>
+                        {streaks.map((streak) => (
+                          <StreakBadge key={streak.characterId} streak={streak} showAvatar />
+                        ))}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                         <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
                         <GoldCounter amount={task.gold} />
                         <span className="text-sm font-bold uppercase text-wood-500">
                           {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
                         </span>
                       </div>
-                      {streaks.some((streak) => streak.days >= 2) && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {streaks.map((streak) => (
-                            <StreakBadge key={streak.characterId} streak={streak} showAvatar />
-                          ))}
-                        </div>
-                      )}
                     </div>
                     {canEditSettings && (
-                      <button
-                        type="button"
-                        className="px-focus p-1 text-wood-500 hover:text-brick-600"
-                        onClick={() => setEditing(task)}
-                        aria-label={t('tasks.edit')}
-                      >
-                        <Icon as={Pencil} size={24} />
-                      </button>
+                      <IconButton icon={Pencil} variant="ghost" align="right" label={t('tasks.edit')} onClick={() => setEditing(task)} />
                     )}
                   </div>
                   {log ? (
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-base font-extrabold uppercase text-moss-700">
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-2 text-base font-extrabold uppercase text-moss-700">
                         <span className="flex items-end">
                           {log.completedBy === 'both' ? (
                             <>
@@ -270,27 +269,28 @@ export function TasksView() {
                             <CharacterAvatar id={log.completedBy} scale={1} framed={false} />
                           )}
                         </span>
-                        {t('tasks.doneBy', {
-                          who: log.completedBy === 'both' ? t('tasks.both') : name(log.completedBy),
-                        })}
+                        <span className="min-w-0 truncate">
+                          {log.completedBy === 'both'
+                            ? t('tasks.doneBy', { who: t('tasks.both') })
+                            : spliceName(t('tasks.doneBy', { who: NAME_SLOT }), <CharacterName id={log.completedBy} />)}
+                        </span>
                       </span>
                       {canManageLog(log) && (
-                        <Button
-                          variant="secondary"
+                        <IconButton
+                          icon={Undo}
+                          align="right"
+                          label={t('tasks.editLog')}
                           onClick={() => {
                             setError(null);
                             setFixCompleter(log.completedBy);
                             setFixing(log);
                           }}
-                        >
-                          <Icon as={Pencil} size={24} />
-                          {t('tasks.editLog')}
-                        </Button>
+                        />
                       )}
                     </div>
                   ) : (
                     <Button
-                      className="mt-3 w-full"
+                      className="mt-2.5 w-full"
                       variant="brick"
                       disabled={!canPlay}
                       onClick={() => {

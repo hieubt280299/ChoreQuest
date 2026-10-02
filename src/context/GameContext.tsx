@@ -11,6 +11,7 @@ import type {
   Task,
   TaskCategory,
   TaskLog,
+  WheelSpinEvent,
 } from '../types';
 import {
   computeRewardBreakdown,
@@ -24,7 +25,7 @@ import {
   splitFromBreakdown,
 } from '../utils/calculations';
 import {
-  applyChronicleRollover,
+  advanceDays,
   changedSections,
   createInitialState,
   fromHouseholdDoc,
@@ -35,6 +36,7 @@ import {
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
+import { nextWheelState, prizeGold, rollWheelPrize } from '../utils/wheel';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 
@@ -56,6 +58,9 @@ function readDemoState(): GameState | null {
 export type ActionResult = { ok: true } | { ok: false; error: TranslationKey };
 const OK: ActionResult = { ok: true };
 const fail = (error: TranslationKey): ActionResult => ({ ok: false, error });
+
+/** A spin's outcome; `jackpotBefore` is the pot as it stood when the wheel started turning. */
+export type SpinResult = { ok: true; spin: WheelSpinEvent; jackpotBefore: number } | { ok: false; error: TranslationKey };
 
 interface GameContextValue {
   state: GameState;
@@ -81,6 +86,10 @@ interface GameContextValue {
   /** Set (or clear, with a blank name) a character's display name. */
   setCharacterName: (characterId: CharacterId, name: string) => ActionResult;
   completeTask: (taskId: string, completer: Completer) => ActionResult;
+  /** Claim the free wheel ticket (once per local day, own character only). */
+  claimDailyTicket: (characterId: CharacterId) => ActionResult;
+  /** Spend a ticket on the Wheel of Fortune; the result is saved right away. */
+  spinWheel: (characterId: CharacterId) => SpinResult;
   undoLog: (logId: string) => ActionResult;
   reassignLog: (logId: string, completer: Completer) => ActionResult;
   upsertTask: (task: Task) => ActionResult;
@@ -155,13 +164,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       return;
     }
-    const parsed = fromHouseholdDoc(household.data) ?? createInitialState();
+    const stored = fromHouseholdDoc(household.data, localDateKey(), false);
+    const parsed = stored ? advanceDays(stored) : createInitialState();
     replaceState(parsed);
     setLoading(false);
-    // Store a rollover that happened while nobody had the app open (server data only, never stale cache).
-    if (!household.fromCache && householdRef && parsed.chronicle.id !== household.data.chronicle?.id) {
-      updateDoc(householdRef, { chronicle: parsed.chronicle, game: { characters: parsed.characters, logs: parsed.logs, prizeHistory: parsed.prizeHistory } }).catch(
-        (err) => console.error('ChoreQuest: failed to save chronicle rollover', err),
+    // Store days settled while nobody had the app open (interest, chronicle rollover); server data only,
+    // never stale cache. Every device computes the same result, so concurrent saves agree.
+    if (!household.fromCache && householdRef && stored && parsed !== stored) {
+      updateDoc(householdRef, changedSections(stored, parsed)).catch((err) =>
+        console.error('ChoreQuest: failed to save settled days', err),
       );
     }
   }, [status, household, householdRef, replaceState]);
@@ -185,12 +196,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [status, householdRef],
   );
 
-  /** Applies a new state on top of the latest one (rollover + log pruning) and saves it. */
+  /** Applies a new state on top of the latest one (settled days + log pruning) and saves it. */
   const commit = useCallback(
     (next: GameState) => {
       const prev = stateRef.current;
-      const rolled = applyChronicleRollover(next, localDateKey());
-      const final = { ...rolled, logs: pruneLogs(rolled.logs) };
+      const settled = advanceDays(next, localDateKey());
+      const final = { ...settled, logs: pruneLogs(settled.logs), events: pruneLogs(settled.events) };
       replaceState(final);
       persist(prev, final);
     },
@@ -203,8 +214,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, []);
 
+  // A new day: pay interest and roll the chronicle over if it ended.
   useEffect(() => {
-    if (!loading && today > stateRef.current.chronicle.endDate) commit(stateRef.current);
+    if (!loading && advanceDays(stateRef.current, today) !== stateRef.current) commit(stateRef.current);
   }, [commit, loading, today]);
 
   const myCharacter: CharacterId = demo ? demoCharacter : (me?.characterId ?? 'husband');
@@ -295,6 +307,57 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return OK;
     },
     [canPlay, commit, demo, user?.uid],
+  );
+
+  const claimDailyTicket = useCallback(
+    (characterId: CharacterId): ActionResult => {
+      if (!canActAs(characterId)) return fail('household.error.ownCharacter');
+      const current = stateRef.current;
+      const date = localDateKey();
+      const character = current.characters[characterId];
+      if (character.ticketClaimedOn === date) return fail('wheel.error.claimed');
+      commit({
+        ...current,
+        characters: {
+          ...current.characters,
+          [characterId]: { ...character, tickets: character.tickets + 1, ticketClaimedOn: date },
+        },
+      });
+      return OK;
+    },
+    [canActAs, commit],
+  );
+
+  const spinWheel = useCallback(
+    (characterId: CharacterId): SpinResult => {
+      if (!canActAs(characterId)) return { ok: false, error: 'household.error.ownCharacter' };
+      const current = stateRef.current;
+      const character = current.characters[characterId];
+      if (character.tickets < 1) return { ok: false, error: 'wheel.error.noTickets' };
+      const prize = rollWheelPrize();
+      const gold = prizeGold(prize, current.wheel);
+      const now = Date.now();
+      const spin: WheelSpinEvent = {
+        id: `spin-${characterId}-${now}`,
+        type: 'spin',
+        characterId,
+        date: localDateKey(),
+        timestamp: now,
+        prize,
+        gold,
+      };
+      commit({
+        ...current,
+        wheel: nextWheelState(prize, current.wheel),
+        events: [spin, ...current.events],
+        characters: {
+          ...current.characters,
+          [characterId]: { ...character, tickets: character.tickets - 1, gold: character.gold + gold },
+        },
+      });
+      return { ok: true, spin, jackpotBefore: current.wheel.jackpotBonus };
+    },
+    [canActAs, commit],
   );
 
   const undoLog = useCallback(
@@ -412,6 +475,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canRename,
       setCharacterName,
       completeTask,
+      claimDailyTicket,
+      spinWheel,
       undoLog,
       reassignLog,
       upsertTask: (task) =>
@@ -450,11 +515,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (character.skills.some((skill) => skill.skillId === skillId)) return null;
           if (character.skills.length >= MAX_SKILLS_PER_CHARACTER) return null;
           if (!SKILL_POOL.some((skill) => skill.id === skillId)) return null;
+          // Gold Interest starts paying the day after it is learned.
+          const interestStart = skillId === 'gold-interest' ? { interestOn: localDateKey() } : {};
           return {
             ...current,
             characters: {
               ...current.characters,
-              [characterId]: { ...character, skills: [...character.skills, { skillId, level: 1 }] },
+              [characterId]: { ...character, ...interestStart, skills: [...character.skills, { skillId, level: 1 }] },
             },
           };
         }),
@@ -504,6 +571,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canRename,
       setCharacterName,
       completeTask,
+      claimDailyTicket,
+      spinWheel,
       undoLog,
       reassignLog,
       withSettings,

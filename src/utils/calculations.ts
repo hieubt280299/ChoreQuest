@@ -11,6 +11,7 @@ import type {
   CharacterId,
   CharacterSkill,
   Completer,
+  LevelUpReward,
   RewardBreakdown,
   SkillDefinition,
   Task,
@@ -360,20 +361,16 @@ export function computeRewardSplit(
   return splitFromBreakdown(computeRewardBreakdown(base, completer, characters, skillPool));
 }
 
-export interface LevelUp {
-  characterId: CharacterId;
-  from: number;
-  to: number;
-  bonusGold: number;
-}
-
-/** Adds rewards, including level-up bonus gold. */
+/**
+ * Adds rewards, including level-up bonus gold and one wheel ticket per newly reached level. Tickets are
+ * paid once per level (tracked by `ticketLevel`), so undoing and redoing a quest can't farm them.
+ */
 export function grantRewards(
   characters: Record<CharacterId, Character>,
   split: RewardSplit,
-): { characters: Record<CharacterId, Character>; levelUps: LevelUp[] } {
+): { characters: Record<CharacterId, Character>; levelUps: LevelUpReward[] } {
   const next = { ...characters };
-  const levelUps: LevelUp[] = [];
+  const levelUps: LevelUpReward[] = [];
   (['husband', 'wife'] as CharacterId[]).forEach((id) => {
     const gained = split[id];
     if (gained.xp <= 0 && gained.gold <= 0) return;
@@ -382,8 +379,24 @@ export function grantRewards(
     const xp = prev.xp + gained.xp;
     const to = getLevelFromXp(xp);
     const bonusGold = goldForLevelRange(from, to);
-    if (to > from) levelUps.push({ characterId: id, from, to, bonusGold });
-    next[id] = { ...prev, xp, gold: prev.gold + gained.gold + bonusGold };
+    const tickets = Math.max(0, to - Math.max(from, prev.ticketLevel));
+    if (to > from) {
+      levelUps.push({
+        characterId: id,
+        from,
+        to,
+        bonusGold,
+        tickets,
+        skillPoints: skillPointsEarned(to) - skillPointsEarned(from),
+      });
+    }
+    next[id] = {
+      ...prev,
+      xp,
+      gold: prev.gold + gained.gold + bonusGold,
+      tickets: prev.tickets + tickets,
+      ticketLevel: Math.max(prev.ticketLevel, to),
+    };
   });
   return { characters: next, levelUps };
 }

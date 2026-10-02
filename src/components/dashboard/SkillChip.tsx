@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useViewportClamp } from '../../hooks/useViewportClamp';
 import type { SkillDefinition } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { SkillDescription } from '../skills/SkillDescription';
@@ -14,6 +15,7 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const tooltipId = useId();
+  const bubble = useViewportClamp<HTMLSpanElement>(open);
 
   useEffect(() => {
     if (!open) return;
@@ -48,8 +50,10 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
       {open && (
         <span
           id={tooltipId}
+          ref={bubble.ref}
+          style={bubble.style}
           role="tooltip"
-          className="px-panel absolute bottom-full left-0 z-30 mb-3 block w-64 max-w-[75vw] p-3 text-left"
+          className="px-panel absolute bottom-full left-0 z-30 mb-2 block w-max max-w-[min(16rem,calc(100vw-1rem))] px-2.5 py-2 text-left"
         >
           <span className="mb-1 block text-base font-extrabold leading-tight">
             {t(skill.nameKey as TranslationKey)} · {t('skills.levelShort', { level })}

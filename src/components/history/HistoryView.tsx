@@ -1,14 +1,15 @@
-import { ChevronDown, Fire, Home } from 'pixelarticons/react';
+import { ChevronDown, ChevronUp, Fire, Home } from 'pixelarticons/react';
 import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId } from '../../types';
 import { formatDateRange, formatDay } from '../../utils/calculations';
 import { questHistory, totalTally, type QuestTally } from '../../utils/history';
 import type { TranslationKey } from '../../utils/i18n';
 import { STREAK_MIN_DAYS } from '../../utils/streaks';
 import { taskName } from '../../utils/taskNames';
+import { CharacterName } from '../ui/CharacterName';
+import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
@@ -17,21 +18,25 @@ import { PageHeader } from '../ui/PageHeader';
 import { CATEGORY_ICONS } from '../tasks/TasksView';
 
 const other = (id: CharacterId): CharacterId => (id === 'husband' ? 'wife' : 'husband');
+/** Quests listed before "Show all quests". */
+const TOP_QUESTS = 5;
 
 /** Two-colour bar showing how a total splits between the two players. */
 function ShareBar({ label, mine, theirs, me, partner }: { label: string; mine: number; theirs: number; me: CharacterId; partner: CharacterId }) {
-  const { name } = useCharacterName();
   const total = mine + theirs;
   const share = total > 0 ? Math.round((mine / total) * 100) : 0;
   return (
     <div>
-      <div className="mb-1 flex justify-between gap-2 text-sm font-extrabold uppercase text-wood-700">
-        <span className="flex min-w-0 gap-1">
-          <span className="max-w-[40%] truncate">{name(me)}</span> {share}%
+      {/* Names show in full when there is room and only truncate on narrow screens. */}
+      <div className="mb-1 flex items-baseline justify-between gap-2 text-sm font-extrabold uppercase text-wood-700">
+        <span className="flex min-w-0 flex-1 gap-1">
+          <span className="min-w-0 truncate"><CharacterName id={me} /></span>
+          <span className="shrink-0">{share}%</span>
         </span>
-        <span>{label}</span>
-        <span className="flex min-w-0 justify-end gap-1">
-          <span className="max-w-[40%] truncate">{name(partner)}</span> {total > 0 ? 100 - share : 0}%
+        <span className="shrink-0 text-wood-500">{label}</span>
+        <span className="flex min-w-0 flex-1 justify-end gap-1">
+          <span className="min-w-0 truncate"><CharacterName id={partner} /></span>
+          <span className="shrink-0">{total > 0 ? 100 - share : 0}%</span>
         </span>
       </div>
       <div className="flex h-4 bg-parchment-300 shadow-[0_0_0_3px_#2b1a12]" role="img" aria-label={`${label}: ${share}% / ${total > 0 ? 100 - share : 0}%`}>
@@ -44,11 +49,10 @@ function ShareBar({ label, mine, theirs, me, partner }: { label: string; mine: n
 
 function TallyRow({ id, tally }: { id: CharacterId; tally: QuestTally }) {
   const { t } = useLanguage();
-  const { name } = useCharacterName();
   return (
     <div className="px-slot flex flex-wrap items-center gap-3 p-2">
       <CharacterAvatar id={id} scale={2} framed={false} />
-      <span className="min-w-20 flex-1 truncate text-base font-extrabold uppercase">{name(id)}</span>
+      <span className="min-w-20 flex-1 truncate text-base font-extrabold uppercase"><CharacterName id={id} /></span>
       <span className="font-arcade text-[10px]">{t('history.times', { count: tally.count })}</span>
       <span className="font-arcade text-[10px] text-moss-700">+{Math.round(tally.xp)}XP</span>
       <GoldCounter amount={tally.gold} />
@@ -58,10 +62,10 @@ function TallyRow({ id, tally }: { id: CharacterId; tally: QuestTally }) {
 
 export function HistoryView() {
   const { t, language, locale } = useLanguage();
-  const { name } = useCharacterName();
   const { state, today, activeCharacter, getStreak } = useGame();
   const [player, setPlayer] = useState<CharacterId>(activeCharacter);
   const [openTask, setOpenTask] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const partner = other(player);
   const { chronicle } = state;
   const end = today < chronicle.endDate ? today : chronicle.endDate;
@@ -95,11 +99,12 @@ export function HistoryView() {
               onClick={() => {
                 setPlayer(id);
                 setOpenTask(null);
+                setShowAll(false);
               }}
               className={`px-btn justify-start gap-2 py-1.5 pl-1.5 text-lg ${selected ? 'px-btn-primary' : ''}`}
             >
               <CharacterAvatar id={id} scale={2} framed={false} />
-              <span className="min-w-0 flex-1 truncate text-left">{name(id)}</span>
+              <span className="min-w-0 flex-1 truncate text-left"><CharacterName id={id} /></span>
               <span className="font-arcade text-[10px] normal-case">{t('history.times', { count: counts[id] })}</span>
             </button>
           );
@@ -118,7 +123,7 @@ export function HistoryView() {
             <GoldCounter amount={totals.gold} />
           </div>
           <ul className="space-y-3">
-            {entries.map((entry) => {
+            {(showAll ? entries : entries.slice(0, TOP_QUESTS)).map((entry) => {
               const task = state.tasks.find((item) => item.id === entry.taskId);
               const name = task ? taskName(task, language) : t('history.removedQuest');
               const streak = getStreak(entry.taskId, player);
@@ -169,6 +174,12 @@ export function HistoryView() {
               );
             })}
           </ul>
+          {entries.length > TOP_QUESTS && (
+            <Button variant="secondary" className="mt-4 w-full" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
+              <Icon as={showAll ? ChevronUp : ChevronDown} size={24} />
+              {showAll ? t('history.showTop', { count: TOP_QUESTS }) : t('history.showAll', { count: entries.length })}
+            </Button>
+          )}
         </Card>
       )}
     </section>

@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { skillEffectValue } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { SkillDefinition } from '../../types';
@@ -6,9 +7,12 @@ import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
 
-/** Bonus at each skill level, e.g. 0.08 per level -> ["8%", "16%", "24%", "32%"]. */
+/** Value at each skill level: 0.08 per level -> ["8%", "16%", "24%", "32%"]; tickets -> ["2", "3", "4", "5"]. */
 export function skillLevelValues(skill: SkillDefinition): string[] {
-  return Array.from({ length: skill.maxLevel }, (_, index) => `${Math.round(skill.effect.perLevel * (index + 1) * 100)}%`);
+  return Array.from({ length: skill.maxLevel }, (_, index) => {
+    const value = skillEffectValue(skill, index + 1);
+    return skill.effect.kind === 'chronicle_tickets' ? String(value) : `${Math.round(value * 100)}%`;
+  });
 }
 
 /** Highlighted category/group name with a tooltip listing the active quests it covers. */

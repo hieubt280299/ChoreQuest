@@ -1,4 +1,4 @@
-import { Calendar, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
+import { Calendar, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -13,6 +13,7 @@ import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
 import { MoneyInput } from '../ui/MoneyInput';
 import { PageHeader } from '../ui/PageHeader';
+import { Tooltip } from '../ui/Tooltip';
 import { AudioSettingsCard } from './AudioSettingsCard';
 import { DeleteAccountButton } from './DeleteAccountButton';
 import { HouseholdCard } from './HouseholdCard';
@@ -67,6 +68,12 @@ function ChronicleCard() {
       <p className="mb-3 text-lg font-extrabold">
         {t('chronicle.label', { id: chronicle.id })}
         <span className="ml-2 text-base font-bold text-wood-600">{formatDateRange(chronicle.startDate, chronicle.endDate, locale)}</span>
+        <Tooltip
+          label={<Icon as={CircleInfo} size={24} className="text-wood-600" />}
+          content={t('chronicle.endHint')}
+          triggerClassName="ml-2 align-middle"
+          align="right"
+        />
       </p>
       <form
         className="flex flex-wrap items-center gap-3"
@@ -79,7 +86,6 @@ function ChronicleCard() {
           type="date"
           className="px-input min-w-0 flex-1"
           aria-label={t('chronicle.endDate')}
-          aria-describedby="chronicle-end-hint"
           value={draft}
           min={min}
           disabled={!canEditSettings}
@@ -99,9 +105,6 @@ function ChronicleCard() {
           {t(error)}
         </p>
       )}
-      <p id="chronicle-end-hint" className="mt-3 text-base text-wood-600">
-        {t('chronicle.endHint')}
-      </p>
     </Card>
   );
 }

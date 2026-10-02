@@ -1,6 +1,7 @@
-import { Cake, Clock, Coins, Heart, Lightbulb, Shield, Shirt, ShoppingCart, Sparkles, Zap } from 'pixelarticons/react';
+import { Cake, Clock, Coins, Heart, Lightbulb, Shield, Shirt, ShoppingCart, Sparkles, TrendingUp, Zap } from 'pixelarticons/react';
 import type { SkillDefinition } from '../../types';
 import { Icon } from './Icon';
+import { Ticket } from './pixel/TicketIcon';
 
 const icons = {
   sparkles: Sparkles,
@@ -13,6 +14,8 @@ const icons = {
   lightbulb: Lightbulb,
   shield: Shield,
   clock: Clock,
+  ticket: Ticket,
+  trending: TrendingUp,
 };
 
 export function SkillIcon({ icon, size = 24 }: { icon: SkillDefinition['icon']; size?: 12 | 24 | 36 }) {

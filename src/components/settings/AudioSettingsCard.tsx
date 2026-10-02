@@ -87,7 +87,6 @@ export function AudioSettingsCard() {
             onCommit={() => audio.playTaskCompleteSFX()}
             disabled={audio.isMuted}
           />
-          <p className="text-base text-wood-600">{t('settings.audioNote')}</p>
         </div>
       )}
     </Card>

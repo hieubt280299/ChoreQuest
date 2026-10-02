@@ -1,4 +1,4 @@
-import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup } from '../types';
+import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup, WheelPrize } from '../types';
 
 export const XP_CURVE = [
   230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100,
@@ -15,6 +15,19 @@ export const HIGH_TIER_LEVEL_GOLD = 300;
 /** Reaching the level cap (mastery) pays a much bigger bonus. */
 export const MASTERY_LEVEL_GOLD = 2000;
 export const DEFAULT_PRIZE_POOL = 1_000_000;
+
+// Wheel of Fortune. Weights are percentages; a miss grows the jackpot until someone hits it.
+export const WHEEL_PRIZES: { prize: WheelPrize; gold: number; weight: number }[] = [
+  { prize: 'small', gold: 3, weight: 35 },
+  { prize: 'normal', gold: 5, weight: 30 },
+  { prize: 'big', gold: 10, weight: 15 },
+  { prize: 'jackpot', gold: 100, weight: 1 },
+  { prize: 'none', gold: 0, weight: 19 },
+];
+export const JACKPOT_BASE_GOLD = 100;
+export const JACKPOT_MISS_BONUS = 10;
+/** The 8 slices drawn on the wheel, clockwise from the top (odds come from WHEEL_PRIZES, not slice count). */
+export const WHEEL_SEGMENTS: WheelPrize[] = ['small', 'normal', 'none', 'big', 'small', 'normal', 'none', 'jackpot'];
 
 export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
 
@@ -144,7 +157,33 @@ export const SKILL_POOL: SkillDefinition[] = [
     maxLevel: 4,
     effect: { kind: 'group_both', perLevel: 0.06, group: 'main' },
   },
+  {
+    id: 'fortunes-favor',
+    nameKey: 'skill.fortunesFavor.name',
+    descriptionKey: 'skill.fortunesFavor.desc',
+    icon: 'ticket',
+    maxLevel: 4,
+    effect: { kind: 'chronicle_tickets', perLevel: 1, base: 1 },
+  },
+  {
+    id: 'gold-interest',
+    nameKey: 'skill.goldInterest.name',
+    descriptionKey: 'skill.goldInterest.desc',
+    icon: 'trending',
+    maxLevel: 4,
+    effect: { kind: 'daily_interest', perLevel: 0.02 },
+  },
 ];
+
+/** A character's level in a skill (0 = not learned). */
+export function skillLevel(character: Pick<Character, 'skills'>, skillId: string): number {
+  return character.skills.find((skill) => skill.skillId === skillId)?.level ?? 0;
+}
+
+/** Value of a skill's effect at a level, e.g. Fortune's Favor 1 -> 2 tickets, Gold Interest 1 -> 0.02. */
+export function skillEffectValue(skill: SkillDefinition, level: number): number {
+  return level > 0 ? (skill.effect.base ?? 0) + skill.effect.perLevel * level : 0;
+}
 
 /**
  * Retired skills and their replacements (time-of-day bonuses became task-group bonuses; Lucky Charm
@@ -157,5 +196,5 @@ export const SKILL_MIGRATIONS: Record<string, string> = {
 };
 
 export function createDefaultCharacter(id: CharacterId, name: string): Character {
-  return { id, name, xp: 0, gold: 0, skills: [] };
+  return { id, name, xp: 0, gold: 0, skills: [], tickets: 0, ticketLevel: 1 };
 }

@@ -1,3 +1,4 @@
+import { ChevronUp, Plus } from 'pixelarticons/react';
 import { SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -5,9 +6,10 @@ import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character, CharacterId } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
-import { Button } from '../ui/Button';
+import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
+import { IconButton } from '../ui/IconButton';
 import { LevelBadge } from '../ui/LevelBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { SkillIcon } from '../ui/SkillIcon';
@@ -37,7 +39,7 @@ function CharacterSkillHeader({ character, viewOnly }: { character: Character; v
       <CharacterAvatar id={character.id} scale={2} />
       <div className="min-w-0 flex-1">
         <h2 className="truncate text-2xl font-extrabold uppercase leading-none text-parchment-50" title={name(character.id)}>
-          {name(character.id)}
+          <CharacterName id={character.id} />
         </h2>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold text-parchment-300">
           {t('skills.owned', { count: character.skills.length })}
@@ -98,13 +100,22 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
                 {level === 4 ? (
                   <span className="text-base font-extrabold uppercase text-moss-700">{t('skills.maxed')}</span>
                 ) : !editable ? null : level > 0 ? (
-                  <Button disabled={!canUpgrade} onClick={() => upgradeSkill(characterId, skill.id)}>
-                    {t('skills.upgrade')}
-                  </Button>
+                  <IconButton
+                    icon={ChevronUp}
+                    variant="primary"
+                    align="right"
+                    label={t('skills.upgrade')}
+                    disabled={!canUpgrade}
+                    onClick={() => upgradeSkill(characterId, skill.id)}
+                  />
                 ) : (
-                  <Button variant="secondary" disabled={!canUnlock} onClick={() => unlockSkill(characterId, skill.id)}>
-                    {t('skills.unlock')}
-                  </Button>
+                  <IconButton
+                    icon={Plus}
+                    align="right"
+                    label={t('skills.unlock')}
+                    disabled={!canUnlock}
+                    onClick={() => unlockSkill(characterId, skill.id)}
+                  />
                 )}
               </div>
             </Card>
@@ -131,7 +142,7 @@ function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
       <CharacterSkillHeader character={character} viewOnly />
       <Card className="p-4">
         <p className="mb-3 text-base font-extrabold uppercase text-brick-600">
-          {t('skills.partnerLoadout', { name: name(characterId) })}
+          {spliceName(t('skills.partnerLoadout', { name: NAME_SLOT }), <CharacterName id={characterId} />)}
         </p>
         {learned.length === 0 ? (
           <p className="text-base text-wood-600">{t('skills.partnerNone')}</p>

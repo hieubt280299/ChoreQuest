@@ -1,68 +1,73 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Fire, Sparkles, Star } from 'pixelarticons/react';
+import { Fire, Sparkles } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { COIN } from '../../assets/sprites';
 import { MAX_LEVEL } from '../../constants/gameRules';
 import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useCharacterName } from '../../hooks/useCharacterName';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import { taskName } from '../../utils/taskNames';
+import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { pixelEase } from '../ui/Modal';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
+import { LevelUpModal } from './LevelUpModal';
 import { MasteryCelebration } from './MasteryCelebration';
 
+/**
+ * Quest rewards, then one dedicated card per level-up (the full-screen celebration for mastery).
+ * `step` -1 is the quest card; 0.. index the level-ups of the same reward.
+ */
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t, language } = useLanguage();
-  const { name } = useCharacterName();
   const { state, reward, clearReward, canActAs } = useGame();
   const { playTaskCompleteSFX, playLevelUpSFX, playMasterySFX } = useAudio();
-  // Reaching the level cap gets a full-screen celebration before the usual reward card.
-  const mastery = reward?.levelUps.find((levelUp) => levelUp.to >= MAX_LEVEL);
-  const [celebratedId, setCelebratedId] = useState<string | null>(null);
-  const celebrating = !!reward && !!mastery && celebratedId !== reward.id;
+  const [stage, setStage] = useState<{ id: string | null; step: number }>({ id: null, step: -1 });
+  const step = reward && stage.id === reward.id ? stage.step : -1;
+  const levelUps = reward?.levelUps ?? [];
+  const levelUp = step >= 0 ? levelUps[step] : undefined;
 
-  // Coin jingle for every completed quest, then a fanfare if anyone levelled up (a grand one for mastery).
+  const advance = () => {
+    if (!reward) return;
+    if (step + 1 < levelUps.length) setStage({ id: reward.id, step: step + 1 });
+    else clearReward();
+  };
+
+  // Coin jingle for the quest, then a fanfare as each level-up card opens (a grand one for mastery).
   const rewardId = reward?.id;
-  const leveledUp = (reward?.levelUps.length ?? 0) > 0;
-  const mastered = !!mastery;
   useEffect(() => {
-    if (!rewardId) return;
-    playTaskCompleteSFX();
-    if (mastered) playMasterySFX(0.35);
-    else if (leveledUp) playLevelUpSFX(0.35);
-  }, [rewardId, leveledUp, mastered, playTaskCompleteSFX, playLevelUpSFX, playMasterySFX]);
-  // Only offer the skill picker for a character this player controls.
-  const needsSkills = reward?.levelUps.some((levelUp) => {
-    const character = state.characters[levelUp.characterId];
-    return canActAs(levelUp.characterId) && skillPointsAvailable(getLevelFromXp(character.xp), character.skills) > 0;
-  });
+    if (rewardId) playTaskCompleteSFX();
+  }, [rewardId, playTaskCompleteSFX]);
+  const levelKey = levelUp ? `${rewardId}-${step}` : null;
+  const mastered = !!levelUp && levelUp.to >= MAX_LEVEL;
+  useEffect(() => {
+    if (!levelKey) return;
+    if (mastered) playMasterySFX();
+    else playLevelUpSFX();
+  }, [levelKey, mastered, playLevelUpSFX, playMasterySFX]);
+
+  // Offer the skill picker only for a character this player controls who has points to spend.
+  const canAssign =
+    !!levelUp &&
+    !!onAssignSkills &&
+    canActAs(levelUp.characterId) &&
+    skillPointsAvailable(getLevelFromXp(state.characters[levelUp.characterId].xp), state.characters[levelUp.characterId].skills) > 0;
 
   return (
-    <AnimatePresence>
-      {celebrating && mastery && (
-        <MasteryCelebration
-          key="mastery"
-          characterId={mastery.characterId}
-          level={mastery.to}
-          bonusGold={mastery.bonusGold}
-          onContinue={() => setCelebratedId(reward.id)}
-        />
-      )}
-      {reward && !celebrating && (
+    <AnimatePresence mode="wait">
+      {reward && step === -1 && (
         <motion.div
-          key="reward"
+          key={`reward-${reward.id}`}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15, ease: pixelEase(3) }}
-          onClick={clearReward}
+          onClick={advance}
         >
           <motion.div
             role="dialog"
@@ -90,7 +95,7 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                 return (
                   <div key={id} className={`px-slot flex flex-col items-center gap-2 p-3 ${earned ? '' : 'opacity-50'}`}>
                     <CharacterAvatar id={id} scale={2} framed={false} />
-                    <p className="max-w-full truncate text-base font-extrabold uppercase text-wood-700">{name(id)}</p>
+                    <p className="max-w-full truncate text-base font-extrabold uppercase text-wood-700"><CharacterName id={id} /></p>
                     <p className="font-arcade text-[10px] text-moss-700">+{Math.round(reward.xp[id])}XP</p>
                     <GoldCounter amount={reward.gold[id]} />
                     {(reward.streakGold?.[id] ?? 0) > 0 && (
@@ -103,35 +108,35 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
                 );
               })}
             </div>
-            {reward.levelUps.map((levelUp) => (
-              <motion.p
-                key={levelUp.characterId}
-                initial={{ scale: 0.5 }}
-                animate={{ scale: [0.5, 1.15, 1] }}
-                transition={{ duration: 0.4, ease: pixelEase(4) }}
-                className="px-level mb-2 w-full justify-center py-2 font-sans text-lg font-extrabold uppercase"
-              >
-                <Icon as={Star} size={24} className="px-blink text-flame-300" />
-                {t('tasks.levelUp')} {name(levelUp.characterId)} {levelUp.from}→{levelUp.to}
-              </motion.p>
-            ))}
-            {needsSkills && onAssignSkills && (
-              <Button
-                className="mt-3 w-full"
-                variant="brick"
-                onClick={() => {
-                  onAssignSkills();
-                  clearReward();
-                }}
-              >
-                {t('skills.assign')}
-              </Button>
-            )}
-            <Button className="mt-3 w-full" onClick={clearReward}>
-              {t('common.close')}
+            <Button className="mt-3 w-full" onClick={advance}>
+              {levelUps.length > 0 ? t('mastery.continue') : t('common.close')}
             </Button>
           </motion.div>
         </motion.div>
+      )}
+      {reward && levelUp && levelUp.to >= MAX_LEVEL && (
+        <MasteryCelebration
+          key={`mastery-${reward.id}-${step}`}
+          characterId={levelUp.characterId}
+          level={levelUp.to}
+          bonusGold={levelUp.bonusGold}
+          onContinue={advance}
+        />
+      )}
+      {reward && levelUp && levelUp.to < MAX_LEVEL && (
+        <LevelUpModal
+          key={`level-${reward.id}-${step}`}
+          levelUp={levelUp}
+          onContinue={advance}
+          onAssignSkills={
+            canAssign
+              ? () => {
+                  onAssignSkills!();
+                  clearReward();
+                }
+              : undefined
+          }
+        />
       )}
     </AnimatePresence>
   );
