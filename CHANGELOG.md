@@ -2,6 +2,15 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [0.2.1] - 2026-10-03
+
+### Changed
+
+- **Wheel of Fortune:** tap the wheel itself to spin; the separate Spin button is gone, and a blinking "Spin" label on the hub shows when you can.
+- **Wheel face:** slices now have different sizes, with the jackpot slice the smallest to reflect its rarity, and run X, Jackpot, X, 3, 5, 10, 5, 3. At rest the pointer sits on the jackpot slice, and a shorter pointer never covers slice icons or values. Each spin lasts a random 5–10 seconds. The odds are unchanged.
+- **Wheel layout:** your ticket count moved into the jackpot bar, with a tooltip showing how many tickets you have (or how to get more), and the empty gap under the wheel is gone.
+- **Settings:** the quest configuration list shows the first 5 quests, with a "Show all" toggle for the rest.
+
 ## [0.2.0] - 2026-10-02
 
 Spec: [UPDATE_v0.2.0.md](UPDATE_v0.2.0.md)

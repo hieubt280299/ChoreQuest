@@ -19,8 +19,23 @@ import { PixelConfetti } from '../ui/pixel/PixelConfetti';
 import { Ticket } from '../ui/pixel/TicketIcon';
 import { Tooltip } from '../ui/Tooltip';
 
-const SLICE = 360 / WHEEL_SEGMENTS.length;
-const SPIN_SECONDS = 4.2;
+// Slice angles (degrees, clockwise from the top) from the relative sizes.
+const TOTAL_SIZE = WHEEL_SEGMENTS.reduce((sum, segment) => sum + segment.size, 0);
+const SLICES = WHEEL_SEGMENTS.reduce<{ prize: WheelPrize; start: number; end: number }[]>((list, segment) => {
+  const start = list.length ? list[list.length - 1].end : 0;
+  return [...list, { prize: segment.prize, start, end: start + (segment.size / TOTAL_SIZE) * 360 }];
+}, []);
+/** Index of the slice under an angle of the face. */
+const sliceAt = (angle: number) => {
+  const a = ((angle % 360) + 360) % 360;
+  return Math.max(0, SLICES.findIndex((slice) => a < slice.end));
+};
+// At rest the pointer sits on the middle of the jackpot slice.
+const JACKPOT_SLICE = SLICES.find((slice) => slice.prize === 'jackpot')!;
+const REST_ROTATION = -(JACKPOT_SLICE.start + JACKPOT_SLICE.end) / 2;
+// Each spin lasts a random 5-10 seconds.
+const SPIN_MIN_SECONDS = 5;
+const SPIN_MAX_SECONDS = 10;
 const FACE_SIZE = 72;
 
 const SLICE_STYLE: Record<WheelPrize, { fill: string; shade: string; text: string }> = {
@@ -51,7 +66,8 @@ function WheelFace() {
         const r = Math.hypot(dx, dy);
         if (r > 35.5) continue;
         const angle = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
-        const fromBorder = Math.min(angle % SLICE, SLICE - (angle % SLICE)) * (Math.PI / 180) * r;
+        const slice = SLICES[sliceAt(angle)];
+        const fromBorder = Math.min(angle - slice.start, slice.end - angle) * (Math.PI / 180) * r;
         let color: string;
         if (r > 34.5 || (r > 31 && r <= 32)) color = '#2b1a12';
         else if (r > 32) color = fromBorder < 1.3 ? '#ffd166' : r > 33.5 ? '#9c6337' : '#7a4a2a';
@@ -59,7 +75,7 @@ function WheelFace() {
         else if (r < 5) color = '#2b1a12';
         else if (fromBorder < 0.6) color = '#2b1a12';
         else {
-          const style = SLICE_STYLE[WHEEL_SEGMENTS[Math.floor(angle / SLICE)]];
+          const style = SLICE_STYLE[slice.prize];
           // Solid shade near the rim, a one-pixel dither band, then the flat slice colour.
           color = r > 28 || (r > 26.5 && (x + y) % 2 === 0) ? style.shade : style.fill;
         }
@@ -78,7 +94,8 @@ function WheelFace() {
 
 function SliceLabel({ prize }: { prize: WheelPrize }) {
   if (prize === 'none') return <Icon as={Close} size={24} />;
-  if (prize === 'jackpot') return <Icon as={Crown} size={24} />;
+  // The jackpot slice is narrow, so its crown is small.
+  if (prize === 'jackpot') return <Icon as={Crown} size={12} />;
   const gold = WHEEL_PRIZES.find((entry) => entry.prize === prize)?.gold ?? 0;
   return <span className="font-arcade text-[11px] leading-none">{gold}</span>;
 }
@@ -142,10 +159,10 @@ function SpinResult({ spin }: { spin: WheelSpinEvent }) {
 /** Wheel of Fortune: spend a ticket to spin for gold; misses grow a shared jackpot. */
 export function WheelOfFortune() {
   const { t } = useLanguage();
-  const { name } = useCharacterName();
   const { state, activeCharacter, canActAs, spinWheel } = useGame();
   const { playWheelTickSFX, playWheelWinSFX, playWheelMissSFX, playJackpotSFX } = useAudio();
-  const [rotation, setRotation] = useState(0);
+  const [rotation, setRotation] = useState(REST_ROTATION);
+  const [duration, setDuration] = useState(SPIN_MIN_SECONDS);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<WheelSpinEvent | null>(null);
   const [celebrate, setCelebrate] = useState<WheelSpinEvent | null>(null);
@@ -159,6 +176,8 @@ export function WheelOfFortune() {
   const tickets = state.characters[characterId].tickets;
   const canSpin = canActAs(characterId) && tickets > 0 && !spinning;
   const jackpot = JACKPOT_BASE_GOLD + (shownBonus ?? state.wheel.jackpotBonus);
+  const ticketLabel =
+    tickets === 0 ? t('wheel.noTicketsHint') : tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
 
   const spin = () => {
     const outcome = spinWheel(characterId);
@@ -171,12 +190,15 @@ export function WheelOfFortune() {
     setShownBonus(outcome.jackpotBefore);
     pending.current = outcome.spin;
     // Land somewhere inside a slice showing that prize (not dead centre, so it feels less staged).
-    const slices = WHEEL_SEGMENTS.flatMap((prize, index) => (prize === outcome.spin.prize ? [index] : []));
-    const slice = slices[Math.floor(secureRandom() * slices.length)];
-    const landing = slice * SLICE + SLICE / 2 + (secureRandom() - 0.5) * SLICE * 0.6;
+    const matches = SLICES.filter((slice) => slice.prize === outcome.spin.prize);
+    const slice = matches[Math.floor(secureRandom() * matches.length)];
+    const landing = (slice.start + slice.end) / 2 + (secureRandom() - 0.5) * (slice.end - slice.start) * 0.6;
     // The pointer is at the top, so the wheel turns until that point of the face is under it.
-    const turns = 5 * 360;
+    // Longer spins turn more, so the wheel keeps a lively speed (about one turn per second).
+    const seconds = SPIN_MIN_SECONDS + secureRandom() * (SPIN_MAX_SECONDS - SPIN_MIN_SECONDS);
+    const turns = Math.round(seconds) * 360;
     const offset = (((360 - landing - rotation) % 360) + 360) % 360;
+    setDuration(seconds);
     setRotation(rotation + turns + offset);
     setSpinning(true);
   };
@@ -222,19 +244,43 @@ export function WheelOfFortune() {
         />
       </div>
 
+      {/* Jackpot pot on the left, your tickets on the right. */}
       <div className="px-slot-dark mb-4 flex items-center justify-between gap-3 px-3 py-2">
-        <span className="flex items-center gap-2 text-lg font-extrabold uppercase text-flame-300">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-lg font-extrabold uppercase text-flame-300">
           <Icon as={Crown} size={24} className={spinning ? '' : 'px-blink'} />
           {t('wheel.prize.jackpot')}
+          <GoldCounter amount={jackpot} color="text-flame-300" size="lg" />
         </span>
-        <GoldCounter amount={jackpot} color="text-flame-300" size="lg" />
+        <Tooltip
+          align="right"
+          label={
+            <>
+              <Icon as={Ticket} size={24} />
+              <span className="font-arcade text-sm">{tickets}</span>
+              <span className="sr-only">{ticketLabel}</span>
+            </>
+          }
+          content={ticketLabel}
+          triggerClassName={`inline-flex shrink-0 items-center gap-1.5 border-l-[3px] border-wood-700 pl-3 ${
+            tickets > 0 ? 'text-parchment-100' : 'text-brick-400'
+          }`}
+        />
       </div>
 
-      <div className="relative mx-auto aspect-square w-full max-w-[17rem]">
-        {/* Fixed pointer at the top */}
+      {/* The wheel itself is the spin button. */}
+      <button
+        type="button"
+        onClick={spin}
+        disabled={!canSpin}
+        aria-label={t('wheel.spin')}
+        className={`px-focus group relative mx-auto block aspect-square w-full max-w-[17rem] rounded-full ${
+          canSpin ? 'cursor-pointer' : 'cursor-default'
+        }`}
+      >
+        {/* Fixed pointer at the top; it ends at the rim, and slice labels sit below it so it never hides them. */}
         <svg
           viewBox="0 0 12 10"
-          className="absolute -top-2 left-1/2 z-10 h-8 w-10 -translate-x-1/2 drop-shadow-[0_3px_0_rgba(20,10,5,0.5)]"
+          className="absolute -top-3 left-1/2 z-10 h-6 w-8 -translate-x-1/2 drop-shadow-[0_3px_0_rgba(20,10,5,0.5)]"
           shapeRendering="crispEdges"
           aria-hidden
         >
@@ -244,53 +290,52 @@ export function WheelOfFortune() {
         <motion.div
           className="absolute inset-0"
           animate={{ rotate: rotation }}
-          transition={{ duration: reduceMotion ? 0.6 : SPIN_SECONDS, ease: [0.12, 0.75, 0.2, 1] }}
+          transition={{ duration: reduceMotion ? 0.6 : duration, ease: [0.12, 0.75, 0.2, 1] }}
           onUpdate={(latest) => {
             // Tick each time a slice border passes the pointer.
-            const slice = Math.floor(Number(latest.rotate ?? 0) / SLICE);
+            // The pointer reads the face at -rotation; count crossings of slice borders (and full turns).
+            const angle = Number(latest.rotate ?? 0);
+            const slice = Math.floor(angle / 360) * SLICES.length + sliceAt(-angle);
             if (spinning && slice !== lastSlice.current) playWheelTickSFX();
             lastSlice.current = slice;
           }}
           onAnimationComplete={finish}
         >
           <WheelFace />
-          {WHEEL_SEGMENTS.map((prize, index) => (
-            <div key={index} className="absolute inset-0" style={{ transform: `rotate(${index * SLICE + SLICE / 2}deg)` }} aria-hidden>
-              <span className={`absolute left-1/2 top-[12%] -translate-x-1/2 ${SLICE_STYLE[prize].text}`}>
-                <SliceLabel prize={prize} />
+          {SLICES.map((slice, index) => (
+            <div key={index} className="absolute inset-0" style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)` }} aria-hidden>
+              <span
+                className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}
+              >
+                <SliceLabel prize={slice.prize} />
               </span>
             </div>
           ))}
         </motion.div>
-      </div>
+        {/* Idle hint on the hub: press to spin. */}
+        {canSpin && (
+          <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+            <span className="px-btn px-btn-primary px-blink px-2.5 py-1 text-lg group-hover:brightness-110 group-active:translate-y-[3px]">
+              {t('wheel.spin')}
+            </span>
+          </span>
+        )}
+      </button>
 
-      <div className="mt-4 min-h-[3.5rem]" aria-live="polite">
+      {/* Status line only when there is something to say, so no empty gap under the wheel. */}
+      <div aria-live="polite">
         {spinning ? (
-          <p className="text-center text-xl font-extrabold uppercase text-wood-600">{t('wheel.spinning')}</p>
+          <p className="mt-3 text-center text-xl font-extrabold uppercase text-wood-600">{t('wheel.spinning')}</p>
         ) : result ? (
-          <SpinResult spin={result} />
+          <div className="mt-3">
+            <SpinResult spin={result} />
+          </div>
         ) : null}
       </div>
-
-      <div className="flex items-stretch gap-3">
-        <span
-          className="px-slot flex shrink-0 items-center gap-1.5 px-2 text-lg font-extrabold uppercase text-plum-600"
-          aria-label={`${name(characterId)}: ${tickets === 1 ? t('wheel.ticketOne') : t('wheel.tickets', { count: tickets })}`}
-        >
-          <CharacterAvatar id={characterId} scale={1} framed={false} />
-          <Icon as={Ticket} size={24} />
-          <span className="font-arcade text-sm">{tickets}</span>
-        </span>
-        <Button className="flex-1 py-3 text-2xl" disabled={!canSpin} onClick={spin}>
-          {t('wheel.spin')}
-        </Button>
-      </div>
-      {error ? (
+      {error && (
         <p className="mt-3 text-base font-bold text-brick-600" role="alert">
           {t(error)}
         </p>
-      ) : (
-        !spinning && tickets === 0 && canActAs(characterId) && <p className="mt-3 text-base text-wood-600">{t('wheel.noTicketsHint')}</p>
       )}
 
       <AnimatePresence>{celebrate && <JackpotCelebration spin={celebrate} onClose={() => setCelebrate(null)} />}</AnimatePresence>
