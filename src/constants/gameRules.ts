@@ -26,8 +26,20 @@ export const WHEEL_PRIZES: { prize: WheelPrize; gold: number; weight: number }[]
 ];
 export const JACKPOT_BASE_GOLD = 100;
 export const JACKPOT_MISS_BONUS = 10;
-/** The 8 slices drawn on the wheel, clockwise from the top (odds come from WHEEL_PRIZES, not slice count). */
-export const WHEEL_SEGMENTS: WheelPrize[] = ['small', 'normal', 'none', 'big', 'small', 'normal', 'none', 'jackpot'];
+/**
+ * The slices drawn on the wheel, clockwise from the top, with their relative sizes. Sizes are visual only
+ * (odds come from WHEEL_PRIZES), but the jackpot slice is kept the smallest to hint at its rarity.
+ */
+export const WHEEL_SEGMENTS: { prize: WheelPrize; size: number }[] = [
+  { prize: 'none', size: 5 },
+  { prize: 'jackpot', size: 2 },
+  { prize: 'none', size: 5 },
+  { prize: 'small', size: 5 },
+  { prize: 'normal', size: 5 },
+  { prize: 'big', size: 4 },
+  { prize: 'normal', size: 5 },
+  { prize: 'small', size: 5 },
+];
 
 export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
 

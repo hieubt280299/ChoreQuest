@@ -1,4 +1,4 @@
-import { Calendar, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
+import { Calendar, ChevronDown, ChevronUp, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -109,8 +109,12 @@ function ChronicleCard() {
   );
 }
 
+/** Quest configurations listed before "Show all". */
+const QUESTS_PREVIEW = 5;
+
 export function SettingsView() {
   const { t, language, setLanguage, locale } = useLanguage();
+  const [showAllQuests, setShowAllQuests] = useState(false);
   const { state, canEditSettings, setPrizePool, upsertTask } = useGame();
   const { demoMode, user, logout, exitDemo } = useAuth();
 
@@ -154,7 +158,7 @@ export function SettingsView() {
         <SectionTitle icon={Script}>{t('settings.tasks')}</SectionTitle>
         {!canEditSettings && <ModeratorOnlyNote />}
         <fieldset disabled={!canEditSettings} className="space-y-4 disabled:opacity-70">
-          {state.tasks.map((task) => {
+          {(showAllQuests ? state.tasks : state.tasks.slice(0, QUESTS_PREVIEW)).map((task) => {
             const name = taskName(task, language);
             return (
               <div key={task.id} className="px-slot flex flex-wrap items-center gap-3 p-3">
@@ -216,6 +220,17 @@ export function SettingsView() {
             );
           })}
         </fieldset>
+        {state.tasks.length > QUESTS_PREVIEW && (
+          <Button
+            variant="secondary"
+            className="mt-4 w-full"
+            aria-expanded={showAllQuests}
+            onClick={() => setShowAllQuests((value) => !value)}
+          >
+            <Icon as={showAllQuests ? ChevronUp : ChevronDown} size={24} />
+            {showAllQuests ? t('settings.showFewerQuests') : t('settings.showAllQuests', { count: state.tasks.length })}
+          </Button>
+        )}
         <div className="mt-5">
           <ResetQuestsButton />
         </div>
