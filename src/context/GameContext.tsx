@@ -2,6 +2,7 @@ import { updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEFAULT_TASKS, MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
 import type {
+  AvatarId,
   CharacterId,
   Completer,
   GameState,
@@ -11,8 +12,10 @@ import type {
   Task,
   TaskCategory,
   TaskLog,
+  ThemeId,
   WheelSpinEvent,
 } from '../types';
+import { AVATARS, DEFAULT_AVATAR, THEMES, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
 import {
   computeRewardBreakdown,
   endOfDayMs,
@@ -85,6 +88,12 @@ interface GameContextValue {
   canRename: (characterId: CharacterId) => boolean;
   /** Set (or clear, with a blank name) a character's display name. */
   setCharacterName: (characterId: CharacterId, name: string) => ActionResult;
+  /** The cosmetic reward this character may still claim for winning the previous chronicle, if any. */
+  pendingReward: (characterId: CharacterId) => { chronicleId: number } | null;
+  /** Claim the winner's reward: unlock one theme or one of your own avatars. */
+  claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId) => ActionResult;
+  /** Switch your character's avatar to one the household has unlocked (shared with your spouse). */
+  setAvatar: (characterId: CharacterId, avatar: AvatarId) => ActionResult;
   completeTask: (taskId: string, completer: Completer) => ActionResult;
   /** Claim the free wheel ticket (once per local day, own character only). */
   claimDailyTicket: (characterId: CharacterId) => ActionResult;
@@ -115,6 +124,14 @@ interface GameContextValue {
 const GameContext = createContext<GameContextValue | null>(null);
 
 /** Streak day each recipient would reach by completing `taskId` on `date`. */
+/** Each recipient's spouse's current streak on `taskId` as of `date` (Synergistic Streak). */
+function partnerStreaks(index: StreakIndex, taskId: string, completer: Completer, date: string) {
+  const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
+  const days: Partial<Record<CharacterId, number>> = {};
+  for (const id of recipients) days[id] = currentStreak(index, taskId, id === 'husband' ? 'wife' : 'husband', date).days;
+  return days;
+}
+
 function recipientStreaks(index: StreakIndex, taskId: string, completer: Completer, date: string) {
   const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
   const days: Partial<Record<CharacterId, number>> = {};
@@ -248,6 +265,73 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [canRename, commit],
   );
 
+  // Chronicle winner's reward: the previous chronicle's top earner (ties: both) may unlock one theme or
+  // avatar while the next chronicle runs. It's offered from its Day 1.
+  const pendingReward = useCallback(
+    (characterId: CharacterId) => {
+      const current = stateRef.current;
+      const last = current.prizeHistory[0];
+      if (!last || current.chronicle.id !== last.chronicleId + 1) return null;
+      const gold = last.goldSnapshot;
+      const top = Math.max(gold.husband, gold.wife);
+      if (top <= 0 || gold[characterId] !== top) return null;
+      if (current.cosmetics.rewards.some((reward) => reward.chronicleId === last.chronicleId && reward.characterId === characterId)) return null;
+      // Nothing left to unlock: no reward to offer.
+      const lockedThemes = THEMES.filter((theme) => theme !== DEFAULT_THEME && !current.cosmetics.themes.includes(theme));
+      const lockedAvatars = AVATARS[characterId].filter(
+        (avatar) => avatar !== DEFAULT_AVATAR[characterId] && !current.cosmetics.avatars[characterId].includes(avatar),
+      );
+      if (lockedThemes.length + lockedAvatars.length === 0) return null;
+      return { chronicleId: last.chronicleId };
+    },
+    // Re-evaluated whenever the state changes (it reads the ref).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state],
+  );
+
+  const claimReward = useCallback(
+    (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId): ActionResult => {
+      if (!canRename(characterId)) return fail('household.error.ownCharacter');
+      const reward = pendingReward(characterId);
+      if (!reward) return fail('cosmetics.error.noReward');
+      const current = stateRef.current;
+      const cosmetics = current.cosmetics;
+      if (kind === 'theme') {
+        if (!isThemeId(item) || item === DEFAULT_THEME || cosmetics.themes.includes(item)) return fail('cosmetics.error.locked');
+      } else if (!AVATARS[characterId].includes(item as AvatarId) || cosmetics.avatars[characterId].includes(item as AvatarId)) {
+        return fail('cosmetics.error.locked');
+      }
+      commit({
+        ...current,
+        cosmetics: {
+          ...cosmetics,
+          themes: kind === 'theme' ? [...cosmetics.themes, item as ThemeId] : cosmetics.themes,
+          avatars:
+            kind === 'avatar'
+              ? { ...cosmetics.avatars, [characterId]: [...cosmetics.avatars[characterId], item as AvatarId] }
+              : cosmetics.avatars,
+          // A new avatar is put on right away.
+          activeAvatar: kind === 'avatar' ? { ...cosmetics.activeAvatar, [characterId]: item as AvatarId } : cosmetics.activeAvatar,
+          rewards: [...cosmetics.rewards, { chronicleId: reward.chronicleId, characterId, kind, item }],
+        },
+      });
+      return OK;
+    },
+    [canRename, commit, pendingReward],
+  );
+
+  const setAvatar = useCallback(
+    (characterId: CharacterId, avatar: AvatarId): ActionResult => {
+      if (!canRename(characterId)) return fail('household.error.ownCharacter');
+      const current = stateRef.current;
+      const owned = avatar === DEFAULT_AVATAR[characterId] || current.cosmetics.avatars[characterId].includes(avatar);
+      if (!owned) return fail('cosmetics.error.locked');
+      commit({ ...current, cosmetics: { ...current.cosmetics, activeAvatar: { ...current.cosmetics.activeAvatar, [characterId]: avatar } } });
+      return OK;
+    },
+    [canRename, commit],
+  );
+
   const canManageLog = useCallback(
     (log: TaskLog) => {
       // Gold of finished chronicles is already settled, so only current-chronicle logs can change; and XP
@@ -275,6 +359,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         current.characters,
         SKILL_POOL,
         recipientStreaks(buildStreakIndex(current.logs), taskId, completer, date),
+        partnerStreaks(buildStreakIndex(current.logs), taskId, completer, date),
       );
       const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(current.characters, split);
@@ -398,6 +483,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         revoked.characters,
         SKILL_POOL,
         recipientStreaks(index, log.taskId, completer, log.date),
+        partnerStreaks(index, log.taskId, completer, log.date),
       );
       const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(revoked.characters, split);
@@ -474,6 +560,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canManageLog,
       canRename,
       setCharacterName,
+      pendingReward,
+      claimReward,
+      setAvatar,
       completeTask,
       claimDailyTicket,
       spinWheel,
@@ -554,6 +643,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           state.characters,
           SKILL_POOL,
           recipientStreaks(streakIndex, taskId, completer, today),
+          partnerStreaks(streakIndex, taskId, completer, today),
         );
       },
     }),
@@ -570,6 +660,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canManageLog,
       canRename,
       setCharacterName,
+      pendingReward,
+      claimReward,
+      setAvatar,
       completeTask,
       claimDailyTicket,
       spinWheel,
@@ -592,3 +685,12 @@ export function useGame() {
 }
 
 export const TASK_CATEGORIES: TaskCategory[] = ['cleaning', 'cooking', 'shopping', 'laundry', 'general'];
+
+/**
+ * The avatar a character currently wears (household-wide). Safe outside the game provider (e.g. the sign-in
+ * screen), where it returns the default.
+ */
+export function useActiveAvatar(characterId: CharacterId): AvatarId {
+  const ctx = useContext(GameContext);
+  return ctx?.state.cosmetics.activeAvatar[characterId] ?? DEFAULT_AVATAR[characterId];
+}

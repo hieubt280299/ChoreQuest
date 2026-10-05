@@ -8,11 +8,12 @@ Built with React, TypeScript and Firebase. It installs as a PWA on phones and ha
 
 - **Quests:** log a chore when you finish it, as done by you, your partner or both of you (a "both" quest splits its reward 50/50). Each quest can be completed once a day. Quests are grouped by effort (Quick / Moderate / Heavy) and by category (cleaning, cooking, laundry, …).
 - **XP and levels:** quests give XP, up to level 30. Each level-up pays bonus gold, a skill point and a Wheel of Fortune ticket. Reaching level 30 unlocks a "New legend" reset of levels and skills.
-- **Skills:** choose up to 6 of 12 household buffs, each with 4 levels, such as more gold from cooking quests, a bonus for quests done together, extra wheel tickets, or daily interest on your gold.
+- **Skills:** choose up to 8 of 14 household buffs, each with 4 levels, such as more gold from cooking quests, a bonus for quests done together, extra wheel tickets, or daily interest on your gold.
 - **Streaks:** completing the same quest on consecutive days pays Fibonacci bonus gold from day 3.
 - **Wheel of Fortune:** claim one free ticket a day, then spin for gold. Every miss grows a shared jackpot.
 - **Chronicles:** a season, one month by default. Gold resets when it ends, while XP, levels and skills stay. The prize pool (in VND) is split by each partner's share of the gold.
 - **Households:** each household holds two accounts and is joined with a 6-character code. Moderators manage quests, the prize pool and the chronicle end date. Logged quests can be undone or re-assigned, and the calendar shows a day-by-day log.
+- **Cosmetics:** four app themes (Cozy Hearth, 8-Bit Mushroom Kingdom, Whimsical Cottage, Enchanted Forest) and 32 unlockable character avatars (16 per character). Each chronicle's winner unlocks one.
 - **Polish:** English and Vietnamese, chiptune music and sound effects (generated live in the browser), and a mobile-first pixel UI.
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
@@ -44,7 +45,7 @@ Open the printed URL and choose **Play demo (offline)**. The demo needs no setup
 2. **Authentication:** enable the **Email/Password** sign-in method.
 3. **Firestore:** create a database, then publish the security rules in [`firestore.rules`](firestore.rules), either in the console or with `firebase deploy --only firestore:rules`.
 4. Copy `.env.example` to `.env` and fill in the `VITE_FIREBASE_*` values from your web app's config. `VITE_FIREBASE_MEASUREMENT_ID` is optional and turns on Analytics.
-5. When you deploy, add your domain (for example your Vercel domain) under **Authentication → Settings → Authorized domains**.
+5. When you deploy, add every domain the app is served from under **Authentication → Settings → Authorized domains**. The live app uses `cqvn.vercel.app` (production) and `chore-quest-hieu-anh.vercel.app` (legacy), plus `localhost` for development.
 
 Without these variables the app still runs, in demo mode only.
 
@@ -60,6 +61,13 @@ Without these variables the app still runs, in demo mode only.
 ## Deploying
 
 The repository is set up for **Vercel**: import the repo, set the same `VITE_FIREBASE_*` environment variables, and deploy. `vercel.json` handles routing and caching for the service worker.
+
+Production runs at **https://cqvn.vercel.app**, with the older **https://chore-quest-hieu-anh.vercel.app** still served. To add a domain:
+
+1. In Vercel, add it under **Project → Settings → Domains**.
+2. In Firebase, add it under **Authentication → Settings → Authorized domains**, or sign-in fails there.
+
+No CORS setup is needed: the app talks to Firebase directly from the browser, and Firebase only checks the authorized domains. The code has no hard-coded domain, so `VITE_FIREBASE_AUTH_DOMAIN` stays your project's `<project>.firebaseapp.com`.
 
 If an update to the security rules ships with a release, republish `firestore.rules` too.
 

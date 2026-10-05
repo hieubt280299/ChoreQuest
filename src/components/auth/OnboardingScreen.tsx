@@ -57,7 +57,7 @@ export function OnboardingScreen() {
         {user?.email && <p className="px-subtitle mt-1 text-lg">{t('onboarding.subtitle', { email: user.email })}</p>}
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <Card className="flex flex-col gap-4">
           <h2 className="flex items-center gap-2 text-2xl font-extrabold uppercase text-brick-600">
             <Icon as={Castle} size={24} />

@@ -1,5 +1,4 @@
 import { Fragment } from 'react';
-import { skillEffectValue } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { SkillDefinition } from '../../types';
@@ -7,12 +6,16 @@ import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
 
-/** Value at each skill level: 0.08 per level -> ["8%", "16%", "24%", "32%"]; tickets -> ["2", "3", "4", "5"]. */
-export function skillLevelValues(skill: SkillDefinition): string[] {
-  return Array.from({ length: skill.maxLevel }, (_, index) => {
-    const value = skillEffectValue(skill, index + 1);
-    return skill.effect.kind === 'chronicle_tickets' ? String(value) : `${Math.round(value * 100)}%`;
-  });
+type ValueField = 'xp' | 'gold' | 'values';
+
+/**
+ * A skill's value at each level as display text: XP and gold bonuses and interest as percentages
+ * (["8%", "16%", "24%", "32%"]), ticket counts as plain numbers.
+ */
+export function skillLevelValues(skill: SkillDefinition, field: ValueField = 'values'): string[] {
+  const list = skill.effect[field] ?? [];
+  const asCount = field === 'values' && (skill.effect.kind === 'chronicle_tickets' || skill.effect.kind === 'mvp_tickets');
+  return list.map((value) => (asCount ? String(value) : `${Math.round(value * 100)}%`));
 }
 
 /** Highlighted category/group name with a tooltip listing the active quests it covers. */
@@ -51,7 +54,7 @@ function SkillTarget({ skill, interactive }: { skill: SkillDefinition; interacti
 /**
  * Dota-style description listing every level's value, with the current level highlighted, and the
  * category/group it applies to capitalized and highlighted:
- * "Gain 8% / 16% / **24%** / 32% more XP from _Cleaning_ quests."
+ * "Gain 8% / 16% / **24%** / 32% more XP and 4% / 8% / **12%** / 16% more gold from _Cleaning_ quests."
  */
 export function SkillDescription({
   skill,
@@ -67,18 +70,19 @@ export function SkillDescription({
   interactive?: boolean;
 }) {
   const { t } = useLanguage();
-  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{values\}\}|\{\{target\}\})/);
-  const values = skillLevelValues(skill);
+  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target)\}\})/);
 
   return (
     <p className={className}>
       {parts.map((part, partIndex) => {
         if (part === '{{target}}') return <SkillTarget key={partIndex} skill={skill} interactive={interactive} />;
-        if (part !== '{{values}}') return <Fragment key={partIndex}>{part}</Fragment>;
+        const field = part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : null;
+        if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
+        const values = skillLevelValues(skill, field);
         return (
           <Fragment key={partIndex}>
             {values.map((value, index) => (
-              <Fragment key={value}>
+              <Fragment key={index}>
                 {index > 0 && ' / '}
                 {index + 1 === level ? (
                   <strong className="font-extrabold text-brick-600 underline decoration-2 underline-offset-2">{value}</strong>

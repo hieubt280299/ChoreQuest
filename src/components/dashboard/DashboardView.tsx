@@ -38,7 +38,7 @@ export function DashboardView() {
         <CabinScene className="mx-auto max-w-2xl" labels={{ husband: plate('husband'), wife: plate('wife') }} />
       </div>
       <ChronicleHeader />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {(['husband', 'wife'] as CharacterId[]).map((id) => (
           <CharacterCard
             key={id}

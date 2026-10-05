@@ -152,7 +152,13 @@ export function formatCountdown(ms: number): { days: number; hours: number; minu
   return { days, hours, minutes };
 }
 
-/** Multiplies a reward by the character's skill bonuses for this task (category, group, co-op). */
+/** Days a spouse's streak must reach before Synergistic Streak kicks in (matches when streaks start counting). */
+const SPOUSE_STREAK_MIN_DAYS = 3;
+
+/**
+ * Multiplies a reward by the character's skill bonuses for this task (category, group, co-op, the spouse's
+ * streak). `partnerStreak` is the spouse's current streak on this quest, in days.
+ */
 export function applySkillBonuses(
   baseXp: number,
   baseGold: number,
@@ -160,50 +166,38 @@ export function applySkillBonuses(
   completer: Completer,
   character: Character,
   skillPool: SkillDefinition[],
+  partnerStreak = 0,
 ): { xp: number; gold: number } {
   let xpMult = 1;
   let goldMult = 1;
 
   for (const owned of character.skills) {
     const def = skillPool.find((skill) => skill.id === owned.skillId);
-    if (!def) continue;
-    const bonus = def.effect.perLevel * owned.level;
-    const inGroup = task.group === def.effect.group;
-    switch (def.effect.kind) {
-      case 'xp_all':
-        xpMult += bonus;
+    if (!def || owned.level < 1) continue;
+    const { effect } = def;
+    let applies = false;
+    switch (effect.kind) {
+      case 'all':
+        applies = true;
         break;
-      case 'gold_all':
-      case 'gold_mult':
-        goldMult += bonus;
+      case 'category':
+        applies = task.category === effect.category;
         break;
-      case 'task_category_xp':
-        if (task.category === def.effect.category) xpMult += bonus;
+      case 'group':
+        applies = task.group === effect.group;
         break;
-      case 'task_category_gold':
-        if (task.category === def.effect.category) goldMult += bonus;
+      case 'together':
+        applies = completer === 'both';
         break;
-      case 'both_bonus':
-        if (completer === 'both') {
-          xpMult += bonus;
-          goldMult += bonus;
-        }
-        break;
-      case 'group_xp':
-        if (inGroup) xpMult += bonus;
-        break;
-      case 'group_gold':
-        if (inGroup) goldMult += bonus;
-        break;
-      case 'group_both':
-        if (inGroup) {
-          xpMult += bonus;
-          goldMult += bonus;
-        }
+      case 'spouse_streak':
+        applies = partnerStreak >= SPOUSE_STREAK_MIN_DAYS;
         break;
       default:
         break;
     }
+    if (!applies) continue;
+    xpMult += effect.xp?.[owned.level - 1] ?? 0;
+    goldMult += effect.gold?.[owned.level - 1] ?? 0;
   }
 
   return { xp: baseXp * xpMult, gold: baseGold * goldMult };
@@ -319,6 +313,8 @@ export function computeRewardBreakdown(
   characters: Record<CharacterId, Character>,
   skillPool: SkillDefinition[],
   streakDays: Partial<Record<CharacterId, number>> = {},
+  /** Each recipient's spouse's current streak on this quest (Synergistic Streak). */
+  partnerStreaks: Partial<Record<CharacterId, number>> = {},
 ): Record<CharacterId, RewardBreakdown | null> {
   const share = completer === 'both' ? 0.5 : 1;
   const result: Record<CharacterId, RewardBreakdown | null> = { husband: null, wife: null };
@@ -326,7 +322,7 @@ export function computeRewardBreakdown(
   for (const id of recipients) {
     const baseXp = base.xp * share;
     const baseGold = base.gold * share;
-    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool);
+    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0);
     const days = streakDays[id] ?? 0;
     const streakGold = streakBonusGold(days);
     result[id] = {

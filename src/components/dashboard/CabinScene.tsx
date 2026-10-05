@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { CANDLE, CAT, FIRE, HEART, KNIGHT, MAGE, POTION } from '../../assets/sprites';
+import { CANDLE, CAT, FIRE, HEART, POTION } from '../../assets/sprites';
+import { useActiveAvatar } from '../../context/GameContext';
+import { avatarFrames } from '../ui/CharacterAvatar';
 import { AnimatedSprite, PixelRects } from '../ui/pixel/PixelSprite';
 
 // The cozy hearth: a 120x54 pixel cabin where the knight (husband) and mage (wife) warm up by the fire.
@@ -158,6 +160,8 @@ export function CabinScene({
   className?: string;
 }) {
   const sky = skyFor(useHour());
+  const husbandAvatar = useActiveAvatar('husband');
+  const wifeAvatar = useActiveAvatar('wife');
   return (
     <div className={`relative overflow-hidden ${className}`}>
       <svg
@@ -165,7 +169,7 @@ export function CabinScene({
         className="pixelated block h-auto w-full"
         shapeRendering="crispEdges"
         role="img"
-        aria-label="A knight and a mage warming up by the cabin fire"
+        aria-label="The two heroes warming up by the cabin fire"
       >
         <defs>
           <radialGradient id="hearth-glow" cx="60" cy="32" r="58" gradientUnits="userSpaceOnUse">
@@ -182,10 +186,10 @@ export function CabinScene({
         <rect x={18} y={50} width={14} height={2} fill="#000" opacity={0.25} />
         <rect x={87} y={50} width={14} height={2} fill="#000" opacity={0.25} />
         <g className="bob">
-          <AnimatedSprite frames={KNIGHT} fps={4} sequence={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]} x={17} y={34} />
+          <AnimatedSprite frames={avatarFrames('husband', husbandAvatar)} fps={4} sequence={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]} x={17} y={34} />
         </g>
         <g className="bob bob-delay">
-          <AnimatedSprite frames={MAGE} fps={4} sequence={[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]} x={86} y={34} />
+          <AnimatedSprite frames={avatarFrames('wife', wifeAvatar)} fps={4} sequence={[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]} x={86} y={34} />
         </g>
         <AnimatedSprite frames={CAT} fps={2} sequence={[0, 0, 0, 0, 0, 1, 0, 1]} x={51} y={43} />
         {/* Firelight + sparks */}

@@ -15,6 +15,7 @@ import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { PageHeader } from '../ui/PageHeader';
+import { PastChronicles } from './PastChronicles';
 import { CATEGORY_ICONS } from '../tasks/TasksView';
 
 const other = (id: CharacterId): CharacterId => (id === 'husband' ? 'wife' : 'husband');
@@ -182,6 +183,7 @@ export function HistoryView() {
           )}
         </Card>
       )}
+      <PastChronicles />
     </section>
   );
 }
