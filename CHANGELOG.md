@@ -2,6 +2,59 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.0.0] - 2026-10-05
+
+Spec: [UPDATE_v1.0.0.md](UPDATE_v1.0.0.md)
+
+### Added
+
+- **Cosmetics:**
+  - Four app themes: Cozy Hearth (default), 8-Bit Mushroom Kingdom, Whimsical Cottage and Enchanted Forest.
+  - 16 new avatars for each character, on top of the Knight and Mage.
+    - Husband: Forester, Harvester, Wayfarer, Artificer, Spellsmith, Botanist, Troubadour, Dreamer, Scrapper, Voyager, Courier, Monk, Fisherman, Merchant, Ranger, Sailor.
+    - Wife: Baker, Florist, Herbalist, Apothecary, Beastmaster, Ranger, Courier, Explorer, Dancer, Acrobat, Puppeteer, Storyteller, Mechanic, Tailor, Cartographer, Captain.
+- **Winner's reward:** from Day 1 of a new chronicle, the last chronicle's winner unlocks one theme or one of their own avatars for the household.
+- **Wardrobe:** tap your character in the top bar to switch themes (just for you, on your device) and avatars (seen by your spouse too).
+- **New skills:**
+  - **Synergistic Streak** (_Cộng hưởng_): more gold and XP on quests your spouse has an active streak on.
+  - **Hall of Fame** (_Đỉnh cao phong độ_): extra wheel tickets at every 5th MVP day of a chronicle, settled at midnight.
+- **Quest search:** a fuzzy search on the Quests tab matches English and Vietnamese names at once, with or without accents.
+- **Past chronicles** in the History tab: payouts, quests and gold per day, best streaks, MVP days and awards such as "Dishwashing Champion".
+- **Mobile navigation:** Home, Quests, Skills and a **More** drawer with History, Calendar and Settings.
+- **Theme previews** in the wardrobe: a miniature screen drawn in each theme.
+- **Wheel result card:** after a spin, a popup shows the gold won or a good-luck wish, like "Quest complete!".
+
+### Changed
+
+- **Skills:**
+  - Up to **8** skills per character; points still cap at 24.
+  - XP-only skills now also pay gold at half their XP bonus.
+  - Master Chef 10/18/26/34% gold, Quick Hands and Team Player 5/10/15/20% gold, Heavy Lifter 15/25/35/45% gold.
+  - The Skills tab is split into **Learned** and **Unlearned** skills, and the Unlearned list hides when all slots are full.
+- **Quest rebalance:**
+  - Cooking quests −5 XP and −10 gold (40 XP, 45 gold).
+  - Supermarket Shopping −5 gold.
+  - Dust Furniture −10 XP and −15 gold.
+  - Sweep House −5 XP and −5 gold.
+  - Mop House −5 gold.
+  - Vacuum House +2 XP (now Heavy).
+  - Wash Clothes and Collect Dried Clothes +3 XP and +3 gold.
+  - Dishwashing quests +5 XP and +5 gold.
+  - Take Out Trash +5 gold.
+  - Clean Fridge −5 gold.
+  - Groups now follow XP: Quick up to 10, Moderate 11–40, Heavy 41+. Supermarket Shopping and Vacuum House are Heavy.
+  - Existing households get the new values on unedited built-in quests.
+- **Completed quest cards** are tinted by who did them: red for the husband, purple for the wife, and a blend of both for quests done together.
+- **Level-up cards** only show for your own character, including level-ups caused by your spouse logging a quest.
+- **Top bar:** fixed to the top of the screen, like the bottom bar.
+- **Production domain:** `cqvn.vercel.app`, alongside the legacy `chore-quest-hieu-anh.vercel.app`.
+
+### Fixed
+
+- No more sideways scrolling or clipped cards on narrow phones, from 320px wide (e.g. Galaxy Z Flip 6), including the Skills page and the end-of-chronicle split.
+- Household member names, roles and badges no longer overlap on small screens.
+- The bottom bar no longer flickers during Wheel of Fortune spins.
+
 ## [0.2.1] - 2026-10-03
 
 ### Changed

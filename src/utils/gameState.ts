@@ -2,19 +2,25 @@ import {
   createDefaultCharacter,
   DEFAULT_PRIZE_POOL,
   DEFAULT_TASKS,
+  HALL_OF_FAME_EVERY,
   inferTaskGroup,
+  rebalanceTask,
   SKILL_MIGRATIONS,
   SKILL_POOL,
   skillEffectValue,
   skillLevel,
 } from '../constants/gameRules';
+import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { normalizeCharacterName } from './characterName';
+import { dayMvp } from './mvp';
 import type {
   Character,
   CharacterId,
   CharacterSkill,
   Chronicle,
   ChronicleResult,
+  CosmeticReward,
+  Cosmetics,
   GameEvent,
   GameState,
   HouseholdDoc,
@@ -71,6 +77,45 @@ export function createInitialState(today = localDateKey()): GameState {
     prizeHistory: [],
     wheel: { jackpotBonus: 0 },
     events: [],
+    cosmetics: defaultCosmetics(),
+    // Day-end MVPs count from the first full day.
+    mvpSettledOn: addDays(today, -1),
+  };
+}
+
+/** Household cosmetics from stored data, keeping only known items (defaults are always owned). */
+function parseCosmetics(raw: unknown): Cosmetics {
+  const data = (raw ?? {}) as Partial<Cosmetics>;
+  const base = defaultCosmetics();
+  const ids: CharacterId[] = ['husband', 'wife'];
+  const avatars = Object.fromEntries(
+    ids.map((id) => [
+      id,
+      Array.isArray(data.avatars?.[id]) ? [...new Set(data.avatars![id].filter((item) => isAvatarFor(id, item)))] : [],
+    ]),
+  ) as Cosmetics['avatars'];
+  const activeAvatar = Object.fromEntries(
+    ids.map((id) => {
+      const chosen = data.activeAvatar?.[id];
+      const owned = chosen === DEFAULT_AVATAR[id] || avatars[id].includes(chosen as never);
+      return [id, owned && isAvatarFor(id, chosen) ? chosen : DEFAULT_AVATAR[id]];
+    }),
+  ) as Cosmetics['activeAvatar'];
+  const rewards = Array.isArray(data.rewards)
+    ? data.rewards.filter(
+        (reward): reward is CosmeticReward =>
+          !!reward &&
+          typeof reward.chronicleId === 'number' &&
+          (reward.characterId === 'husband' || reward.characterId === 'wife') &&
+          (reward.kind === 'theme' ? isThemeId(reward.item) : reward.kind === 'avatar' && AVATARS[reward.characterId].includes(reward.item as never)),
+      )
+    : [];
+  return {
+    ...base,
+    themes: Array.isArray(data.themes) ? [...new Set(data.themes.filter(isThemeId))] : [],
+    avatars,
+    activeAvatar,
+    rewards: rewards.slice(-24),
   };
 }
 
@@ -139,7 +184,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
     // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
-    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, ...rest } = data.characters![id] as Character & {
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, ...rest } = data.characters![id] as Character & {
       interestGold?: unknown;
     };
     // Keep only valid, non-blank custom names.
@@ -155,6 +200,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       tickets: Math.floor(count(rest.tickets)),
       // Characters from before tickets existed start counting from their current level (no back pay).
       ticketLevel: Math.floor(count(rest.ticketLevel, getLevelFromXp(xp))) || 1,
+      mvpDays: Math.floor(count(mvpDays)),
       ...(cleanName ? { customName: cleanName } : {}),
       ...(isDateKey(ticketClaimedOn) ? { ticketClaimedOn } : {}),
       ...(isDateKey(interestOn) ? { interestOn } : {}),
@@ -164,7 +210,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     characters: { husband: character('husband'), wife: character('wife') },
     tasks:
       Array.isArray(data.tasks) && data.tasks.length
-        ? (data.tasks as Task[]).map((task) => ({ ...task, group: inferTaskGroup(task) }))
+        ? (data.tasks as Task[]).map((task) => rebalanceTask({ ...task, group: inferTaskGroup(task) }))
         : DEFAULT_TASKS.map((task) => ({ ...task })),
     logs: Array.isArray(data.logs) ? data.logs : [],
     prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
@@ -172,6 +218,8 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     prizeHistory: parseHistory(data.prizeHistory),
     wheel: { jackpotBonus: count(data.wheel?.jackpotBonus) },
     events: parseEvents(data.events),
+    cosmetics: parseCosmetics(data.cosmetics),
+    ...(isDateKey(data.mvpSettledOn) ? { mvpSettledOn: data.mvpSettledOn } : {}),
     ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
   };
   return advance ? advanceDays(state, today) : state;
@@ -179,6 +227,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
 
 const GOLD_INTEREST = SKILL_POOL.find((skill) => skill.id === 'gold-interest')!;
 const FORTUNES_FAVOR = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor')!;
+const HALL_OF_FAME = SKILL_POOL.find((skill) => skill.id === 'hall-of-fame')!;
 
 /**
  * Gold Interest: at the start of each day after `interestOn`, up to `upTo`, a character with the skill
@@ -230,10 +279,38 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
  * Returns the same object when nothing was due.
  */
 export function advanceDays(state: GameState, today = localDateKey()): GameState {
-  const inChronicle = today < state.chronicle.endDate ? today : state.chronicle.endDate;
-  const settled = applyDailyInterest(state, inChronicle);
+  const yesterday = addDays(today, -1);
+  const minDay = (a: string, b: string) => (a < b ? a : b);
+  // Finished days of the running chronicle: their MVPs, then interest up to today (or its last day).
+  let settled = settleMvpDays(state, minDay(yesterday, state.chronicle.endDate));
+  settled = applyDailyInterest(settled, minDay(today, state.chronicle.endDate));
   const rolled = applyChronicleRollover(settled, today);
-  return rolled === settled ? settled : applyDailyInterest(rolled, today);
+  if (rolled === settled) return settled;
+  // A new chronicle began: count its finished days, then its interest.
+  return applyDailyInterest(settleMvpDays(rolled, yesterday), today);
+}
+
+/**
+ * Hall of Fame: at each day's end the day's MVP (most quest gold) gets +1 MVP day for the chronicle, and
+ * every 5th one pays the skill's extra wheel tickets. Each day is settled once (`mvpSettledOn`), and only
+ * days inside the running chronicle count. Without a marker (older saves) counting starts now, so nothing
+ * is paid out retroactively.
+ */
+export function settleMvpDays(state: GameState, upTo: string): GameState {
+  if (!state.mvpSettledOn) return { ...state, mvpSettledOn: upTo };
+  if (state.mvpSettledOn >= upTo) return state;
+  const characters = { ...state.characters };
+  for (let day = addDays(state.mvpSettledOn, 1); day <= upTo; day = addDays(day, 1)) {
+    if (day < state.chronicle.startDate || day > state.chronicle.endDate) continue;
+    const mvp = dayMvp(state.logs, day);
+    if (!mvp) continue;
+    const character = characters[mvp];
+    const mvpDays = character.mvpDays + 1;
+    const level = skillLevel(character, HALL_OF_FAME.id);
+    const bonus = mvpDays % HALL_OF_FAME_EVERY === 0 ? skillEffectValue(HALL_OF_FAME, level) : 0;
+    characters[mvp] = { ...character, mvpDays, tickets: character.tickets + bonus };
+  }
+  return { ...state, characters, mvpSettledOn: upTo };
 }
 
 /**
@@ -259,7 +336,7 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
   const fresh = (id: CharacterId) => {
     const character = state.characters[id];
     const bonusTickets = skillEffectValue(FORTUNES_FAVOR, skillLevel(character, FORTUNES_FAVOR.id));
-    return { ...character, gold: 0, tickets: character.tickets + bonusTickets };
+    return { ...character, gold: 0, mvpDays: 0, tickets: character.tickets + bonusTickets };
   };
   return {
     ...state,
@@ -285,6 +362,8 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       prizeHistory: state.prizeHistory,
       wheel: state.wheel,
       events: state.events,
+      cosmetics: state.cosmetics,
+      ...(state.mvpSettledOn ? { mvpSettledOn: state.mvpSettledOn } : {}),
       ...(state.levelResetAt !== undefined ? { levelResetAt: state.levelResetAt } : {}),
     },
   };

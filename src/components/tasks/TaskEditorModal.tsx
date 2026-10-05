@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TASK_GROUPS } from '../../constants/gameRules';
+import { groupForXp, TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { LanguageCode, Task, TaskCategory, TaskGroup } from '../../types';
@@ -33,7 +33,7 @@ export function TaskEditorModal({
   const [xp, setXp] = useState(initial?.xp ?? 20);
   const [gold, setGold] = useState(initial?.gold ?? 15);
   const [category, setCategory] = useState<TaskCategory>(initial?.category ?? 'general');
-  const [group, setGroup] = useState<TaskGroup>(initial?.group ?? 'main');
+  const [group, setGroup] = useState<TaskGroup>(initial?.group ?? groupForXp(initial?.xp ?? 20));
   // Show the field for the current language first.
   const fields = [...NAME_FIELDS].sort((a, b) => Number(b.language === language) - Number(a.language === language));
 
@@ -96,7 +96,11 @@ export function TaskEditorModal({
               type="number"
               min={1}
               value={xp}
-              onChange={(event) => setXp(Number(event.target.value))}
+              onChange={(event) => {
+                // Changing the XP re-picks the group (Quick / Moderate / Heavy); it can still be overridden below.
+                setXp(Number(event.target.value));
+                setGroup(groupForXp(Number(event.target.value)));
+              }}
               className="px-input mt-2"
             />
           </label>

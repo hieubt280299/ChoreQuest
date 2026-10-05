@@ -30,38 +30,60 @@ export interface Character {
   ticketLevel: number;
   /** Last local day whose interest has been settled (set once the skill is learned). */
   interestOn?: string;
+  /** Days this chronicle on which this character was the day's MVP (most quest gold), settled at day end. */
+  mvpDays: number;
 }
 
 export interface SkillDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  icon: 'sparkles' | 'chef' | 'coins' | 'zap' | 'hearts' | 'shirt' | 'cart' | 'lightbulb' | 'shield' | 'clock' | 'ticket' | 'trending';
+  icon:
+    | 'sparkles'
+    | 'chef'
+    | 'coins'
+    | 'zap'
+    | 'hearts'
+    | 'shirt'
+    | 'cart'
+    | 'lightbulb'
+    | 'shield'
+    | 'clock'
+    | 'ticket'
+    | 'trending'
+    | 'link'
+    | 'trophy';
   maxLevel: 4;
   effect: SkillEffect;
 }
 
+/** What a skill keys off. Reward skills add `xp` / `gold` bonuses when their condition holds. */
 export type SkillEffectKind =
-  | 'xp_all'
-  | 'gold_all'
-  | 'gold_mult'
-  | 'task_category_xp'
-  | 'task_category_gold'
-  | 'both_bonus'
-  | 'group_xp'
-  | 'group_gold'
-  | 'group_both'
-  /** Extra wheel tickets at the start of each chronicle: base + perLevel x level. */
+  /** Every quest. */
+  | 'all'
+  /** Quests of `category`. */
+  | 'category'
+  /** Quests of `group`. */
+  | 'group'
+  /** Quests done together ("Both"). */
+  | 'together'
+  /** Quests the spouse currently has an active streak (3+ days) on. */
+  | 'spouse_streak'
+  /** Extra wheel tickets at the start of each chronicle (`values`). */
   | 'chronicle_tickets'
-  /** Daily interest on current gold: perLevel x level. */
-  | 'daily_interest';
+  /** Daily interest on current gold (`values`, fractions). */
+  | 'daily_interest'
+  /** Extra wheel tickets at every 5th MVP day of a chronicle (`values`). */
+  | 'mvp_tickets';
 
 export interface SkillEffect {
   kind: SkillEffectKind;
-  /** Bonus per skill level as a fraction, e.g. 0.08 = +8% per level. */
-  perLevel: number;
-  /** Flat amount added to the per-level value (chronicle_tickets: 2 / 3 / 4 / 5). */
-  base?: number;
+  /** Bonus XP at levels 1-4 as fractions, e.g. [0.08, 0.16, 0.24, 0.32]. */
+  xp?: number[];
+  /** Bonus gold at levels 1-4 as fractions. */
+  gold?: number[];
+  /** Other per-level values: ticket counts or interest rates. */
+  values?: number[];
   category?: TaskCategory;
   group?: TaskGroup;
 }
@@ -208,6 +230,65 @@ export interface InterestEvent {
 
 export type GameEvent = WheelSpinEvent | InterestEvent;
 
+// ---------------------------------------------------------------------------
+// Cosmetics
+// ---------------------------------------------------------------------------
+
+export type ThemeId = 'hearth' | 'mushroom' | 'cottage' | 'forest';
+/** Avatar names; some (Ranger, Courier) exist for both characters with different art. */
+export type AvatarId =
+  | 'knight'
+  | 'forester'
+  | 'harvester'
+  | 'wayfarer'
+  | 'artificer'
+  | 'spellsmith'
+  | 'botanist'
+  | 'troubadour'
+  | 'dreamer'
+  | 'scrapper'
+  | 'voyager'
+  | 'courier'
+  | 'monk'
+  | 'fisherman'
+  | 'merchant'
+  | 'ranger'
+  | 'sailor'
+  | 'mage'
+  | 'baker'
+  | 'florist'
+  | 'herbalist'
+  | 'apothecary'
+  | 'beastmaster'
+  | 'explorer'
+  | 'dancer'
+  | 'acrobat'
+  | 'puppeteer'
+  | 'storyteller'
+  | 'mechanic'
+  | 'tailor'
+  | 'cartographer'
+  | 'captain';
+
+/** A chronicle winner's chosen reward. */
+export interface CosmeticReward {
+  chronicleId: number;
+  characterId: CharacterId;
+  kind: 'theme' | 'avatar';
+  item: ThemeId | AvatarId;
+}
+
+/**
+ * Household-wide cosmetics. Themes are unlocked for the household but each player picks their own (stored
+ * on their device); avatars are unlocked per character and the chosen one is shared.
+ */
+export interface Cosmetics {
+  themes: ThemeId[];
+  avatars: Record<CharacterId, AvatarId[]>;
+  activeAvatar: Record<CharacterId, AvatarId>;
+  rewards: CosmeticReward[];
+}
+
 /** The playable game state as the UI sees it (assembled from the household document or local demo storage). */
 export interface GameState {
   characters: Record<CharacterId, Character>;
@@ -219,6 +300,9 @@ export interface GameState {
   wheel: WheelState;
   /** Wheel spins and interest payouts, kept as long as quest logs. */
   events: GameEvent[];
+  cosmetics: Cosmetics;
+  /** Last finished local day whose MVP has been settled (Hall of Fame), so each day counts once. */
+  mvpSettledOn?: string;
   /**
    * When levels and skills were last reset after a player reached the level cap (epoch ms).
    * Quest entries logged before it can no longer be undone or re-assigned.
@@ -270,6 +354,8 @@ export interface HouseholdDoc {
     prizeHistory: ChronicleResult[];
     wheel?: WheelState;
     events?: GameEvent[];
+    cosmetics?: Cosmetics;
+    mvpSettledOn?: string;
     levelResetAt?: number;
   };
 }

@@ -1,10 +1,11 @@
-import { Check, Fire, Home, Pencil, Plus, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
+import { Check, Fire, Home, Pencil, Plus, Search, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
 import { Fragment, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
+import { fuzzyScoreAny } from '../../utils/fuzzy';
 import { taskName } from '../../utils/taskNames';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
@@ -29,6 +30,9 @@ export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
   laundry: Shirt,
   general: Home,
 };
+
+/** Completed cards are tinted by who did the quest: knight red, mage purple, gold for both. */
+const COMPLETED_TONE = { husband: 'knight', wife: 'mage', both: 'coop' } as const;
 
 function CompleterLabel({ who }: { who: Completer }) {
   const { t } = useLanguage();
@@ -128,6 +132,7 @@ function ErrorNote({ error }: { error: TranslationKey | null }) {
 export function TasksView() {
   const { t, language, locale } = useLanguage();
   const [prefs, setPrefs] = useQuestViewPrefs();
+  const [query, setQuery] = useState('');
   const {
     state,
     activeCharacter,
@@ -153,20 +158,26 @@ export function TasksView() {
   const [error, setError] = useState<TranslationKey | null>(null);
 
   const enabled = state.tasks.filter((task) => task.enabled);
-  // Filtered by "Show", sorted, then split into sections (a single untitled section when not grouping).
+  // Filtered by "Show" and the search, sorted (best matches first while searching), then split into
+  // sections (a single untitled section when not grouping).
   const sections = useMemo(() => {
+    const searching = query.trim().length > 0;
+    // Search both languages' names whatever the app language is.
+    const score = (task: Task) => fuzzyScoreAny(query, [taskName(task, 'en'), taskName(task, 'vi')]);
     const shown = enabled.filter((task) => {
+      if (searching && score(task) <= 0) return false;
       if (prefs.show === 'all') return true;
       const done = !!getTodayLog(task.id);
       return prefs.show === 'completed' ? done : !done;
     });
-    const sorted = sortTasks(
+    const sortedByPrefs = sortTasks(
       shown,
       prefs,
       (task) => taskName(task, language),
       (task) => getStreak(task.id, activeCharacter).days,
       locale,
     );
+    const sorted = searching ? [...sortedByPrefs].sort((a, b) => score(b) - score(a)) : sortedByPrefs;
     if (prefs.groupBy === 'none') return [{ key: 'all', title: null as string | null, tasks: sorted }];
     const keys: string[] = prefs.groupBy === 'group' ? TASK_GROUPS : TASK_CATEGORIES;
     return keys
@@ -176,7 +187,7 @@ export function TasksView() {
         tasks: sorted.filter((task) => (prefs.groupBy === 'group' ? task.group : task.category) === key),
       }))
       .filter((section) => section.tasks.length > 0);
-  }, [enabled, prefs, language, locale, getStreak, getTodayLog, activeCharacter, t]);
+  }, [enabled, prefs, query, language, locale, getStreak, getTodayLog, activeCharacter, t]);
 
   const previews = useMemo(() => {
     if (!pending) return undefined;
@@ -208,10 +219,27 @@ export function TasksView() {
         }
       />
       {!pending && !fixing && <ErrorNote error={error} />}
+      <label className="relative block">
+        <span className="sr-only">{t('tasks.search')}</span>
+        <Icon as={Search} size={24} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-wood-500" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('tasks.searchPlaceholder')}
+          className="px-input py-1.5 pl-10"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </label>
       <QuestViewControls prefs={prefs} onChange={setPrefs} />
       {enabled.length === 0 && <Card>{t('tasks.empty')}</Card>}
       {enabled.length > 0 && sections.length === 0 && (
-        <Card>{t(prefs.show === 'completed' ? 'tasks.noneCompleted' : 'tasks.allCompleted')}</Card>
+        <Card>
+          {query.trim()
+            ? t('tasks.noMatches', { query: query.trim() })
+            : t(prefs.show === 'completed' ? 'tasks.noneCompleted' : 'tasks.allCompleted')}
+        </Card>
       )}
       {sections.map((section) => (
         <Fragment key={section.key}>
@@ -227,7 +255,7 @@ export function TasksView() {
               const done = !!log;
               const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
               return (
-                <Card key={task.id} tone={done ? 'moss' : 'parchment'} className="p-3">
+                <Card key={task.id} tone={log ? COMPLETED_TONE[log.completedBy] : 'parchment'} className="p-3">
                   <div className="flex items-center gap-3">
                     <span
                       className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-10 w-10 shrink-0 items-center justify-center`}
@@ -237,7 +265,7 @@ export function TasksView() {
                     <div className="min-w-0 flex-1">
                       {/* Name and streak chips share the first line; chips drop below only when it's too narrow. */}
                       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className={`min-w-0 text-xl font-extrabold leading-tight [overflow-wrap:anywhere] ${done ? 'text-moss-700 line-through decoration-2' : ''}`}>
+                        <p className={`min-w-0 text-xl font-extrabold leading-tight [overflow-wrap:anywhere] ${done ? 'text-wood-700 line-through decoration-2' : ''}`}>
                           {taskName(task, language)}
                         </p>
                         {streaks.map((streak) => (

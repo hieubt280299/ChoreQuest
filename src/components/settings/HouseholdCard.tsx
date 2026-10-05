@@ -58,41 +58,43 @@ export function HouseholdCard() {
         {members.map((member) => {
           const isMe = member.uid === me.uid;
           return (
-            <li key={member.uid} className="px-slot flex flex-wrap items-center gap-3 p-3">
-              <CharacterAvatar id={member.characterId} scale={2} framed={false} />
-              <div className="min-w-0 flex-1">
-                <p className="text-lg font-extrabold leading-tight">
+            <li key={member.uid} className="px-slot flex items-start gap-3 p-3">
+              <CharacterAvatar id={member.characterId} scale={2} framed={false} className="shrink-0" />
+              {/* Name, then details on their own lines, then the role badge and action: nothing overlaps on narrow screens. */}
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="break-words text-lg font-extrabold leading-tight">
                   <CharacterName id={member.characterId} />
-                  {hasCustomName(member.characterId) && (
-                    <span className="ml-2 text-base text-wood-600">· {role(member.characterId)}</span>
-                  )}
-                  {isMe && <span className="ml-2 text-base text-wood-600">({t('household.you')})</span>}
-                  {member.uid === household.data.createdBy && (
-                    <span className="ml-2 text-sm uppercase text-brick-600">· {t('household.creator')}</span>
-                  )}
+                </p>
+                <p className="flex flex-wrap gap-x-2 text-sm font-bold uppercase leading-tight text-wood-600">
+                  {hasCustomName(member.characterId) && <span>{role(member.characterId)}</span>}
+                  {isMe && <span>({t('household.you')})</span>}
+                  {member.uid === household.data.createdBy && <span className="text-brick-600">{t('household.creator')}</span>}
                 </p>
                 {member.email && <p className="truncate text-sm text-wood-600">{member.email}</p>}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {member.role === 'moderator' ? (
+                    <span className="px-level font-sans text-sm font-extrabold uppercase">
+                      <Icon as={Crown} size={12} />
+                      {t('household.moderator')}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-extrabold uppercase text-wood-600">{t('household.member')}</span>
+                  )}
+                  {isCreator && !isMe && (
+                    <IconButton
+                      icon={Crown}
+                      align="right"
+                      className="ml-auto"
+                      variant={member.role === 'moderator' ? 'secondary' : 'primary'}
+                      label={member.role === 'moderator' ? t('household.revokeModerator') : t('household.makeModerator')}
+                      disabled={busy}
+                      onClick={() =>
+                        void run(() => (member.role === 'moderator' ? revokeModerator(member.uid) : grantModerator(member.uid)))
+                      }
+                    />
+                  )}
+                </div>
               </div>
-              {member.role === 'moderator' ? (
-                <span className="px-level font-sans text-sm font-extrabold uppercase">
-                  <Icon as={Crown} size={12} />
-                  {t('household.moderator')}
-                </span>
-              ) : (
-                <span className="text-sm font-extrabold uppercase text-wood-600">{t('household.member')}</span>
-              )}
-              {isCreator && !isMe && (
-                <IconButton
-                  icon={Crown}
-                  align="right"
-                  variant={member.role === 'moderator' ? 'secondary' : 'primary'}
-                  label={member.role === 'moderator' ? t('household.revokeModerator') : t('household.makeModerator')}
-                  disabled={busy}
-                  onClick={() =>
-                    void run(() => (member.role === 'moderator' ? revokeModerator(member.uid) : grantModerator(member.uid)))
-                  }
-                />
-              )}
             </li>
           );
         })}

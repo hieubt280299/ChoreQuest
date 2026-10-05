@@ -159,18 +159,18 @@ export function CalendarView() {
         {state.characters.husband.gold + state.characters.wife.gold === 0 && (
           <p className="mb-3 text-base text-wood-600">{t('calendar.noGold')}</p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {(['husband', 'wife'] as CharacterId[]).map((id) => {
             const character = state.characters[id];
             const progress = getXpProgress(character.xp);
             return (
-              <div key={id} className="px-slot flex items-center gap-4 p-3">
+              <div key={id} className="px-slot flex items-center gap-3 p-3 min-[360px]:gap-4">
                 {/* Portrait with the level circle overlapping its corner, Dota-style */}
                 <div className="relative shrink-0 pb-4 pl-4">
-                  <CharacterAvatar id={id} scale={4} className="w-[84px]" />
+                  <CharacterAvatar id={id} scale={3} className="w-[66px] min-[360px]:w-[84px]" />
                   <LevelRing
                     xp={character.xp}
-                    size={44}
+                    size={36}
                     className="absolute bottom-0 left-0"
                     label={`${t('character.level', { level: progress.level })} · ${
                       progress.needed
@@ -195,28 +195,6 @@ export function CalendarView() {
           })}
         </div>
       </Card>
-      {state.prizeHistory.length > 0 && (
-        <Card>
-          <h2 className="mb-3 text-2xl font-extrabold uppercase">{t('calendar.history')}</h2>
-          <div className="space-y-3">
-            {state.prizeHistory.map((entry) => (
-              <div
-                key={`${entry.chronicleId}-${entry.startDate}`}
-                className="px-slot flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-              >
-                <span className="text-lg font-extrabold">
-                  {entry.chronicleId > 0 && `${t('chronicle.label', { id: entry.chronicleId })} · `}
-                  <span className="text-base font-bold text-wood-600">{formatDateRange(entry.startDate, entry.endDate, locale)}</span>
-                </span>
-                <span className="flex flex-wrap items-center gap-3 text-base font-bold text-wood-700">
-                  <CharacterName id={'husband'} /> <Vnd amount={entry.payout.husband} className="text-[10px] text-ink" />
-                  <CharacterName id={'wife'} /> <Vnd amount={entry.payout.wife} className="text-[10px] text-ink" />
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
     </section>
   );
 }

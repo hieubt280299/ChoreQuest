@@ -124,7 +124,7 @@ export function SettingsView() {
       <InstallAppCard />
       <HouseholdCard />
       <AudioSettingsCard />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <SectionTitle icon={Languages}>{t('settings.language')}</SectionTitle>
           <div className="flex flex-wrap gap-3">

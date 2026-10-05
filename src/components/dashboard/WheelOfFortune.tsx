@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CircleInfo, Close, Crown } from 'pixelarticons/react';
+import { CircleInfo, Close, Crown, Sparkles } from 'pixelarticons/react';
 import { useEffect, useRef, useState } from 'react';
+import { COIN } from '../../assets/sprites';
 import { JACKPOT_BASE_GOLD, JACKPOT_MISS_BONUS, WHEEL_PRIZES, WHEEL_SEGMENTS } from '../../constants/gameRules';
 import { useAudio } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
@@ -16,6 +17,7 @@ import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { pixelEase } from '../ui/Modal';
 import { PixelConfetti } from '../ui/pixel/PixelConfetti';
+import { PixelSprite } from '../ui/pixel/PixelSprite';
 import { Ticket } from '../ui/pixel/TicketIcon';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -146,13 +148,62 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
   );
 }
 
-/** What the last spin paid, shown under the wheel once it stops. */
-function SpinResult({ spin }: { spin: WheelSpinEvent }) {
+/** Result card after a spin (like "Quest complete!"): the gold won, or a good-luck wish for a miss. */
+function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () => void }) {
   const { t } = useLanguage();
+  const won = spin.gold > 0;
   return (
-    <p className={`text-center text-xl font-extrabold ${spin.gold > 0 ? 'text-moss-700' : 'text-wood-700'}`}>
-      {spin.gold > 0 ? t('wheel.won', { gold: spin.gold }) : t('wheel.miss')}
-    </p>
+    <motion.div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: pixelEase(3) }}
+      onClick={onClose}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={won ? t('wheel.wonTitle') : t('wheel.missTitle')}
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ duration: 0.25, ease: pixelEase(5) }}
+        className="px-panel w-full max-w-sm p-6 text-center"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-2 flex items-center justify-center gap-3 text-ember-500">
+          {won ? (
+            <>
+              <Icon as={Sparkles} size={24} />
+              <PixelSprite frames={COIN} fps={8} scale={6} />
+              <Icon as={Sparkles} size={24} className="-scale-x-100" />
+            </>
+          ) : (
+            <span className="text-wood-600">
+              <Icon as={Ticket} size={48} />
+            </span>
+          )}
+        </div>
+        <h2
+          className={`px-title text-4xl uppercase ${won ? 'text-flame-300' : 'text-parchment-50'}`}
+          style={{ textShadow: won ? '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' : '3px 3px 0 #7a4a2a, 5px 5px 0 #2b1a12' }}
+        >
+          {won ? t('wheel.wonTitle') : t('wheel.missTitle')}
+        </h2>
+        <p className="mb-5 mt-2 text-xl font-bold text-wood-700">{won ? t('wheel.won', { gold: spin.gold }) : t('wheel.miss')}</p>
+        {won ? (
+          <div className="px-slot mx-auto mb-5 w-fit px-4 py-2">
+            <GoldCounter amount={spin.gold} spin size="lg" />
+          </div>
+        ) : (
+          <p className="mb-5 text-base font-bold text-brick-600">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</p>
+        )}
+        <Button className="w-full" onClick={onClose}>
+          {t('common.close')}
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -209,11 +260,14 @@ export function WheelOfFortune() {
     pending.current = null;
     setSpinning(false);
     setShownBonus(null);
-    setResult(spin);
+    // Jackpots get the full celebration; other results a card like "Quest complete!".
     if (spin.prize === 'jackpot') {
       playJackpotSFX();
       setCelebrate(spin);
-    } else if (spin.prize === 'none') playWheelMissSFX();
+      return;
+    }
+    setResult(spin);
+    if (spin.prize === 'none') playWheelMissSFX();
     else playWheelWinSFX(spin.prize === 'small' ? 0 : spin.prize === 'normal' ? 1 : 2);
   };
 
@@ -287,8 +341,11 @@ export function WheelOfFortune() {
           <path d="M0 0h12v2h-1v2h-1v2h-1v2h-1v2h-4v-2h-1v-2h-1v-2h-1v-2h-1z" fill="#2b1a12" />
           <path d="M2 1h8v1h-1v2h-1v2h-1v2h-2v-2h-1v-2h-1v-2h-1z" fill="#ffd166" />
         </svg>
+        {/* Rotation runs on its own GPU layer inside a round clip, so neither the spin nor the rotated square's
+            corners ever affect the page layout. */}
+        <div className="absolute inset-0 overflow-hidden rounded-full">
         <motion.div
-          className="absolute inset-0"
+          className="absolute inset-0 will-change-transform [backface-visibility:hidden]"
           animate={{ rotate: rotation }}
           transition={{ duration: reduceMotion ? 0.6 : duration, ease: [0.12, 0.75, 0.2, 1] }}
           onUpdate={(latest) => {
@@ -303,7 +360,13 @@ export function WheelOfFortune() {
         >
           <WheelFace />
           {SLICES.map((slice, index) => (
-            <div key={index} className="absolute inset-0" style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)` }} aria-hidden>
+            // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
+            <div
+              key={index}
+              className="absolute left-1/2 top-0 h-full w-0"
+              style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)`, transformOrigin: '50% 50%' }}
+              aria-hidden
+            >
               <span
                 className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}
               >
@@ -312,6 +375,7 @@ export function WheelOfFortune() {
             </div>
           ))}
         </motion.div>
+        </div>
         {/* Idle hint on the hub: press to spin. */}
         {canSpin && (
           <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
@@ -322,15 +386,13 @@ export function WheelOfFortune() {
         )}
       </button>
 
-      {/* Status line only when there is something to say, so no empty gap under the wheel. */}
-      <div aria-live="polite">
+      {/* One status line that always has something to say, so its height never jumps during a spin. */}
+      <div className="mt-3 min-h-[1.75rem]" aria-live="polite">
         {spinning ? (
-          <p className="mt-3 text-center text-xl font-extrabold uppercase text-wood-600">{t('wheel.spinning')}</p>
-        ) : result ? (
-          <div className="mt-3">
-            <SpinResult spin={result} />
-          </div>
-        ) : null}
+          <p className="text-center text-xl font-extrabold uppercase text-wood-600">{t('wheel.spinning')}</p>
+        ) : (
+          <p className="text-center text-base font-bold text-wood-600">{canSpin ? t('wheel.tapHint') : t('wheel.noTicketsHint')}</p>
+        )}
       </div>
       {error && (
         <p className="mt-3 text-base font-bold text-brick-600" role="alert">
@@ -338,7 +400,10 @@ export function WheelOfFortune() {
         </p>
       )}
 
-      <AnimatePresence>{celebrate && <JackpotCelebration spin={celebrate} onClose={() => setCelebrate(null)} />}</AnimatePresence>
+      <AnimatePresence>
+        {celebrate && <JackpotCelebration key="jackpot" spin={celebrate} onClose={() => setCelebrate(null)} />}
+        {result && <SpinResultCard key={result.id} spin={result} onClose={() => setResult(null)} />}
+      </AnimatePresence>
     </Card>
   );
 }

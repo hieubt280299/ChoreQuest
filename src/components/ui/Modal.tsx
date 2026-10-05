@@ -56,7 +56,8 @@ export function Modal({
                 <Icon as={Close} size={24} />
               </button>
             </div>
-            {children}
+            {/* Tall content (e.g. the wardrobe) scrolls inside the card; the title plate stays put. */}
+            <div className="-mx-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-2 pb-1">{children}</div>
           </motion.div>
         </motion.div>
       )}

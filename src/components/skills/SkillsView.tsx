@@ -1,9 +1,10 @@
 import { ChevronUp, Plus } from 'pixelarticons/react';
-import { SKILL_POOL } from '../../constants/gameRules';
+import { useState, type ReactNode } from 'react';
+import { HALL_OF_FAME_EVERY, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
-import type { Character, CharacterId } from '../../types';
+import type { Character, CharacterId, SkillDefinition } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
@@ -42,7 +43,7 @@ function CharacterSkillHeader({ character, viewOnly }: { character: Character; v
           <CharacterName id={character.id} />
         </h2>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold text-parchment-300">
-          {t('skills.owned', { count: character.skills.length })}
+          {t('skills.owned', { count: character.skills.length, max: MAX_SKILLS_PER_CHARACTER })}
           {viewOnly && (
             <span className="whitespace-nowrap bg-ink/60 px-1.5 uppercase text-parchment-100">{t('household.viewOnly')}</span>
           )}
@@ -60,68 +61,123 @@ function CharacterSkillHeader({ character, viewOnly }: { character: Character; v
   );
 }
 
+/** One skill card with its unlock / upgrade action. */
+function SkillCard({
+  skill,
+  level,
+  editable,
+  canUnlock,
+  canUpgrade,
+  onUnlock,
+  onUpgrade,
+  extra,
+}: {
+  skill: SkillDefinition;
+  level: number;
+  editable: boolean;
+  canUnlock: boolean;
+  canUpgrade: boolean;
+  onUnlock: () => void;
+  onUpgrade: () => void;
+  extra?: ReactNode;
+}) {
+  const { t } = useLanguage();
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={`flex h-12 w-12 shrink-0 items-center justify-center ${level > 0 ? 'px-slot-dark text-flame-300' : 'px-slot text-wood-500'}`}
+        >
+          <SkillIcon icon={skill.icon} size={24} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
+          <SkillDescription skill={skill} level={level} className="text-base leading-snug text-wood-600" />
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <TierPips level={level} />
+            {extra}
+          </div>
+        </div>
+        {level === MAX_SKILL_LEVEL ? (
+          <span className="text-base font-extrabold uppercase text-moss-700">{t('skills.maxed')}</span>
+        ) : !editable ? null : level > 0 ? (
+          <IconButton icon={ChevronUp} variant="primary" align="right" label={t('skills.upgrade')} disabled={!canUpgrade} onClick={onUpgrade} />
+        ) : (
+          <IconButton icon={Plus} align="right" label={t('skills.unlock')} disabled={!canUnlock} onClick={onUnlock} />
+        )}
+      </div>
+    </Card>
+  );
+}
+
 /**
- * Your character's full tree with unlock/upgrade actions. Skills keep a fixed order: re-sorting after an
- * unlock moved cards under the pointer, so a following click could land on a different skill.
+ * Your character's skills, split into Learned and Unlearned (hidden once all 8 slots are used). Each list
+ * keeps the fixed pool order, and unlock buttons pause briefly after an unlock: the learned card leaves the
+ * list, so a quick second tap would otherwise land on the skill that slid into its place.
  */
 function SkillTree({ characterId }: { characterId: CharacterId }) {
   const { t } = useLanguage();
   const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
+  const [cooling, setCooling] = useState(false);
   const character = state.characters[characterId];
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
   const editable = canActAs(characterId);
   const levelOf = (skillId: string) => character.skills.find((item) => item.skillId === skillId)?.level ?? 0;
+  const learned = SKILL_POOL.filter((skill) => levelOf(skill.id) > 0);
+  const unlearned = SKILL_POOL.filter((skill) => levelOf(skill.id) === 0);
+  const slotsFull = character.skills.length >= MAX_SKILLS_PER_CHARACTER;
+
+  const unlock = (skillId: string) => {
+    if (unlockSkill(characterId, skillId).ok) {
+      setCooling(true);
+      window.setTimeout(() => setCooling(false), 600);
+    }
+  };
+  const card = (skill: SkillDefinition) => {
+    const level = levelOf(skill.id);
+    return (
+      <SkillCard
+        key={skill.id}
+        skill={skill}
+        level={level}
+        editable={editable}
+        canUnlock={!cooling && level === 0 && points > 0 && !slotsFull}
+        canUpgrade={level > 0 && level < MAX_SKILL_LEVEL && points > 0}
+        onUnlock={() => unlock(skill.id)}
+        onUpgrade={() => upgradeSkill(characterId, skill.id)}
+        extra={
+          skill.effect.kind === 'mvp_tickets' && level > 0 ? (
+            <span className="text-sm font-bold uppercase text-wood-600">
+              {t('skills.mvpProgress', { count: character.mvpDays % HALL_OF_FAME_EVERY, every: HALL_OF_FAME_EVERY })}
+            </span>
+          ) : undefined
+        }
+      />
+    );
+  };
 
   return (
     <div className="space-y-5">
       <CharacterSkillHeader character={character} />
-      <div className="grid gap-5">
-        {SKILL_POOL.map((skill) => {
-          const level = levelOf(skill.id);
-          const canUnlock = level === 0 && points > 0 && character.skills.length < 6;
-          const canUpgrade = level > 0 && level < 4 && points > 0;
-          return (
-            <Card key={skill.id} className="p-4">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center ${
-                    level > 0 ? 'px-slot-dark text-flame-300' : 'px-slot text-wood-500'
-                  }`}
-                >
-                  <SkillIcon icon={skill.icon} size={24} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
-                  <SkillDescription skill={skill} level={level} className="text-base leading-snug text-wood-600" />
-                  <div className="mt-2">
-                    <TierPips level={level} />
-                  </div>
-                </div>
-                {level === 4 ? (
-                  <span className="text-base font-extrabold uppercase text-moss-700">{t('skills.maxed')}</span>
-                ) : !editable ? null : level > 0 ? (
-                  <IconButton
-                    icon={ChevronUp}
-                    variant="primary"
-                    align="right"
-                    label={t('skills.upgrade')}
-                    disabled={!canUpgrade}
-                    onClick={() => upgradeSkill(characterId, skill.id)}
-                  />
-                ) : (
-                  <IconButton
-                    icon={Plus}
-                    align="right"
-                    label={t('skills.unlock')}
-                    disabled={!canUnlock}
-                    onClick={() => unlockSkill(characterId, skill.id)}
-                  />
-                )}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+      <section className="space-y-4" aria-label={t('skills.learned')}>
+        <h2 className="px-title text-2xl">
+          {t('skills.learned')}
+          <span className="ml-2 font-arcade text-[10px] text-parchment-300">
+            {character.skills.length}/{MAX_SKILLS_PER_CHARACTER}
+          </span>
+        </h2>
+        {learned.length === 0 ? (
+          <Card className="p-4 text-base text-wood-600">{t('skills.noneLearned')}</Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-5">{learned.map(card)}</div>
+        )}
+      </section>
+      {!slotsFull && (
+        <section className="space-y-4" aria-label={t('skills.unlearned')}>
+          <h2 className="px-title text-2xl">{t('skills.unlearned')}</h2>
+          <div className="grid grid-cols-1 gap-5">{unlearned.map(card)}</div>
+        </section>
+      )}
     </div>
   );
 }
@@ -178,7 +234,7 @@ export function SkillsView() {
     <section className="space-y-6">
       <PageHeader title={t('skills.title')} subtitle={t('skills.subtitle')} />
       {/* Your full tree takes the main column; the partner's learned skills sit in a slim side panel. */}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         <SkillTree characterId={activeCharacter} />
         <aside className="lg:sticky lg:top-6">
           <PartnerLoadout characterId={partner} />

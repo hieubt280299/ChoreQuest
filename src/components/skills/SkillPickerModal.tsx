@@ -1,4 +1,4 @@
-import { SKILL_POOL } from '../../constants/gameRules';
+import { MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
@@ -35,7 +35,7 @@ export function SkillPickerModal({
       <div className="-mx-1 max-h-[55vh] space-y-4 overflow-y-auto px-2 py-2">
         {SKILL_POOL.map((skill) => {
           const owned = character.skills.find((item) => item.skillId === skill.id);
-          const canUnlock = !owned && points > 0 && character.skills.length < 6;
+          const canUnlock = !owned && points > 0 && character.skills.length < MAX_SKILLS_PER_CHARACTER;
           const canUpgrade = !!owned && owned.level < 4 && points > 0;
           return (
             <div key={skill.id} className="px-slot flex items-center gap-3 p-3">
