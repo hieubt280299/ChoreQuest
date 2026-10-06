@@ -1,10 +1,13 @@
 import type { CharacterId, TaskLog } from '../types';
 
-/** Quest gold each character earned on a day (wheel and interest gold don't count). */
+/**
+ * Quest gold each character earned on a day toward its MVP: wheel and interest gold don't count, and nor do
+ * quests finished late the next morning (the MVP is locked at midnight).
+ */
 export function questGoldOn(logs: TaskLog[], date: string): Record<CharacterId, number> {
   const gold: Record<CharacterId, number> = { husband: 0, wife: 0 };
   for (const log of logs) {
-    if (log.date !== date) continue;
+    if (log.date !== date || log.late) continue;
     gold.husband += log.goldAwarded.husband ?? 0;
     gold.wife += log.goldAwarded.wife ?? 0;
   }

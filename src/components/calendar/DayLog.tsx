@@ -5,6 +5,7 @@ import type { CharacterId, GameEvent, TaskLog, WheelSpinEvent } from '../../type
 import { formatDay, formatGold, localDateKey, parseDateKey } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { STREAK_MIN_DAYS } from '../../utils/streaks';
+import { dayMvp } from '../../utils/mvp';
 import { taskName } from '../../utils/taskNames';
 import { CharacterName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
@@ -57,8 +58,8 @@ export function DayLog({
   ) as Record<CharacterId, { gold: number; xp: number; wheel: number; interest: number }>;
   const bonus = (id: CharacterId) => totals[id].wheel + totals[id].interest;
   // MVP: whoever earned more gold that day (no crown on a tie).
-  const mvp =
-    totals.husband.gold === totals.wife.gold ? null : totals.husband.gold > totals.wife.gold ? 'husband' : 'wife';
+  // Locked at midnight: wheel, interest and late (next-morning) quest gold don't count.
+  const mvp = dayMvp(logs, date);
 
   const tags: { key: TranslationKey; icon: typeof Star; className: string }[] = [];
   if (date === today) tags.push({ key: 'calendar.tag.today', icon: Star, className: 'bg-ember-400 text-ink' });
@@ -177,6 +178,11 @@ export function DayLog({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-extrabold leading-tight">
                     {task ? taskName(task, language) : t('history.removedQuest')}
+                    {log.late && (
+                      <span className="ml-1.5 bg-wood-500 px-1 align-middle text-xs font-extrabold uppercase text-parchment-50">
+                        {t('yesterday.lateTag')}
+                      </span>
+                    )}
                   </p>
                   <p className="flex flex-wrap items-center gap-x-2 text-sm font-bold uppercase text-wood-600">
                     <span className="max-w-[10rem] truncate">{log.completedBy === 'both' ? t('tasks.both') : <CharacterName id={log.completedBy} />}</span>

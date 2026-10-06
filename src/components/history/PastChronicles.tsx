@@ -33,7 +33,9 @@ function Award({ award }: { award: ChronicleAward }) {
   return (
     <li className="px-slot flex items-center gap-2 px-2 py-1.5">
       <Icon as={icon} size={24} className="shrink-0 text-ember-600" />
-      <span className="min-w-0 flex-1 text-base font-extrabold leading-tight">{title}</span>
+      <span className="min-w-0 flex-1 text-base font-extrabold leading-tight">
+        {title}
+      </span>
       <CharacterAvatar id={award.characterId} scale={1} framed={false} />
       <span className="max-w-[7rem] truncate text-sm font-bold uppercase text-wood-700">
         <CharacterName id={award.characterId} />

@@ -1,0 +1,76 @@
+/* mushroom theme: palette and styles, loaded on demand with the theme module. */
+
+[data-theme='mushroom'] {
+  --c-ink: 0 0 0;
+  --c-wood-950: 48 15 0;
+  --c-wood-900: 92 32 0;
+  --c-wood-800: 136 48 0;
+  --c-wood-700: 200 76 12;
+  --c-wood-600: 168 60 8;
+  --c-wood-500: 216 92 28;
+  --c-wood-400: 232 128 76;
+  --c-parchment-50: 255 255 255;
+  --c-parchment-100: 252 252 240;
+  --c-parchment-200: 240 232 200;
+  --c-parchment-300: 224 200 144;
+  --c-parchment-400: 184 136 80;
+  --c-parchment-500: 124 80 48;
+  --c-brick-700: 136 0 0;
+  --c-brick-600: 184 16 0;
+  --c-brick-500: 216 40 0;
+  --c-brick-400: 248 88 56;
+  --c-ember-700: 168 112 0;
+  --c-ember-600: 216 152 0;
+  --c-ember-500: 248 184 0;
+  --c-ember-400: 252 200 68;
+  --c-ember-300: 252 216 124;
+  --c-flame-400: 248 184 0;
+  --c-flame-300: 252 216 0;
+  --c-flame-200: 252 232 144;
+  --c-moss-700: 0 88 0;
+  --c-moss-600: 0 136 0;
+  --c-moss-500: 0 168 0;
+  --c-moss-400: 88 216 84;
+  --c-moss-300: 136 232 128;
+  --c-moss-200: 200 240 184;
+  --c-moss-100: 232 250 220;
+  --c-plum-600: 68 40 188;
+  --c-plum-500: 104 68 252;
+  --c-plum-300: 200 188 252;
+}
+/* Mushroom Kingdom: #5C94FC sky with pixel clouds, #C84C0C brick boards, #00A800 greens, #F8B800 coin gold,
+   black and white type. */
+[data-theme='mushroom'] body,
+.theme-bg[data-theme='mushroom'] {
+  background-color: #5c94fc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48' shape-rendering='crispEdges'%3E%3Cg fill='%23fcfcfc'%3E%3Crect x='10' y='10' width='12' height='2'/%3E%3Crect x='8' y='12' width='18' height='2'/%3E%3Crect x='6' y='14' width='22' height='4'/%3E%3Crect x='40' y='30' width='8' height='2'/%3E%3Crect x='38' y='32' width='14' height='2'/%3E%3Crect x='36' y='34' width='18' height='3'/%3E%3C/g%3E%3Cg fill='%23a4e4fc'%3E%3Crect x='6' y='18' width='22' height='1'/%3E%3Crect x='36' y='37' width='18' height='1'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 256px 192px;
+  background-repeat: repeat;
+}
+/* Brick boards (top bar, chronicle banner, scene frames): deep brick with large, faint bricks so text on them
+   stays readable; the brand brick #C84C0C is the bevel highlight. Text gets a solid black outline. */
+[data-theme='mushroom'] .px-panel-wood {
+  --hl: #c84c0c;
+  --sh: #300f00;
+  background-color: #883000;
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgb(0 0 0 / 0.22) 22px 24px),
+    repeating-linear-gradient(90deg, transparent 0 46px, rgb(0 0 0 / 0.16) 46px 48px);
+  text-shadow: 2px 2px 0 #000000;
+}
+[data-theme='mushroom'] .px-panel-wood .text-parchment-300 {
+  color: #ffffff;
+}
+[data-theme='mushroom'] .px-subtitle {
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #000000;
+}
+[data-theme='mushroom'] .px-title {
+  color: #ffffff;
+  text-shadow:
+    2px 2px 0 #000000,
+    3px 3px 0 #000000;
+}
+[data-theme='mushroom'] .px-title {
+  letter-spacing: 0.06em;
+}

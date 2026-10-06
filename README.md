@@ -13,7 +13,7 @@ Built with React, TypeScript and Firebase. It installs as a PWA on phones and ha
 - **Wheel of Fortune:** claim one free ticket a day, then spin for gold. Every miss grows a shared jackpot.
 - **Chronicles:** a season, one month by default. Gold resets when it ends, while XP, levels and skills stay. The prize pool (in VND) is split by each partner's share of the gold.
 - **Households:** each household holds two accounts and is joined with a 6-character code. Moderators manage quests, the prize pool and the chronicle end date. Logged quests can be undone or re-assigned, and the calendar shows a day-by-day log.
-- **Cosmetics:** four app themes (Cozy Hearth, 8-Bit Mushroom Kingdom, Whimsical Cottage, Enchanted Forest) and 32 unlockable character avatars (16 per character). Each chronicle's winner unlocks one.
+- **Cosmetics:** four app themes (Cozy Hearth, Mushroom Kingdom, Whimsical Cottage, Enchanted Forest), each with its own cabin scene, and 32 unlockable character avatars (16 per character). Each chronicle's winner unlocks one.
 - **Polish:** English and Vietnamese, chiptune music and sound effects (generated live in the browser), and a mobile-first pixel UI.
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.

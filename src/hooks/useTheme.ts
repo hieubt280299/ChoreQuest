@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
 import { useGame } from '../context/GameContext';
 import { useHousehold } from '../context/HouseholdContext';
+import { loadTheme } from '../themes';
 import type { ThemeId } from '../types';
 
 // Each player's theme is a preference on their own device, kept per household: themes are unlocked by a
@@ -50,11 +51,18 @@ export function useTheme(): { theme: ThemeId; setTheme: (theme: ThemeId) => void
   return { theme, setTheme };
 }
 
-/** Applies a theme to the page (`<html data-theme>`), back to the default when unmounted. */
+/**
+ * Applies a theme to the page (`<html data-theme>`) once its lazily loaded CSS is in, back to the default
+ * when unmounted.
+ */
 export function useApplyTheme(theme: ThemeId) {
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    let alive = true;
+    void loadTheme(theme).then(() => {
+      if (alive) document.documentElement.dataset.theme = theme;
+    });
     return () => {
+      alive = false;
       document.documentElement.dataset.theme = DEFAULT_THEME;
     };
   }, [theme]);

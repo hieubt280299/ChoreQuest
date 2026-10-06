@@ -16,7 +16,9 @@ export function RewardBanner({ onOpen }: { onOpen: () => void }) {
     <Card tone="ember" className="flex flex-wrap items-center gap-3 p-4">
       <Icon as={Trophy} size={36} className="px-blink text-brick-700" />
       <div className="min-w-[12rem] flex-1">
-        <p className="text-lg font-extrabold uppercase leading-tight">{t('cosmetics.rewardTitle', { id: reward.chronicleId })}</p>
+        <p className="text-lg font-extrabold uppercase leading-tight">
+          {t('cosmetics.rewardTitle', { id: reward.chronicleId })}
+        </p>
         <p className="text-base">{t('cosmetics.rewardHint')}</p>
       </div>
       <Button variant="brick" className="w-full sm:w-auto" onClick={onOpen}>

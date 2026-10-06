@@ -2,6 +2,35 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.1.0] - 2026-10-06
+
+Spec: [UPDATE_v1.1.0.md](UPDATE_v1.1.0.md)
+
+### Added
+
+- **Change password** in Settings: current password, new password and confirmation, checked against your current password before the change.
+- **Confirm password** on the sign-up form. New passwords need at least 8 characters with a letter and a number.
+- **Yesterday's quests:** until noon, if nothing has been logged today (and it isn't a chronicle's first day), the Quests tab offers yesterday's unfinished quests.
+  - They pay no XP and half of base + skill gold (rounded down), and no streak bonus.
+  - They still keep the streak going.
+  - The gold counts for the payout but never changes yesterday's MVP, which is settled at midnight. Late entries are tagged in the day log.
+- **Theme scenes:** each theme has its own cabin scene: a Mushroom Kingdom level, a meadow cottage, and an enchanted forest clearing with a rune stone.
+- **Graphics quality** in Settings:
+  - **High** is the full experience.
+  - **Low** stops what can lag older phones: sprite and scene animation, looping effects, confetti and fixed backgrounds. The wheel spins for only 2 seconds.
+  - Both settings keep the quick open, close and press transitions. The choice is saved per device.
+
+### Changed
+
+- "8-Bit Mushroom Kingdom" is now **Mushroom Kingdom**, using the exact palette: #5C94FC sky, #00A800 greens, #F8B800 gold accents, #C84C0C brick structure, black and white type.
+- **Mushroom Kingdom boards:** the top bar and chronicle banner use deep brick with large, faint bricks and outlined text, so they're easy to read.
+- **Shorter texts:** hints, warnings and setting descriptions are shorter and to the point (for example, Low graphics now reads just "Smoother on older phones.").
+
+### Fixed
+
+- **Tooltips:** every tooltip is now dark text on a light bubble in every theme. On Mushroom Kingdom's brick boards they used to pick up the board's text outline and were hard to read.
+- **Lazy-loaded themes:** each non-default theme's scene and styles are now a separate download, fetched only when the theme is used or previewed. Cozy Hearth stays built in.
+
 ## [1.0.0] - 2026-10-05
 
 Spec: [UPDATE_v1.0.0.md](UPDATE_v1.0.0.md)

@@ -15,6 +15,8 @@ import { MoneyInput } from '../ui/MoneyInput';
 import { PageHeader } from '../ui/PageHeader';
 import { Tooltip } from '../ui/Tooltip';
 import { AudioSettingsCard } from './AudioSettingsCard';
+import { ChangePassword } from './ChangePassword';
+import { SettingsQualityToggle } from './SettingsQualityToggle';
 import { DeleteAccountButton } from './DeleteAccountButton';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
@@ -124,6 +126,7 @@ export function SettingsView() {
       <InstallAppCard />
       <HouseholdCard />
       <AudioSettingsCard />
+      <SettingsQualityToggle />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <SectionTitle icon={Languages}>{t('settings.language')}</SectionTitle>
@@ -253,6 +256,7 @@ export function SettingsView() {
           </Button>
         )}
       </Card>
+      <ChangePassword />
     </section>
   );
 }

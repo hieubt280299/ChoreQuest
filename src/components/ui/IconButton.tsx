@@ -44,7 +44,7 @@ export function IconButton({
       <Icon as={icon} size={24} />
       <span
         aria-hidden
-        className={`px-panel pointer-events-none absolute bottom-full z-30 mb-3 hidden whitespace-nowrap px-2 py-1 text-sm font-bold normal-case tracking-normal text-ink [@media(hover:hover)]:group-hover:block group-focus-visible:block ${tipAlign[align]}`}
+        className={`px-panel px-tooltip pointer-events-none absolute bottom-full z-30 mb-3 hidden whitespace-nowrap px-2 py-1 text-sm font-bold normal-case tracking-normal text-ink [@media(hover:hover)]:group-hover:block group-focus-visible:block ${tipAlign[align]}`}
       >
         {label}
       </span>

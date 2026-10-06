@@ -50,7 +50,7 @@ export function ChronicleHeader() {
           <Icon as={Hourglass} size={24} />
           {t('chronicle.label', { id: chronicle.id })}
           <Tooltip
-            label={<Icon as={CircleInfo} size={24} className="text-parchment-300" />}
+          label={<Icon as={CircleInfo} size={24} className="text-parchment-300" />}
             content={t('dashboard.goldResets')}
             triggerClassName="align-middle"
           />

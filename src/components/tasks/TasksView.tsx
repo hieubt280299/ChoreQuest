@@ -20,6 +20,7 @@ import { QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './Que
 import { RewardBreakdownTable } from './RewardBreakdownTable';
 import { StreakBadge } from './StreakBadge';
 import { TaskEditorModal } from './TaskEditorModal';
+import { useMinuteNow, YesterdaysQuestsBanner } from './YesterdaysQuestsBanner';
 
 type Breakdown = Record<CharacterId, RewardBreakdown | null>;
 
@@ -146,10 +147,18 @@ export function TasksView() {
     getTodayLog,
     getStreak,
     previewReward,
+    yesterdayOpen,
+    yesterdayQuests,
     upsertTask,
     removeTask,
   } = useGame();
   const [pending, setPending] = useState<Task | null>(null);
+  // "Yesterday's quests" view: yesterday's unfinished quests, completed late (no XP, half gold).
+  const [yesterdayView, setYesterdayView] = useState(false);
+  const now = useMinuteNow();
+  const graceOpen = yesterdayOpen(now);
+  const lateQuests = graceOpen ? yesterdayQuests() : [];
+  const showingYesterday = yesterdayView && graceOpen && lateQuests.length > 0;
   const [completer, setCompleter] = useState<Completer>(activeCharacter);
   const [fixing, setFixing] = useState<TaskLog | null>(null);
   const [fixCompleter, setFixCompleter] = useState<Completer>('both');
@@ -157,7 +166,7 @@ export function TasksView() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
 
-  const enabled = state.tasks.filter((task) => task.enabled);
+  const enabled = showingYesterday ? lateQuests : state.tasks.filter((task) => task.enabled);
   // Filtered by "Show" and the search, sorted (best matches first while searching), then split into
   // sections (a single untitled section when not grouping).
   const sections = useMemo(() => {
@@ -166,7 +175,7 @@ export function TasksView() {
     const score = (task: Task) => fuzzyScoreAny(query, [taskName(task, 'en'), taskName(task, 'vi')]);
     const shown = enabled.filter((task) => {
       if (searching && score(task) <= 0) return false;
-      if (prefs.show === 'all') return true;
+      if (showingYesterday || prefs.show === 'all') return true;
       const done = !!getTodayLog(task.id);
       return prefs.show === 'completed' ? done : !done;
     });
@@ -187,14 +196,14 @@ export function TasksView() {
         tasks: sorted.filter((task) => (prefs.groupBy === 'group' ? task.group : task.category) === key),
       }))
       .filter((section) => section.tasks.length > 0);
-  }, [enabled, prefs, query, language, locale, getStreak, getTodayLog, activeCharacter, t]);
+  }, [enabled, prefs, query, language, locale, getStreak, getTodayLog, activeCharacter, t, showingYesterday]);
 
   const previews = useMemo(() => {
     if (!pending) return undefined;
     const result: Partial<Record<Completer, Breakdown | null>> = {};
-    for (const who of completerOptions) result[who] = previewReward(pending.id, who);
+    for (const who of completerOptions) result[who] = previewReward(pending.id, who, { late: showingYesterday });
     return result;
-  }, [pending, completerOptions, previewReward]);
+  }, [pending, completerOptions, previewReward, showingYesterday]);
   const handle = (result: ActionResult, onOk: () => void) => {
     if (result.ok) {
       setError(null);
@@ -219,6 +228,9 @@ export function TasksView() {
         }
       />
       {!pending && !fixing && <ErrorNote error={error} />}
+      {graceOpen && lateQuests.length > 0 && (
+        <YesterdaysQuestsBanner active={showingYesterday} count={lateQuests.length} onToggle={() => setYesterdayView((value) => !value)} />
+      )}
       <label className="relative block">
         <span className="sr-only">{t('tasks.search')}</span>
         <Icon as={Search} size={24} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-wood-500" />
@@ -251,7 +263,7 @@ export function TasksView() {
           )}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {section.tasks.map((task) => {
-              const log = getTodayLog(task.id);
+              const log = showingYesterday ? undefined : getTodayLog(task.id);
               const done = !!log;
               const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
               return (
@@ -273,8 +285,11 @@ export function TasksView() {
                         ))}
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                        <span className="font-arcade text-[10px] text-moss-700">+{task.xp}XP</span>
-                        <GoldCounter amount={task.gold} />
+                        {/* Late: no XP and half the (base) gold, as the reward preview details. */}
+                        <span className={`font-arcade text-[10px] ${showingYesterday ? 'text-wood-500 line-through' : 'text-moss-700'}`}>
+                          +{task.xp}XP
+                        </span>
+                        <GoldCounter amount={showingYesterday ? Math.floor(task.gold / 2) : task.gold} />
                         <span className="text-sm font-bold uppercase text-wood-500">
                           {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
                         </span>
@@ -327,7 +342,7 @@ export function TasksView() {
                         setPending(task);
                       }}
                     >
-                      {t('tasks.complete')}
+                      {showingYesterday ? t('yesterday.complete') : t('tasks.complete')}
                     </Button>
                   )}
                 </Card>
@@ -345,7 +360,7 @@ export function TasksView() {
           className="w-full"
           onClick={() => {
             if (!pending) return;
-            handle(completeTask(pending.id, completer), () => setPending(null));
+            handle(completeTask(pending.id, completer, { late: showingYesterday }), () => setPending(null));
           }}
         >
           {t('common.confirm')}

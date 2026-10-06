@@ -1,0 +1,86 @@
+/* forest theme: palette and styles, loaded on demand with the theme module. */
+
+[data-theme='forest'] {
+  --c-ink: 11 20 15;
+  --c-wood-950: 8 17 13;
+  --c-wood-900: 15 29 23;
+  --c-wood-800: 22 43 34;
+  --c-wood-700: 31 61 46;
+  --c-wood-600: 43 85 63;
+  --c-wood-500: 59 110 81;
+  --c-wood-400: 86 139 105;
+  --c-parchment-50: 242 247 236;
+  --c-parchment-100: 226 236 214;
+  --c-parchment-200: 205 220 187;
+  --c-parchment-300: 178 198 156;
+  --c-parchment-400: 138 162 116;
+  --c-parchment-500: 95 122 78;
+  --c-brick-700: 62 38 22;
+  --c-brick-600: 94 58 34;
+  --c-brick-500: 126 82 48;
+  --c-brick-400: 162 115 74;
+  --c-ember-700: 14 110 106;
+  --c-ember-600: 18 147 140;
+  --c-ember-500: 44 196 180;
+  --c-ember-400: 111 224 208;
+  --c-ember-300: 168 240 228;
+  --c-flame-400: 184 230 80;
+  --c-flame-300: 220 255 138;
+  --c-flame-200: 236 255 190;
+  --c-moss-700: 47 90 42;
+  --c-moss-600: 63 122 54;
+  --c-moss-500: 86 160 70;
+  --c-moss-400: 134 201 106;
+  --c-moss-300: 172 220 148;
+  --c-moss-200: 207 234 192;
+  --c-moss-100: 232 245 224;
+  --c-plum-600: 78 52 132;
+  --c-plum-500: 138 106 208;
+  --c-plum-300: 212 200 240;
+}
+
+/* Enchanted Forest: deep canopy with fireflies, rune-glow frames. */
+[data-theme='forest'] body,
+.theme-bg[data-theme='forest'] {
+  background-color: #0f1d17;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(220, 255, 138, 0.55) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 12%, rgba(111, 224, 208, 0.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 64% 58%, rgba(220, 255, 138, 0.45) 0 2px, transparent 3px),
+    radial-gradient(circle at 30% 76%, rgba(111, 224, 208, 0.45) 0 2px, transparent 3px),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(44, 196, 180, 0.18), transparent 70%),
+    linear-gradient(180deg, #10241b 0%, #0b1712 100%);
+  background-size: 260px 260px, 300px 300px, 340px 340px, 280px 280px, 100% 520px, 100% 100%;
+  background-repeat: repeat, repeat, repeat, repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+[data-theme='forest'] .px-panel-wood {
+  box-shadow:
+    0 -4px 0 0 rgb(var(--c-ink)),
+    0 4px 0 0 rgb(var(--c-ink)),
+    -4px 0 0 0 rgb(var(--c-ink)),
+    4px 0 0 0 rgb(var(--c-ink)),
+    0 0 18px 2px rgba(44, 196, 180, 0.28),
+    inset -4px -4px 0 0 rgb(var(--c-wood-900)),
+    inset 4px 4px 0 0 rgb(var(--c-wood-500));
+  /* Faint glowing runes carved into the boards. */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' shape-rendering='crispEdges'%3E%3Cg fill='%232cc4b4' fill-opacity='0.16'%3E%3Cpath d='M6 6h2v8H6zM8 9h3v2H8zM30 30h2v8h-2zM26 32h10v2H26zM38 8h2v2h-2zM40 10h2v2h-2zM36 10h2v2h-2zM38 12h2v2h-2zM14 34h6v2h-6zM16 36h2v4h-2z'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(180deg, transparent 0 22px, rgb(var(--c-wood-950) / 0.45) 22px 24px);
+  background-size: 96px 96px, auto;
+}
+[data-theme='forest'] .px-title {
+  text-shadow:
+    2px 2px 0 rgb(var(--c-ink)),
+    0 0 10px rgba(111, 224, 208, 0.55);
+}
+[data-theme='forest'] .px-wordmark {
+  text-shadow:
+    2px 2px 0 rgb(var(--c-wood-950)),
+    0 0 8px rgba(220, 255, 138, 0.6);
+}
+
+/* Theme preview tiles scroll with their content instead of pinning the background to the viewport. */
+.theme-bg {
+  background-attachment: scroll !important;
+}

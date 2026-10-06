@@ -1,0 +1,64 @@
+/* cottage theme: palette and styles, loaded on demand with the theme module. */
+
+[data-theme='cottage'] {
+  --c-ink: 59 47 42;
+  --c-wood-950: 46 38 24;
+  --c-wood-900: 63 52 36;
+  --c-wood-800: 84 70 51;
+  --c-wood-700: 111 93 68;
+  --c-wood-600: 140 119 90;
+  --c-wood-500: 171 149 118;
+  --c-wood-400: 201 180 146;
+  --c-parchment-50: 255 253 246;
+  --c-parchment-100: 251 246 230;
+  --c-parchment-200: 241 232 204;
+  --c-parchment-300: 223 210 172;
+  --c-parchment-400: 185 168 126;
+  --c-parchment-500: 138 122 86;
+  --c-brick-700: 142 74 94;
+  --c-brick-600: 181 96 122;
+  --c-brick-500: 212 128 154;
+  --c-brick-400: 234 166 187;
+  --c-ember-700: 176 122 32;
+  --c-ember-600: 216 154 52;
+  --c-ember-500: 242 184 75;
+  --c-ember-400: 247 205 115;
+  --c-ember-300: 251 224 163;
+  --c-flame-400: 255 226 122;
+  --c-flame-300: 255 240 168;
+  --c-flame-200: 255 247 207;
+  --c-moss-700: 79 107 58;
+  --c-moss-600: 106 138 76;
+  --c-moss-500: 139 171 102;
+  --c-moss-400: 179 207 140;
+  --c-moss-300: 205 226 173;
+  --c-moss-200: 226 239 205;
+  --c-moss-100: 242 248 232;
+  --c-plum-600: 111 90 143;
+  --c-plum-500: 155 134 189;
+  --c-plum-300: 221 210 236;
+}
+/* Cozy Whimsical Cottage: sky over a meadow, soft rounded frames. */
+[data-theme='cottage'] body,
+.theme-bg[data-theme='cottage'] {
+  background-color: #8fb36a;
+  background-image:
+    radial-gradient(ellipse 60% 25% at 20% 8%, rgba(255, 255, 255, 0.55), transparent 70%),
+    radial-gradient(ellipse 45% 18% at 80% 14%, rgba(255, 255, 255, 0.45), transparent 70%),
+    linear-gradient(180deg, #7fb6cf 0%, #a9cfb2 38%, #8fb36a 70%, #6f9450 100%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+[data-theme='cottage'] .px-panel,
+[data-theme='cottage'] .px-slot,
+[data-theme='cottage'] .px-slot-dark,
+[data-theme='cottage'] .px-btn,
+[data-theme='cottage'] .px-input,
+[data-theme='cottage'] .px-tab,
+[data-theme='cottage'] .px-bar,
+[data-theme='cottage'] .px-level {
+  border-radius: 12px;
+}
+[data-theme='cottage'] .px-panel-wood {
+  background-image: repeating-linear-gradient(180deg, transparent 0 22px, rgb(var(--c-wood-900) / 0.25) 22px 24px);
+}

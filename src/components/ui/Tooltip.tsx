@@ -59,7 +59,7 @@ export function Tooltip({
           ref={bubble.ref}
           style={bubble.style}
           role="tooltip"
-          className={`px-panel absolute bottom-full ${align === 'right' ? 'right-0' : 'left-0'} z-30 mb-2 block w-max max-w-[min(15rem,calc(100vw-1rem))] px-2.5 py-1.5 text-left text-sm font-normal normal-case leading-snug text-ink`}
+          className={`px-panel px-tooltip absolute bottom-full ${align === 'right' ? 'right-0' : 'left-0'} z-30 mb-2 block w-max max-w-[min(15rem,calc(100vw-1rem))] px-2.5 py-1.5 text-left text-sm font-normal normal-case leading-snug text-ink`}
         >
           {content}
         </span>

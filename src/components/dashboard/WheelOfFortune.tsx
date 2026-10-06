@@ -10,6 +10,7 @@ import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, WheelPrize, WheelSpinEvent } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { secureRandom } from '../../utils/wheel';
+import { prefersReducedMotion, useQuality } from '../../hooks/useQuality';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -271,7 +272,9 @@ export function WheelOfFortune() {
     else playWheelWinSFX(spin.prize === 'small' ? 0 : spin.prize === 'normal' ? 1 : 2);
   };
 
-  const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // Reduced motion: the wheel jumps straight to its result. Low quality: a short 2-second spin.
+  const quality = useQuality();
+  const still = prefersReducedMotion();
 
   return (
     <Card className="p-4">
@@ -347,7 +350,7 @@ export function WheelOfFortune() {
         <motion.div
           className="absolute inset-0 will-change-transform [backface-visibility:hidden]"
           animate={{ rotate: rotation }}
-          transition={{ duration: reduceMotion ? 0.6 : duration, ease: [0.12, 0.75, 0.2, 1] }}
+          transition={{ duration: still ? 0.01 : quality === 'low' ? 2 : duration, ease: [0.12, 0.75, 0.2, 1] }}
           onUpdate={(latest) => {
             // Tick each time a slice border passes the pointer.
             // The pointer reads the face at -rotation; count crossings of slice borders (and full turns).

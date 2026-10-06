@@ -53,7 +53,7 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
           ref={bubble.ref}
           style={bubble.style}
           role="tooltip"
-          className="px-panel absolute bottom-full left-0 z-30 mb-2 block w-max max-w-[min(16rem,calc(100vw-1rem))] px-2.5 py-2 text-left"
+          className="px-panel px-tooltip absolute bottom-full left-0 z-30 mb-2 block w-max max-w-[min(16rem,calc(100vw-1rem))] px-2.5 py-2 text-left"
         >
           <span className="mb-1 block text-base font-extrabold leading-tight">
             {t(skill.nameKey as TranslationKey)} · {t('skills.levelShort', { level })}
