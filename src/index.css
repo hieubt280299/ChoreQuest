@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   Themes: palette variables (R G B channels) per theme. Cozy Hearth is the default.
+   Themes: palette variables (R G B channels). Cozy Hearth is the default and lives here; the other themes'
+   palettes and styles are in src/themes/<id>/theme.css, loaded only when a theme is used or previewed.
    --------------------------------------------------------------------------- */
 :root,
 [data-theme='hearth'] {
@@ -44,121 +45,6 @@
   --c-plum-500: 138 90 156;
   --c-plum-300: 217 195 227;
 }
-[data-theme='mushroom'] {
-  --c-ink: 26 14 5;
-  --c-wood-950: 32 8 0;
-  --c-wood-900: 58 21 0;
-  --c-wood-800: 92 36 0;
-  --c-wood-700: 136 56 0;
-  --c-wood-600: 168 72 0;
-  --c-wood-500: 200 76 12;
-  --c-wood-400: 224 112 64;
-  --c-parchment-50: 255 253 242;
-  --c-parchment-100: 252 240 208;
-  --c-parchment-200: 252 216 168;
-  --c-parchment-300: 228 176 124;
-  --c-parchment-400: 184 128 80;
-  --c-parchment-500: 124 80 48;
-  --c-brick-700: 136 0 0;
-  --c-brick-600: 184 16 0;
-  --c-brick-500: 216 40 0;
-  --c-brick-400: 248 88 56;
-  --c-ember-700: 168 68 0;
-  --c-ember-600: 228 92 16;
-  --c-ember-500: 248 136 0;
-  --c-ember-400: 252 160 68;
-  --c-ember-300: 252 196 132;
-  --c-flame-400: 248 184 0;
-  --c-flame-300: 252 216 0;
-  --c-flame-200: 252 228 160;
-  --c-moss-700: 0 88 0;
-  --c-moss-600: 0 136 0;
-  --c-moss-500: 0 168 0;
-  --c-moss-400: 88 216 84;
-  --c-moss-300: 136 232 128;
-  --c-moss-200: 200 240 184;
-  --c-moss-100: 232 250 220;
-  --c-plum-600: 68 40 188;
-  --c-plum-500: 104 68 252;
-  --c-plum-300: 200 188 252;
-}
-[data-theme='cottage'] {
-  --c-ink: 59 47 42;
-  --c-wood-950: 46 38 24;
-  --c-wood-900: 63 52 36;
-  --c-wood-800: 84 70 51;
-  --c-wood-700: 111 93 68;
-  --c-wood-600: 140 119 90;
-  --c-wood-500: 171 149 118;
-  --c-wood-400: 201 180 146;
-  --c-parchment-50: 255 253 246;
-  --c-parchment-100: 251 246 230;
-  --c-parchment-200: 241 232 204;
-  --c-parchment-300: 223 210 172;
-  --c-parchment-400: 185 168 126;
-  --c-parchment-500: 138 122 86;
-  --c-brick-700: 142 74 94;
-  --c-brick-600: 181 96 122;
-  --c-brick-500: 212 128 154;
-  --c-brick-400: 234 166 187;
-  --c-ember-700: 176 122 32;
-  --c-ember-600: 216 154 52;
-  --c-ember-500: 242 184 75;
-  --c-ember-400: 247 205 115;
-  --c-ember-300: 251 224 163;
-  --c-flame-400: 255 226 122;
-  --c-flame-300: 255 240 168;
-  --c-flame-200: 255 247 207;
-  --c-moss-700: 79 107 58;
-  --c-moss-600: 106 138 76;
-  --c-moss-500: 139 171 102;
-  --c-moss-400: 179 207 140;
-  --c-moss-300: 205 226 173;
-  --c-moss-200: 226 239 205;
-  --c-moss-100: 242 248 232;
-  --c-plum-600: 111 90 143;
-  --c-plum-500: 155 134 189;
-  --c-plum-300: 221 210 236;
-}
-[data-theme='forest'] {
-  --c-ink: 11 20 15;
-  --c-wood-950: 8 17 13;
-  --c-wood-900: 15 29 23;
-  --c-wood-800: 22 43 34;
-  --c-wood-700: 31 61 46;
-  --c-wood-600: 43 85 63;
-  --c-wood-500: 59 110 81;
-  --c-wood-400: 86 139 105;
-  --c-parchment-50: 242 247 236;
-  --c-parchment-100: 226 236 214;
-  --c-parchment-200: 205 220 187;
-  --c-parchment-300: 178 198 156;
-  --c-parchment-400: 138 162 116;
-  --c-parchment-500: 95 122 78;
-  --c-brick-700: 62 38 22;
-  --c-brick-600: 94 58 34;
-  --c-brick-500: 126 82 48;
-  --c-brick-400: 162 115 74;
-  --c-ember-700: 14 110 106;
-  --c-ember-600: 18 147 140;
-  --c-ember-500: 44 196 180;
-  --c-ember-400: 111 224 208;
-  --c-ember-300: 168 240 228;
-  --c-flame-400: 184 230 80;
-  --c-flame-300: 220 255 138;
-  --c-flame-200: 236 255 190;
-  --c-moss-700: 47 90 42;
-  --c-moss-600: 63 122 54;
-  --c-moss-500: 86 160 70;
-  --c-moss-400: 134 201 106;
-  --c-moss-300: 172 220 148;
-  --c-moss-200: 207 234 192;
-  --c-moss-100: 232 245 224;
-  --c-plum-600: 78 52 132;
-  --c-plum-500: 138 106 208;
-  --c-plum-300: 212 200 240;
-}
-
 /* ---------------------------------------------------------------------------
    ChoreQuest retro cabin theme: chunky stepped pixel borders drawn with
    box-shadows, beveled "physical" buttons and a wood-plank wall.
@@ -270,6 +156,23 @@ body,
   .px-panel-coop {
     background-image: linear-gradient(115deg, var(--knight-tint) 0%, var(--knight-tint) 35%, var(--mage-tint) 65%, var(--mage-tint) 100%);
     --sh: rgb(var(--c-plum-500));
+  }
+
+  /* Tooltip bubbles: always dark text on the light panel, never the light text or outline of a board they
+     sit on, and secondary text a little lighter than the main text but still high-contrast in every theme. */
+  .px-tooltip,
+  .px-tooltip * {
+    text-shadow: none !important;
+  }
+  .px-tooltip {
+    color: rgb(var(--c-ink)) !important;
+    background-color: rgb(var(--c-parchment-50));
+  }
+  .px-tooltip .text-wood-500,
+  .px-tooltip .text-wood-600,
+  .px-tooltip .text-wood-700,
+  .px-tooltip .text-parchment-300 {
+    color: rgb(var(--c-ink) / 0.78) !important;
   }
 
   /* Sunken inventory slot. */
@@ -733,97 +636,22 @@ body,
 }
 
 /* ---------------------------------------------------------------------------
-   Theme extras: backgrounds and frame styles beyond the palette.
+   Low graphics quality: stop what keeps running and can lag weak phones (looping CSS animations, confetti,
+   fixed backgrounds that repaint on scroll). Short one-off transitions (button presses, bar fills) and
+   framer-motion's open/close animations stay: they're brief and GPU-composited.
    --------------------------------------------------------------------------- */
-
-/* 8-Bit Mushroom Kingdom: cobalt sky with pixel clouds, brick boards. */
-[data-theme='mushroom'] body,
-.theme-bg[data-theme='mushroom'] {
-  background-color: #5c94fc;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48' shape-rendering='crispEdges'%3E%3Cg fill='%23fcfcfc'%3E%3Crect x='10' y='10' width='12' height='2'/%3E%3Crect x='8' y='12' width='18' height='2'/%3E%3Crect x='6' y='14' width='22' height='4'/%3E%3Crect x='40' y='30' width='8' height='2'/%3E%3Crect x='38' y='32' width='14' height='2'/%3E%3Crect x='36' y='34' width='18' height='3'/%3E%3C/g%3E%3Cg fill='%23a4e4fc'%3E%3Crect x='6' y='18' width='22' height='1'/%3E%3Crect x='36' y='37' width='18' height='1'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 256px 192px;
-  background-repeat: repeat;
+[data-quality='low'] *,
+[data-quality='low'] *::before,
+[data-quality='low'] *::after {
+  animation: none !important;
 }
-[data-theme='mushroom'] .px-panel-wood {
-  background-image:
-    repeating-linear-gradient(180deg, transparent 0 14px, rgb(var(--c-wood-950) / 0.7) 14px 16px),
-    repeating-linear-gradient(90deg, transparent 0 30px, rgb(var(--c-wood-950) / 0.7) 30px 32px);
+[data-quality='low'] .px-confetti,
+[data-quality='low'] .spark {
+  display: none !important;
 }
-[data-theme='mushroom'] .px-subtitle {
-  color: #fcfcfc;
-  text-shadow: 2px 2px 0 #1a0e05;
-}
-[data-theme='mushroom'] .px-title {
-  letter-spacing: 0.06em;
-}
-
-/* Cozy Whimsical Cottage: sky over a meadow, soft rounded frames. */
-[data-theme='cottage'] body,
-.theme-bg[data-theme='cottage'] {
-  background-color: #8fb36a;
-  background-image:
-    radial-gradient(ellipse 60% 25% at 20% 8%, rgba(255, 255, 255, 0.55), transparent 70%),
-    radial-gradient(ellipse 45% 18% at 80% 14%, rgba(255, 255, 255, 0.45), transparent 70%),
-    linear-gradient(180deg, #7fb6cf 0%, #a9cfb2 38%, #8fb36a 70%, #6f9450 100%);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-}
-[data-theme='cottage'] .px-panel,
-[data-theme='cottage'] .px-slot,
-[data-theme='cottage'] .px-slot-dark,
-[data-theme='cottage'] .px-btn,
-[data-theme='cottage'] .px-input,
-[data-theme='cottage'] .px-tab,
-[data-theme='cottage'] .px-bar,
-[data-theme='cottage'] .px-level {
-  border-radius: 12px;
-}
-[data-theme='cottage'] .px-panel-wood {
-  background-image: repeating-linear-gradient(180deg, transparent 0 22px, rgb(var(--c-wood-900) / 0.25) 22px 24px);
-}
-
-/* Enchanted Forest: deep canopy with fireflies, rune-glow frames. */
-[data-theme='forest'] body,
-.theme-bg[data-theme='forest'] {
-  background-color: #0f1d17;
-  background-image:
-    radial-gradient(circle at 12% 22%, rgba(220, 255, 138, 0.55) 0 2px, transparent 3px),
-    radial-gradient(circle at 78% 12%, rgba(111, 224, 208, 0.5) 0 2px, transparent 3px),
-    radial-gradient(circle at 64% 58%, rgba(220, 255, 138, 0.45) 0 2px, transparent 3px),
-    radial-gradient(circle at 30% 76%, rgba(111, 224, 208, 0.45) 0 2px, transparent 3px),
-    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(44, 196, 180, 0.18), transparent 70%),
-    linear-gradient(180deg, #10241b 0%, #0b1712 100%);
-  background-size: 260px 260px, 300px 300px, 340px 340px, 280px 280px, 100% 520px, 100% 100%;
-  background-repeat: repeat, repeat, repeat, repeat, no-repeat, no-repeat;
-  background-attachment: fixed;
-}
-[data-theme='forest'] .px-panel-wood {
-  box-shadow:
-    0 -4px 0 0 rgb(var(--c-ink)),
-    0 4px 0 0 rgb(var(--c-ink)),
-    -4px 0 0 0 rgb(var(--c-ink)),
-    4px 0 0 0 rgb(var(--c-ink)),
-    0 0 18px 2px rgba(44, 196, 180, 0.28),
-    inset -4px -4px 0 0 rgb(var(--c-wood-900)),
-    inset 4px 4px 0 0 rgb(var(--c-wood-500));
-  /* Faint glowing runes carved into the boards. */
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' shape-rendering='crispEdges'%3E%3Cg fill='%232cc4b4' fill-opacity='0.16'%3E%3Cpath d='M6 6h2v8H6zM8 9h3v2H8zM30 30h2v8h-2zM26 32h10v2H26zM38 8h2v2h-2zM40 10h2v2h-2zM36 10h2v2h-2zM38 12h2v2h-2zM14 34h6v2h-6zM16 36h2v4h-2z'/%3E%3C/g%3E%3C/svg%3E"),
-    repeating-linear-gradient(180deg, transparent 0 22px, rgb(var(--c-wood-950) / 0.45) 22px 24px);
-  background-size: 96px 96px, auto;
-}
-[data-theme='forest'] .px-title {
-  text-shadow:
-    2px 2px 0 rgb(var(--c-ink)),
-    0 0 10px rgba(111, 224, 208, 0.55);
-}
-[data-theme='forest'] .px-wordmark {
-  text-shadow:
-    2px 2px 0 rgb(var(--c-wood-950)),
-    0 0 8px rgba(220, 255, 138, 0.6);
-}
-
-/* Theme preview tiles scroll with their content instead of pinning the background to the viewport. */
-.theme-bg {
+[data-quality='low'] body {
   background-attachment: scroll !important;
+}
+[data-quality='low'] .will-change-transform {
+  will-change: auto;
 }

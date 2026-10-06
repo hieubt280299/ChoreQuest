@@ -7,6 +7,7 @@ import { GameProvider } from './context/GameContext';
 import { HouseholdProvider } from './context/HouseholdContext';
 import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
+import './hooks/useQuality';
 import './utils/installPrompt';
 
 createRoot(document.getElementById('root')!).render(

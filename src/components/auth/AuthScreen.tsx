@@ -13,6 +13,7 @@ export function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-4 py-10">
@@ -39,7 +40,7 @@ export function AuthScreen() {
           onSubmit={(event) => {
             event.preventDefault();
             if (mode === 'login') void login(email, password);
-            else void register(email, password);
+            else void register(email, password, confirm);
           }}
         >
           <input
@@ -62,6 +63,21 @@ export function AuthScreen() {
             className="px-input"
             disabled={!firebaseConfigured}
           />
+          {mode === 'register' && (
+            <>
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder={t('auth.confirmPassword')}
+                aria-label={t('auth.confirmPassword')}
+                value={confirm}
+                onChange={(event) => setConfirm(event.target.value)}
+                className="px-input"
+                disabled={!firebaseConfigured}
+              />
+              <p className="text-sm text-wood-600">{t('password.rules')}</p>
+            </>
+          )}
           {error && (
             <p className="bg-brick-600 px-3 py-2 text-base font-bold text-parchment-50 shadow-[0_0_0_3px_#2b1a12]" role="alert">
               {t(error)}

@@ -17,7 +17,9 @@ import type {
 } from '../types';
 import { AVATARS, DEFAULT_AVATAR, THEMES, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
 import {
+  addDays,
   computeRewardBreakdown,
+  lateRewardBreakdown,
   endOfDayMs,
   getLevelFromXp,
   grantRewards,
@@ -94,7 +96,15 @@ interface GameContextValue {
   claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId) => ActionResult;
   /** Switch your character's avatar to one the household has unlocked (shared with your spouse). */
   setAvatar: (characterId: CharacterId, avatar: AvatarId) => ActionResult;
-  completeTask: (taskId: string, completer: Completer) => ActionResult;
+  /** Log a quest for today, or (`late`) for yesterday through "Yesterday's quests". */
+  completeTask: (taskId: string, completer: Completer, options?: { late?: boolean }) => ActionResult;
+  /**
+   * "Yesterday's quests" is open: before noon, nothing logged yet today, and today isn't the first day of a
+   * chronicle (yesterday then belongs to a settled one). `now` is passed so callers can re-check each minute.
+   */
+  yesterdayOpen: (now?: Date) => boolean;
+  /** Enabled quests nobody logged yesterday. */
+  yesterdayQuests: () => Task[];
   /** Claim the free wheel ticket (once per local day, own character only). */
   claimDailyTicket: (characterId: CharacterId) => ActionResult;
   /** Spend a ticket on the Wheel of Fortune; the result is saved right away. */
@@ -118,7 +128,7 @@ interface GameContextValue {
   /** A character's live streak on a quest. */
   getStreak: (taskId: string, characterId: CharacterId) => Streak;
   /** Exact reward breakdown completing a quest today would give, per character (null = not a recipient). */
-  previewReward: (taskId: string, completer: Completer) => Record<CharacterId, RewardBreakdown | null> | null;
+  previewReward: (taskId: string, completer: Completer, options?: { late?: boolean }) => Record<CharacterId, RewardBreakdown | null> | null;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -344,16 +354,31 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [canPlay, demo, isModerator, myCharacter, user?.uid],
   );
 
+  const yesterdayOpen = useCallback((now: Date = new Date()) => {
+    const current = stateRef.current;
+    const todayKey = localDateKey(now);
+    return now.getHours() < 12 && todayKey !== current.chronicle.startDate && !current.logs.some((log) => log.date === todayKey);
+  }, []);
+
+  const yesterdayQuests = useCallback(() => {
+    const current = stateRef.current;
+    const yesterday = addDays(localDateKey(), -1);
+    return current.tasks.filter((task) => task.enabled && !current.logs.some((log) => log.taskId === task.id && log.date === yesterday));
+  }, []);
+
   const completeTask = useCallback(
-    (taskId: string, completer: Completer): ActionResult => {
+    (taskId: string, completer: Completer, options?: { late?: boolean }): ActionResult => {
       if (!canPlay) return fail('household.error.inactive');
       const current = stateRef.current;
-      const date = localDateKey();
+      const late = !!options?.late;
+      if (late && !yesterdayOpen()) return fail('tasks.error.yesterdayClosed');
+      // Late quests are logged on yesterday's date, which also keeps their streaks going.
+      const date = late ? addDays(localDateKey(), -1) : localDateKey();
       const task = current.tasks.find((item) => item.id === taskId && item.enabled);
       if (!task) return fail('tasks.error.missing');
       if (current.logs.some((log) => log.taskId === taskId && log.date === date)) return fail('tasks.alreadyDone');
 
-      const breakdown = computeRewardBreakdown(
+      const full = computeRewardBreakdown(
         task,
         completer,
         current.characters,
@@ -361,6 +386,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         recipientStreaks(buildStreakIndex(current.logs), taskId, completer, date),
         partnerStreaks(buildStreakIndex(current.logs), taskId, completer, date),
       );
+      const breakdown = late ? lateRewardBreakdown(full) : full;
       const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(current.characters, split);
       const log: TaskLog = {
@@ -377,6 +403,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         category: task.category,
         group: task.group,
         ...streakFields(breakdown),
+        ...(late ? { late: true } : {}),
       };
       commit({ ...current, characters, logs: [log, ...current.logs] });
       setReward({
@@ -391,7 +418,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
       return OK;
     },
-    [canPlay, commit, demo, user?.uid],
+    [canPlay, commit, demo, user?.uid, yesterdayOpen],
   );
 
   const claimDailyTicket = useCallback(
@@ -477,7 +504,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (!revoked.ok) return fail('tasks.error.skillsSpent');
       // Streaks as of that entry's day, not counting the entry itself. Later entries keep the bonus they earned.
       const index = buildStreakIndex(current.logs, log.id);
-      const breakdown = computeRewardBreakdown(
+      const full = computeRewardBreakdown(
         { xp, gold, category, group },
         completer,
         revoked.characters,
@@ -485,6 +512,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         recipientStreaks(index, log.taskId, completer, log.date),
         partnerStreaks(index, log.taskId, completer, log.date),
       );
+      // A late entry keeps the late rules when re-assigned.
+      const breakdown = log.late ? lateRewardBreakdown(full) : full;
       const split = splitFromBreakdown(breakdown);
       const { characters, levelUps } = grantRewards(revoked.characters, split);
       const updated: TaskLog = {
@@ -634,18 +663,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isTaskDoneToday: (taskId) => state.logs.some((log) => log.taskId === taskId && log.date === today),
       getTodayLog: (taskId) => state.logs.find((log) => log.taskId === taskId && log.date === today),
       getStreak: (taskId, characterId) => currentStreak(streakIndex, taskId, characterId, today),
-      previewReward: (taskId, completer) => {
+      previewReward: (taskId, completer, options) => {
         const task = state.tasks.find((item) => item.id === taskId);
         if (!task) return null;
-        return computeRewardBreakdown(
+        const date = options?.late ? addDays(today, -1) : today;
+        const full = computeRewardBreakdown(
           task,
           completer,
           state.characters,
           SKILL_POOL,
-          recipientStreaks(streakIndex, taskId, completer, today),
-          partnerStreaks(streakIndex, taskId, completer, today),
+          recipientStreaks(streakIndex, taskId, completer, date),
+          partnerStreaks(streakIndex, taskId, completer, date),
         );
+        return options?.late ? lateRewardBreakdown(full) : full;
       },
+      yesterdayOpen,
+      yesterdayQuests,
     }),
     [
       state,
@@ -669,6 +702,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       undoLog,
       reassignLog,
       withSettings,
+      yesterdayOpen,
+      yesterdayQuests,
       changeSkill,
       streakIndex,
       levelResetUnlocked,

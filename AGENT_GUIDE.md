@@ -144,13 +144,28 @@ src/
 - **Avatars:** the Knight and Mage plus 16 unlockable avatars each (`AVATARS`; pixel art generated into `assets/avatarSprites.ts`, husband ones on the knight's 16 px grid, wife ones on the mage's 18 px grid). Ranger and Courier exist for both with different art, so sprites are looked up per character (`avatarFrames`). The chosen avatar is household-wide (`cosmetics.activeAvatar`), so the spouse sees it everywhere, including the cabin.
 - **Wardrobe:** tapping your character button in the top bar opens the picker. Each theme shows a live miniature screen (`ThemePreview`, real components under `data-theme`; page backgrounds also apply to `.theme-bg`). Cosmetics live in the household's `game.cosmetics`, so a new household starts with the defaults.
 
-#### 7. Layout
+#### 7. Account, grace period and performance
+
+- **Passwords:** sign-up needs a confirmation, and new passwords (sign-up or change) need 8+ characters with a letter and a number (`utils/password.ts`). Settings has **Change password**, which re-authenticates with the current password (`reauthenticateWithCredential`) before `updatePassword`.
+- **Yesterday's quests:** open while it's before noon, nothing has been logged today, and today isn't the chronicle's first day (`yesterdayOpen`). Yesterday's unfinished quests can then be completed **late**:
+  - They're logged on yesterday's date with `late: true`, so streaks continue.
+  - They pay 0 XP and floor(50% × (base + skill gold)), with no streak bonus (`lateRewardBreakdown`). Re-assigning keeps the late rules.
+  - Late gold counts for the payout but is excluded from MVP (`questGoldOn`), so yesterday's settled MVP never changes.
+- **Theme modules** (`src/themes/<id>`): each provides `SceneBack` / `SceneFront` for the shared 120×54 cabin stage plus its own `theme.css`. Cozy Hearth is bundled; the others load on demand via `loadTheme` / `useThemeModule`, and `<html data-theme>` is only switched once the chunk has arrived.
+- **Graphics quality** (`hooks/useQuality.ts`, `<html data-quality>`): Low stops only what keeps running and can lag weak phones:
+  - the shared sprite clock;
+  - looping CSS animations and confetti;
+  - fixed backgrounds that repaint on scroll.
+
+  The wheel spins for 2 seconds instead of 5–10. Short transitions and framer-motion's open/close animations stay, since they're brief and GPU-composited. The system reduced-motion setting still skips the spin entirely.
+
+#### 8. Layout
 
 - The top bar (sound, character) and the bottom navigation are fixed to the screen edges. On phones the bottom bar has Home, Quests, Skills and **More**, a drawer with History, Calendar and Settings.
 - No sideways scrolling from 320px up. The wheel spins on its own GPU layer (`will-change-transform`) and the bars sit on their own layers, so spins never repaint them.
 - Level-up cards only show for the player's own character, including level-ups caused by the spouse logging a quest (tracked per device against the last level celebrated).
 
-#### 8. Wheel of Fortune
+#### 9. Wheel of Fortune
 
 - **Tickets:** each player claims **1 free ticket per local day** from their Home card (`ticketClaimedOn`), plus 1 per level-up and Fortune's Favor tickets each chronicle. Each character card shows the count next to gold (equal-height badges; tooltip "x Wheel of Fortune tickets"). Unspent skill points show as a number on the Skills nav tab instead of on the card.
 - **Prizes** (`WHEEL_PRIZES`): Small +3 Gold (35%), Normal +5 (30%), Big +10 (15%), **Jackpot** +(100 + `jackpotBonus`) (1%), No prize (19%, "Good luck next time!"). Rolls use `crypto.getRandomValues`.

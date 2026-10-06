@@ -339,6 +339,22 @@ export function computeRewardBreakdown(
   return result;
 }
 
+/**
+ * A late ("Yesterday's quests") completion: 0 XP, half of base + skill gold rounded down, no streak bonus.
+ * The parts are kept consistent so the breakdown table still adds up.
+ */
+export function lateRewardBreakdown(
+  breakdown: Record<CharacterId, RewardBreakdown | null>,
+): Record<CharacterId, RewardBreakdown | null> {
+  const late = (part: RewardBreakdown | null): RewardBreakdown | null => {
+    if (!part) return null;
+    const gold = Math.floor((part.baseGold + part.skillGold) / 2);
+    const baseGold = Math.min(gold, part.baseGold / 2);
+    return { ...part, baseXp: 0, skillXp: 0, xp: 0, baseGold, skillGold: gold - baseGold, streakGold: 0, gold };
+  };
+  return { husband: late(breakdown.husband), wife: late(breakdown.wife) };
+}
+
 /** Totals per character from a breakdown (0 for non-recipients). */
 export function splitFromBreakdown(breakdown: Record<CharacterId, RewardBreakdown | null>): RewardSplit {
   return {

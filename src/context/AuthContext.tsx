@@ -1,14 +1,18 @@
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   type User,
 } from 'firebase/auth';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { firebaseConfigured, getFirebase, getMissingFirebaseKeys } from '../config/firebase';
 import type { HouseholdUser } from '../types';
 import type { TranslationKey } from '../utils/i18n';
+import { newPasswordProblem } from '../utils/password';
 
 interface AuthContextValue {
   user: HouseholdUser | null;
@@ -20,7 +24,10 @@ interface AuthContextValue {
   enterDemo: () => void;
   exitDemo: () => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  /** Create an account; the password must be confirmed and meet the password rules. */
+  register: (email: string, password: string, confirm: string) => Promise<void>;
+  /** Re-authenticate with the current password, then set a new one. */
+  changePassword: (current: string, next: string, confirm: string) => Promise<{ ok: true } | { ok: false; error: TranslationKey }>;
   logout: () => Promise<void>;
 }
 
@@ -101,10 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError(toErrorKey(err));
         }
       },
-      register: async (email, password) => {
+      register: async (email, password, confirm) => {
         const firebase = getFirebase();
         if (!firebase) {
           setError('auth.missingFirebase');
+          return;
+        }
+        const problem = newPasswordProblem(password, confirm);
+        if (problem) {
+          setError(problem);
           return;
         }
         setError(null);
@@ -113,6 +125,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setDemoMode(false);
         } catch (err) {
           setError(toErrorKey(err));
+        }
+      },
+      changePassword: async (current, next, confirm) => {
+        const firebase = getFirebase();
+        const account = firebase?.auth.currentUser;
+        if (!firebase || !account?.email) return { ok: false, error: 'auth.missingFirebase' };
+        if (!current) return { ok: false, error: 'password.error.currentEmpty' };
+        const problem = newPasswordProblem(next, confirm);
+        if (problem) return { ok: false, error: problem };
+        if (next === current) return { ok: false, error: 'password.error.same' };
+        try {
+          await reauthenticateWithCredential(account, EmailAuthProvider.credential(account.email, current));
+        } catch (err) {
+          const key = toErrorKey(err);
+          return { ok: false, error: key === 'auth.error.invalidCredential' ? 'password.error.current' : key };
+        }
+        try {
+          await updatePassword(account, next);
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: toErrorKey(err) };
         }
       },
       logout: async () => {

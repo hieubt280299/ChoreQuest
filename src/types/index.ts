@@ -123,6 +123,11 @@ export interface TaskLog {
   /** Streak length each recipient reached with this completion, and the bonus gold it paid (included in goldAwarded). */
   streakDays?: Partial<Record<CharacterId, number>>;
   streakGold?: Partial<Record<CharacterId, number>>;
+  /**
+   * Done late through "Yesterday's quests" (logged on yesterday's date the next morning): no XP, half gold,
+   * no streak bonus but the streak is kept, and it never changes yesterday's settled MVP.
+   */
+  late?: boolean;
 }
 
 /**
