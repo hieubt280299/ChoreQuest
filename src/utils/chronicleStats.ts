@@ -1,4 +1,4 @@
-import type { CharacterId, ChronicleResult, TaskLog } from '../types';
+import type { CharacterId, ChronicleAward, ChronicleResult, ChronicleStatsSnapshot, TaskLog } from '../types';
 import { addDays, dayCount } from './calculations';
 import { dayMvp } from './mvp';
 import { involves } from './streaks';
@@ -17,10 +17,7 @@ export interface PlayerChronicleStats {
   mvpDays: number;
 }
 
-export type ChronicleAward =
-  | { kind: 'champion'; characterId: CharacterId; taskId: string; count: number }
-  | { kind: 'streak'; characterId: CharacterId; days: number }
-  | { kind: 'mvp'; characterId: CharacterId; days: number };
+export type { ChronicleAward };
 
 export interface ChronicleStats {
   days: number;
@@ -47,37 +44,27 @@ function longestRun(dates: string[]): number {
   return best;
 }
 
-/** Stats and fun awards for a finished chronicle, from its payout record and the quest log. */
-export function chronicleStats(result: ChronicleResult, allLogs: TaskLog[]): ChronicleStats {
-  const days = dayCount(result.startDate, result.endDate);
+/**
+ * Computes a finished chronicle's archive snapshot from the quest log, or null when the log for that period
+ * isn't (fully) there any more.
+ */
+export function snapshotChronicle(result: ChronicleResult, allLogs: TaskLog[]): ChronicleStatsSnapshot | null {
   const logs = allLogs.filter((log) => log.date >= result.startDate && log.date <= result.endDate);
+  if (logs.length === 0) return null;
   const mvp: Record<CharacterId, number> = { husband: 0, wife: 0 };
   for (let day = result.startDate; day <= result.endDate; day = addDays(day, 1)) {
     const winner = dayMvp(logs, day);
     if (winner) mvp[winner] += 1;
   }
-
   const players = Object.fromEntries(
     IDS.map((id) => {
       const mine = logs.filter((log) => involves(log, id));
       const byTask = new Map<string, Set<string>>();
       for (const log of mine) byTask.set(log.taskId, (byTask.get(log.taskId) ?? new Set()).add(log.date));
       const bestStreak = Math.max(0, ...[...byTask.values()].map((dates) => longestRun([...dates].sort())));
-      const gold = result.goldSnapshot[id];
-      return [
-        id,
-        {
-          quests: mine.length,
-          gold,
-          payout: result.payout[id],
-          avgQuests: mine.length / days,
-          avgGold: gold / days,
-          bestStreak,
-          mvpDays: mvp[id],
-        },
-      ];
+      return [id, { quests: mine.length, bestStreak, mvpDays: mvp[id] }];
     }),
-  ) as Record<CharacterId, PlayerChronicleStats>;
+  ) as ChronicleStatsSnapshot['players'];
 
   // Awards: champions of the three most-done quests, the longest streak (3+ days) and the most MVP days.
   const awards: ChronicleAward[] = [];
@@ -100,6 +87,25 @@ export function chronicleStats(result: ChronicleResult, allLogs: TaskLog[]): Chr
   }
   const mvpLeader = leader(mvp);
   if (mvpLeader) awards.push({ kind: 'mvp', characterId: mvpLeader, days: mvp[mvpLeader] });
+  return { players, awards };
+}
 
-  return { days, hasLog: logs.length > 0, players, awards };
+/**
+ * Stats and fun awards for a finished chronicle: from the snapshot saved when it ended, or (for chronicles
+ * from before snapshots) from the quest log while it's still kept.
+ */
+export function chronicleStats(result: ChronicleResult, allLogs: TaskLog[]): ChronicleStats {
+  const days = dayCount(result.startDate, result.endDate);
+  const snapshot = result.stats ?? snapshotChronicle(result, allLogs);
+  const players = Object.fromEntries(
+    IDS.map((id) => {
+      const gold = result.goldSnapshot[id];
+      const counted = snapshot?.players[id] ?? { quests: 0, bestStreak: 0, mvpDays: 0 };
+      return [
+        id,
+        { ...counted, gold, payout: result.payout[id], avgQuests: counted.quests / days, avgGold: gold / days },
+      ];
+    }),
+  ) as Record<CharacterId, PlayerChronicleStats>;
+  return { days, hasLog: !!snapshot, players, awards: snapshot?.awards ?? [] };
 }

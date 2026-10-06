@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, ChevronUp, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
+import { Calendar, Check, ChevronDown, ChevronUp, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -15,7 +15,7 @@ import { MoneyInput } from '../ui/MoneyInput';
 import { PageHeader } from '../ui/PageHeader';
 import { Tooltip } from '../ui/Tooltip';
 import { AudioSettingsCard } from './AudioSettingsCard';
-import { ChangePassword } from './ChangePassword';
+import { ChangePasswordForm } from './ChangePassword';
 import { SettingsQualityToggle } from './SettingsQualityToggle';
 import { DeleteAccountButton } from './DeleteAccountButton';
 import { HouseholdCard } from './HouseholdCard';
@@ -111,11 +111,10 @@ function ChronicleCard() {
   );
 }
 
-/** Quest configurations listed before "Show all". */
-const QUESTS_PREVIEW = 5;
-
 export function SettingsView() {
   const { t, language, setLanguage, locale } = useLanguage();
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
   const [showAllQuests, setShowAllQuests] = useState(false);
   const { state, canEditSettings, setPrizePool, upsertTask } = useGame();
   const { demoMode, user, logout, exitDemo } = useAuth();
@@ -126,8 +125,9 @@ export function SettingsView() {
       <InstallAppCard />
       <HouseholdCard />
       <AudioSettingsCard />
-      <SettingsQualityToggle />
+      {/* Related settings side by side on wide screens: display preferences, then the chronicle's rules. */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <SettingsQualityToggle />
         <Card>
           <SectionTitle icon={Languages}>{t('settings.language')}</SectionTitle>
           <div className="flex flex-wrap gap-3">
@@ -143,6 +143,9 @@ export function SettingsView() {
             ))}
           </div>
         </Card>
+      </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <ChronicleCard />
         <Card>
           <SectionTitle icon={Coins}>{t('settings.prize')}</SectionTitle>
           {!canEditSettings && <ModeratorOnlyNote />}
@@ -155,13 +158,24 @@ export function SettingsView() {
           />
         </Card>
       </div>
-      <ChronicleCard />
       <NewLegendCard />
       <Card>
         <SectionTitle icon={Script}>{t('settings.tasks')}</SectionTitle>
         {!canEditSettings && <ModeratorOnlyNote />}
-        <fieldset disabled={!canEditSettings} className="space-y-4 disabled:opacity-70">
-          {(showAllQuests ? state.tasks : state.tasks.slice(0, QUESTS_PREVIEW)).map((task) => {
+        {/* The quest list is collapsed by default so the Settings page stays short. */}
+        <Button
+          variant="secondary"
+          className="w-full"
+          aria-expanded={showAllQuests}
+          aria-controls="quest-config"
+          onClick={() => setShowAllQuests((value) => !value)}
+        >
+          <Icon as={showAllQuests ? ChevronUp : ChevronDown} size={24} />
+          {showAllQuests ? t('settings.showFewerQuests') : t('settings.showAllQuests', { count: state.tasks.length })}
+        </Button>
+        {showAllQuests && (
+        <fieldset id="quest-config" disabled={!canEditSettings} className="mt-4 space-y-4 disabled:opacity-70">
+          {state.tasks.map((task) => {
             const name = taskName(task, language);
             return (
               <div key={task.id} className="px-slot flex flex-wrap items-center gap-3 p-3">
@@ -223,16 +237,6 @@ export function SettingsView() {
             );
           })}
         </fieldset>
-        {state.tasks.length > QUESTS_PREVIEW && (
-          <Button
-            variant="secondary"
-            className="mt-4 w-full"
-            aria-expanded={showAllQuests}
-            onClick={() => setShowAllQuests((value) => !value)}
-          >
-            <Icon as={showAllQuests ? ChevronUp : ChevronDown} size={24} />
-            {showAllQuests ? t('settings.showFewerQuests') : t('settings.showAllQuests', { count: state.tasks.length })}
-          </Button>
         )}
         <div className="mt-5">
           <ResetQuestsButton />
@@ -247,8 +251,36 @@ export function SettingsView() {
             <Button variant="secondary" onClick={() => void logout()}>
               {t('auth.logout')}
             </Button>
+            {user.email && (
+              <Button
+                variant="secondary"
+                aria-expanded={changingPassword}
+                onClick={() => {
+                  setChangingPassword((value) => !value);
+                  setPasswordChanged(false);
+                }}
+              >
+                <Icon as={Lock} size={24} />
+                {t('password.title')}
+              </Button>
+            )}
             <DeleteAccountButton />
           </div>
+        )}
+        {passwordChanged && (
+          <p className="mt-4 flex items-center gap-2 text-base font-extrabold text-moss-700" role="status">
+            <Icon as={Check} size={24} />
+            {t('password.changed')}
+          </p>
+        )}
+        {user?.email && changingPassword && (
+          <ChangePasswordForm
+            onCancel={() => setChangingPassword(false)}
+            onDone={() => {
+              setChangingPassword(false);
+              setPasswordChanged(true);
+            }}
+          />
         )}
         {demoMode && !user && (
           <Button className="mt-4" variant="secondary" onClick={exitDemo}>
@@ -256,7 +288,6 @@ export function SettingsView() {
           </Button>
         )}
       </Card>
-      <ChangePassword />
     </section>
   );
 }

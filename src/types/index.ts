@@ -175,6 +175,23 @@ export interface ChronicleResult {
   prizePool: number;
   payout: Record<CharacterId, number>;
   goldSnapshot: Record<CharacterId, number>;
+  /**
+   * Archive stats saved when the chronicle ended, so Past Chronicles keeps them after the quest log they came
+   * from is pruned (logs are kept ~120 days; this record is kept for the last 24 chronicles).
+   */
+  stats?: ChronicleStatsSnapshot;
+}
+
+/** Fun award in a chronicle's archive. */
+export type ChronicleAward =
+  | { kind: 'champion'; characterId: CharacterId; taskId: string; count: number }
+  | { kind: 'streak'; characterId: CharacterId; days: number }
+  | { kind: 'mvp'; characterId: CharacterId; days: number };
+
+/** The parts of a chronicle's stats that need the quest log (gold and averages come from the record itself). */
+export interface ChronicleStatsSnapshot {
+  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number }>;
+  awards: ChronicleAward[];
 }
 
 export interface RewardToast {

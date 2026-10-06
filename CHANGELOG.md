@@ -2,6 +2,17 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.1.1] - 2026-10-07
+
+### Changed
+
+- **Past chronicles keep their stats:**
+  - When a chronicle ends, its archive stats (quests done, best streaks, MVP days and awards) are saved with its payout record. They stay for the last 24 chronicles (about 2 years) instead of disappearing after about 4 months, when the quest log is trimmed.
+  - Chronicles that ended in the last ~4 months get their stats filled in automatically.
+- **Quest configuration** in Settings is collapsed by default; "Show quests" opens the full list.
+- **Change password** is now part of the **Account** section: a "Change password" button opens the form there, and a confirmation appears after the update.
+- **Settings layout:** on wide screens, related settings sit side by side: Graphics quality with Language, and Chronicle end date with Prize pool.
+
 ## [1.1.0] - 2026-10-06
 
 Spec: [UPDATE_v1.1.0.md](UPDATE_v1.1.0.md)
