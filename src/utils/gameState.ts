@@ -12,6 +12,7 @@ import {
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { normalizeCharacterName } from './characterName';
+import { snapshotChronicle } from './chronicleStats';
 import { dayMvp } from './mvp';
 import type {
   Character,
@@ -19,12 +20,14 @@ import type {
   CharacterSkill,
   Chronicle,
   ChronicleResult,
+  ChronicleStatsSnapshot,
   CosmeticReward,
   Cosmetics,
   GameEvent,
   GameState,
   HouseholdDoc,
   Task,
+  TaskLog,
   WheelPrize,
 } from '../types';
 import {
@@ -139,6 +142,19 @@ function parseChronicle(raw: unknown, legacyMonth: unknown, today: string): Chro
   return defaultChronicle(1, today);
 }
 
+const isCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+/** A saved archive snapshot, if it has the expected shape. */
+function parseStats(raw: unknown): ChronicleStatsSnapshot | undefined {
+  const data = raw as Partial<ChronicleStatsSnapshot> | undefined;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.awards)) return undefined;
+  const ok = (['husband', 'wife'] as CharacterId[]).every((id) => {
+    const player = data.players?.[id];
+    return !!player && isCount(player.quests) && isCount(player.bestStreak) && isCount(player.mvpDays);
+  });
+  return ok ? (data as ChronicleStatsSnapshot) : undefined;
+}
+
 function parseHistory(raw: unknown): ChronicleResult[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((entry): ChronicleResult[] => {
@@ -157,9 +173,27 @@ function parseHistory(raw: unknown): ChronicleResult[] {
         prizePool: item.prizePool ?? 0,
         payout: { husband: item.payout?.husband ?? 0, wife: item.payout?.wife ?? 0 },
         goldSnapshot: { husband: item.goldSnapshot?.husband ?? 0, wife: item.goldSnapshot?.wife ?? 0 },
+        ...(parseStats(item.stats) ? { stats: parseStats(item.stats) } : {}),
       },
     ];
   });
+}
+
+/**
+ * Fills in archive snapshots for chronicles that ended before snapshots existed, while their whole period
+ * is still inside the kept quest log (so the numbers are complete). Older ones keep their payout only.
+ */
+function backfillStats(history: ChronicleResult[], logs: TaskLog[], today: string): ChronicleResult[] {
+  const cutoff = addDays(today, -LOG_RETENTION_DAYS);
+  let changed = false;
+  const next = history.map((result) => {
+    if (result.stats || result.startDate < cutoff) return result;
+    const stats = snapshotChronicle(result, logs);
+    if (!stats) return result;
+    changed = true;
+    return { ...result, stats };
+  });
+  return changed ? next : history;
 }
 
 /** Replaces retired skills with their successors, keeping the higher level if both are owned. */
@@ -215,7 +249,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     logs: Array.isArray(data.logs) ? data.logs : [],
     prizePool: typeof data.prizePool === 'number' ? data.prizePool : DEFAULT_PRIZE_POOL,
     chronicle: parseChronicle(data.chronicle, data.activeMonth, today),
-    prizeHistory: parseHistory(data.prizeHistory),
+    prizeHistory: backfillStats(parseHistory(data.prizeHistory), Array.isArray(data.logs) ? data.logs : [], today),
     wheel: { jackpotBonus: count(data.wheel?.jackpotBonus) },
     events: parseEvents(data.events),
     cosmetics: parseCosmetics(data.cosmetics),
@@ -330,6 +364,9 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
     payout: calculatePayout(state.prizePool, goldSnapshot.husband, goldSnapshot.wife),
     goldSnapshot,
   };
+  // Save the archive stats now, while this chronicle's quest log is all still there.
+  const stats = snapshotChronicle(result, state.logs);
+  if (stats) result.stats = stats;
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
   // Gold (and interest) reset; Fortune's Favor hands out its tickets for the new chronicle.
