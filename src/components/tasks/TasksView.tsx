@@ -1,11 +1,12 @@
 import { Check, Fire, Home, Pencil, Plus, Search, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { fuzzyScoreAny } from '../../utils/fuzzy';
+import { addDays, localDateKey } from '../../utils/calculations';
 import { taskName } from '../../utils/taskNames';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
@@ -16,7 +17,7 @@ import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Modal } from '../ui/Modal';
 import { PageHeader } from '../ui/PageHeader';
-import { QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
+import { DEFAULT_PREFS, QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
 import { RewardBreakdownTable } from './RewardBreakdownTable';
 import { StreakBadge } from './StreakBadge';
 import { TaskEditorModal } from './TaskEditorModal';
@@ -90,6 +91,7 @@ function CompleterPicker({
   );
 }
 
+/** Compact reward total under a "Who did it?" tile: one of the few spots short enough on space for "G". */
 function OptionTotal({ breakdown }: { breakdown: Breakdown }) {
   const parts = Object.values(breakdown).filter((part): part is RewardBreakdown => !!part);
   const xp = Math.round(parts.reduce((sum, part) => sum + part.xp, 0));
@@ -153,7 +155,8 @@ export function TasksView() {
     removeTask,
   } = useGame();
   const [pending, setPending] = useState<Task | null>(null);
-  // "Yesterday's quests" view: yesterday's unfinished quests, completed late (no XP, half gold).
+  // "Yesterday's quests" view: every quest with yesterday's state; unfinished ones can be completed late (no XP,
+  // half gold), finished ones are locked.
   const [yesterdayView, setYesterdayView] = useState(false);
   const now = useMinuteNow();
   const graceOpen = yesterdayOpen(now);
@@ -166,7 +169,17 @@ export function TasksView() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
 
-  const enabled = showingYesterday ? lateQuests : state.tasks.filter((task) => task.enabled);
+  const enabled = state.tasks.filter((task) => task.enabled);
+  const yesterdayKey = addDays(localDateKey(now), -1);
+  const yesterdayLogs = useMemo(
+    () => new Map(state.logs.filter((log) => log.date === yesterdayKey).map((log) => [log.taskId, log])),
+    [state.logs, yesterdayKey],
+  );
+  // The log that marks a quest done in the view being shown (today's, or yesterday's).
+  const logFor = useCallback(
+    (taskId: string) => (showingYesterday ? yesterdayLogs.get(taskId) : getTodayLog(taskId)),
+    [showingYesterday, yesterdayLogs, getTodayLog],
+  );
   // Filtered by "Show" and the search, sorted (best matches first while searching), then split into
   // sections (a single untitled section when not grouping).
   const sections = useMemo(() => {
@@ -175,8 +188,8 @@ export function TasksView() {
     const score = (task: Task) => fuzzyScoreAny(query, [taskName(task, 'en'), taskName(task, 'vi')]);
     const shown = enabled.filter((task) => {
       if (searching && score(task) <= 0) return false;
-      if (showingYesterday || prefs.show === 'all') return true;
-      const done = !!getTodayLog(task.id);
+      if (prefs.show === 'all') return true;
+      const done = !!logFor(task.id);
       return prefs.show === 'completed' ? done : !done;
     });
     const sortedByPrefs = sortTasks(
@@ -196,7 +209,7 @@ export function TasksView() {
         tasks: sorted.filter((task) => (prefs.groupBy === 'group' ? task.group : task.category) === key),
       }))
       .filter((section) => section.tasks.length > 0);
-  }, [enabled, prefs, query, language, locale, getStreak, getTodayLog, activeCharacter, t, showingYesterday]);
+  }, [enabled, prefs, query, language, locale, getStreak, logFor, activeCharacter, t]);
 
   const previews = useMemo(() => {
     if (!pending) return undefined;
@@ -229,7 +242,12 @@ export function TasksView() {
       />
       {!pending && !fixing && <ErrorNote error={error} />}
       {graceOpen && lateQuests.length > 0 && (
-        <YesterdaysQuestsBanner active={showingYesterday} count={lateQuests.length} onToggle={() => setYesterdayView((value) => !value)} />
+        <YesterdaysQuestsBanner active={showingYesterday} count={lateQuests.length} onToggle={() => {
+            // Each view starts from the default sort, grouping and filter.
+            setPrefs(DEFAULT_PREFS);
+            setYesterdayView((value) => !value);
+          }}
+        />
       )}
       <label className="relative block">
         <span className="sr-only">{t('tasks.search')}</span>
@@ -263,11 +281,11 @@ export function TasksView() {
           )}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {section.tasks.map((task) => {
-              const log = showingYesterday ? undefined : getTodayLog(task.id);
+              const log = logFor(task.id);
               const done = !!log;
               const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
               return (
-                <Card key={task.id} tone={log ? COMPLETED_TONE[log.completedBy] : 'parchment'} className="p-3">
+                <Card key={task.id} tone={log ? COMPLETED_TONE[log.completedBy] : showingYesterday ? 'past' : 'parchment'} className="p-3">
                   <div className="flex items-center gap-3">
                     <span
                       className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-10 w-10 shrink-0 items-center justify-center`}
@@ -286,8 +304,8 @@ export function TasksView() {
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                         {/* Late: no XP and half the (base) gold, as the reward preview details. */}
-                        <span className={`font-arcade text-[10px] ${showingYesterday ? 'text-wood-500 line-through' : 'text-moss-700'}`}>
-                          +{task.xp}XP
+                        <span className={`font-arcade text-[10px] ${showingYesterday ? 'text-wood-600' : 'text-moss-700'}`}>
+                          {showingYesterday ? '0XP' : `+${task.xp}XP`}
                         </span>
                         <GoldCounter amount={showingYesterday ? Math.floor(task.gold / 2) : task.gold} />
                         <span className="text-sm font-bold uppercase text-wood-500">
@@ -295,7 +313,7 @@ export function TasksView() {
                         </span>
                       </div>
                     </div>
-                    {canEditSettings && (
+                    {canEditSettings && !showingYesterday && (
                       <IconButton icon={Pencil} variant="ghost" align="right" label={t('tasks.edit')} onClick={() => setEditing(task)} />
                     )}
                   </div>
@@ -318,7 +336,8 @@ export function TasksView() {
                             : spliceName(t('tasks.doneBy', { who: NAME_SLOT }), <CharacterName id={log.completedBy} />)}
                         </span>
                       </span>
-                      {canManageLog(log) && (
+                      {/* Yesterday's entries are locked: no fixing them. */}
+                      {!showingYesterday && canManageLog(log) && (
                         <IconButton
                           icon={Undo}
                           align="right"

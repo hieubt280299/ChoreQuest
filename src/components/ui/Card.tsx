@@ -9,6 +9,8 @@ const tones = {
   knight: 'px-panel px-panel-knight',
   mage: 'px-panel px-panel-mage',
   coop: 'px-panel px-panel-coop',
+  // Yesterday's unfinished quests.
+  past: 'px-panel px-panel-past',
 };
 
 export function Card({

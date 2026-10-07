@@ -1,5 +1,5 @@
-import { JACKPOT_BASE_GOLD, JACKPOT_MISS_BONUS, WHEEL_PRIZES } from '../constants/gameRules';
-import type { WheelPrize, WheelState } from '../types';
+import { JACKPOT_BASE_GOLD, JACKPOT_MISS_BONUS, SKILL_POOL, skillLevel, WHEEL_PRIZES } from '../constants/gameRules';
+import type { Character, WheelPrize, WheelState } from '../types';
 
 /** Uniform number in [0, 1) from the browser's crypto source (falls back to Math.random). */
 export function secureRandom(): number {
@@ -27,6 +27,14 @@ export function rollWheelPrize(random: () => number = secureRandom): WheelPrize 
 export function prizeGold(prize: WheelPrize, wheel: WheelState): number {
   if (prize === 'jackpot') return JACKPOT_BASE_GOLD + wheel.jackpotBonus;
   return WHEEL_PRIZES.find((entry) => entry.prize === prize)?.gold ?? 0;
+}
+
+/** Gold a prize pays this player: Fortune's Favor adds 25/50/75/100% to any wheel gold (the jackpot included). */
+export function wheelGoldFor(prize: WheelPrize, wheel: WheelState, character: Pick<Character, 'skills'>): number {
+  const favor = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor');
+  const level = favor ? skillLevel(character, favor.id) : 0;
+  const bonus = favor && level > 0 ? (favor.effect.gold?.[level - 1] ?? 0) : 0;
+  return Math.round(prizeGold(prize, wheel) * (1 + bonus));
 }
 
 /** Wheel state after a spin: a miss grows the jackpot, a jackpot empties it. */

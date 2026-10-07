@@ -5,6 +5,7 @@ import type { SkillDefinition } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
+import { FastLearnerTooltip, MvpTooltip } from './FastLearnerTooltip';
 
 type ValueField = 'xp' | 'gold' | 'values';
 
@@ -61,6 +62,7 @@ export function SkillDescription({
   level,
   className = '',
   interactive = true,
+  characterLevel,
 }: {
   skill: SkillDefinition;
   /** Current skill level (0 = not learned). */
@@ -68,14 +70,20 @@ export function SkillDescription({
   className?: string;
   /** Set false where the description already sits inside a tooltip. */
   interactive?: boolean;
+  /** The character's level, for bonuses that grow with it (Fast Learner's live total). */
+  characterLevel?: number;
 }) {
   const { t } = useLanguage();
-  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target)\}\})/);
+  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target|levelBonus|mvp)\}\})/);
 
   return (
     <p className={className}>
       {parts.map((part, partIndex) => {
         if (part === '{{target}}') return <SkillTarget key={partIndex} skill={skill} interactive={interactive} />;
+        if (part === '{{levelBonus}}') {
+          return <FastLearnerTooltip key={partIndex} skill={skill} level={level} characterLevel={characterLevel} interactive={interactive} />;
+        }
+        if (part === '{{mvp}}') return <MvpTooltip key={partIndex} interactive={interactive} />;
         const field = part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : null;
         if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
         const values = skillLevelValues(skill, field);

@@ -57,7 +57,9 @@ export function Modal({
               </button>
             </div>
             {/* Tall content (e.g. the wardrobe) scrolls inside the card; the title plate stays put. */}
-            <div className="-mx-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-2 pb-1">{children}</div>
+            {/* Padding inside the scroll area (offset by negative margins) so pixel borders and a raised, selected
+                button aren't clipped at its edges. */}
+            <div className="-mx-2 -mt-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-2 pb-1 pt-2">{children}</div>
           </motion.div>
         </motion.div>
       )}

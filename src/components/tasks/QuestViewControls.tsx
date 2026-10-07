@@ -16,7 +16,7 @@ const STORAGE_KEY = 'chorequest.questView.v2';
 const SORTS: QuestSort[] = ['streak', 'xp', 'gold', 'name'];
 const GROUPINGS: QuestGrouping[] = ['none', 'group', 'category'];
 const SHOWS: QuestShow[] = ['all', 'incomplete', 'completed'];
-const DEFAULT_PREFS: QuestViewPrefs = { sort: SORTS[0], groupBy: GROUPINGS[0], show: SHOWS[0] };
+export const DEFAULT_PREFS: QuestViewPrefs = { sort: SORTS[0], groupBy: GROUPINGS[0], show: SHOWS[0] };
 
 function pick<T extends string>(options: T[], value: unknown, fallback: T): T {
   return options.includes(value as T) ? (value as T) : fallback;

@@ -84,6 +84,8 @@ export interface SkillEffect {
   gold?: number[];
   /** Other per-level values: ticket counts or interest rates. */
   values?: number[];
+  /** Extra XP bonus per character level on top of `xp` (Fast Learner: +1% per level). */
+  xpPerCharacterLevel?: number;
   category?: TaskCategory;
   group?: TaskGroup;
 }

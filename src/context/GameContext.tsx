@@ -1,6 +1,6 @@
 import { updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { DEFAULT_TASKS, MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
+import { MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
 import type {
   AvatarId,
   CharacterId,
@@ -37,11 +37,12 @@ import {
   parseGameState,
   pruneLogs,
   resetLevelsAndSkills,
+  resetQuestList,
 } from '../utils/gameState';
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
-import { nextWheelState, prizeGold, rollWheelPrize } from '../utils/wheel';
+import { nextWheelState, rollWheelPrize, wheelGoldFor } from '../utils/wheel';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 
@@ -113,8 +114,11 @@ interface GameContextValue {
   reassignLog: (logId: string, completer: Completer) => ActionResult;
   upsertTask: (task: Task) => ActionResult;
   removeTask: (taskId: string) => ActionResult;
-  /** Moderator: replace the quest list with the current defaults (logs and streaks keep matching ids). */
-  resetTasksToDefaults: () => ActionResult;
+  /**
+   * Moderator: put the built-in quests back to their default values (logs and streaks keep matching ids).
+   * Custom quests are kept unless `removeCustom` is set.
+   */
+  resetTasksToDefaults: (options?: { removeCustom?: boolean }) => ActionResult;
   /** A player has reached the level cap, so levels and skills may be reset ("new legend"). */
   levelResetUnlocked: boolean;
   /** Moderator: reset both players to level 1 with no skills; gold and chronicle are kept. */
@@ -447,7 +451,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const character = current.characters[characterId];
       if (character.tickets < 1) return { ok: false, error: 'wheel.error.noTickets' };
       const prize = rollWheelPrize();
-      const gold = prizeGold(prize, current.wheel);
+      const gold = wheelGoldFor(prize, current.wheel, character);
       const now = Date.now();
       const spin: WheelSpinEvent = {
         id: `spin-${characterId}-${now}`,
@@ -612,8 +616,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ? resetLevelsAndSkills(current)
             : fail('settings.newLegendLocked'),
         ),
-      resetTasksToDefaults: () =>
-        withSettings((current) => ({ ...current, tasks: DEFAULT_TASKS.map((task) => ({ ...task, names: { ...task.names } })) })),
+      resetTasksToDefaults: (options) =>
+        withSettings((current) => ({ ...current, tasks: resetQuestList(current.tasks, options?.removeCustom) })),
       removeTask: (taskId) =>
         withSettings((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== taskId) })),
       setPrizePool: (amount) =>
