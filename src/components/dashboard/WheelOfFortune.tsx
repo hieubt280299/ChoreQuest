@@ -128,7 +128,11 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
         <Icon as={Crown} size={48} className="px-blink mx-auto text-brick-700" />
         <h2
           className="px-title mt-2 text-5xl uppercase text-flame-300"
-          style={{ textShadow: '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' }}
+          // A dark pixel outline keeps the yellow title readable on the orange jackpot card.
+          style={{
+            textShadow:
+              '-2px 0 0 #2b1a12, 2px 0 0 #2b1a12, 0 -2px 0 #2b1a12, 0 2px 0 #2b1a12, -2px -2px 0 #2b1a12, 2px -2px 0 #2b1a12, -2px 2px 0 #2b1a12, 2px 2px 0 #2b1a12, 5px 5px 0 #b04a34',
+          }}
         >
           {t('wheel.jackpotTitle')}
         </h2>
@@ -138,8 +142,8 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
           </span>
         </div>
         <p className="mb-4 text-lg font-bold">{t('wheel.jackpotWon', { name: name(spin.characterId) })}</p>
-        <div className="px-slot mx-auto mb-5 w-fit px-4 py-2">
-          <GoldCounter amount={spin.gold} spin size="lg" />
+        <div className="px-slot mx-auto mb-5 flex w-fit items-center justify-center px-4 py-2">
+          <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
         </div>
         <Button className="w-full" variant="brick" onClick={onClose}>
           {t('mastery.continue')}
@@ -187,15 +191,16 @@ function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () =
           )}
         </div>
         <h2
-          className={`px-title text-4xl uppercase ${won ? 'text-flame-300' : 'text-parchment-50'}`}
-          style={{ textShadow: won ? '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' : '3px 3px 0 #7a4a2a, 5px 5px 0 #2b1a12' }}
+          className={`px-title text-4xl uppercase ${won ? 'text-flame-300' : 'text-brick-700'}`}
+          // The miss title is dark brick on the parchment card (light text there was hard to read).
+          style={{ textShadow: won ? '3px 3px 0 #b04a34, 5px 5px 0 #2b1a12' : '3px 3px 0 rgb(var(--c-ink) / 0.25)' }}
         >
           {won ? t('wheel.wonTitle') : t('wheel.missTitle')}
         </h2>
         <p className="mb-5 mt-2 text-xl font-bold text-wood-700">{won ? t('wheel.won', { gold: spin.gold }) : t('wheel.miss')}</p>
         {won ? (
-          <div className="px-slot mx-auto mb-5 w-fit px-4 py-2">
-            <GoldCounter amount={spin.gold} spin size="lg" />
+          <div className="px-slot mx-auto mb-5 flex w-fit items-center justify-center px-4 py-2">
+            <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
           </div>
         ) : (
           <p className="mb-5 text-base font-bold text-brick-600">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</p>
@@ -222,6 +227,10 @@ export function WheelOfFortune() {
   const [shownBonus, setShownBonus] = useState<number | null>(null);
   const [error, setError] = useState<TranslationKey | null>(null);
   const pending = useRef<WheelSpinEvent | null>(null);
+  // Shows the result once the spin's full duration has passed. framer-motion's onAnimationComplete isn't
+  // used for this: it can fire early (e.g. when a re-render interrupts the running animation).
+  const finishTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(finishTimer.current), []);
   const lastSlice = useRef(0);
 
   const characterId: CharacterId = activeCharacter;
@@ -253,6 +262,9 @@ export function WheelOfFortune() {
     setDuration(seconds);
     setRotation(rotation + turns + offset);
     setSpinning(true);
+    const spinSeconds = still ? 0.01 : quality === 'low' ? 2 : seconds;
+    window.clearTimeout(finishTimer.current);
+    finishTimer.current = window.setTimeout(finish, spinSeconds * 1000 + 150);
   };
 
   const finish = () => {
@@ -292,7 +304,7 @@ export function WheelOfFortune() {
               {WHEEL_PRIZES.filter((entry) => entry.prize !== 'none').map((entry) => (
                 <span key={entry.prize} className="flex justify-between gap-3">
                   <span>{t(`wheel.prize.${entry.prize}` as TranslationKey)}</span>
-                  <span className="font-extrabold">{entry.prize === 'jackpot' ? `${JACKPOT_BASE_GOLD}+` : entry.gold} G</span>
+                  <span className="font-extrabold">{t('common.goldAmount', { gold: entry.prize === 'jackpot' ? `${JACKPOT_BASE_GOLD}+` : entry.gold })}</span>
                 </span>
               ))}
               <span className="mt-1 block text-wood-700">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</span>
@@ -359,7 +371,6 @@ export function WheelOfFortune() {
             if (spinning && slice !== lastSlice.current) playWheelTickSFX();
             lastSlice.current = slice;
           }}
-          onAnimationComplete={finish}
         >
           <WheelFace />
           {SLICES.map((slice, index) => (

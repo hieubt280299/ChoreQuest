@@ -2,6 +2,41 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.2.0] - 2026-10-07
+
+Spec: [UPDATE_v1.2.0.md](UPDATE_v1.2.0.md)
+
+### Added
+
+- **Reset quests to defaults** has a **Remove custom quests** checkbox:
+  - Unchecked (the default): built-in quests go back to their default values, and your custom quests are kept.
+  - Checked: full reset, so custom quests are removed too.
+- **Fast Learner tooltip:** "+1% per character level" in the description shows your live XP bonus (for example, character level 5 with the skill at level 2: "Current XP bonus: 65%").
+- **MVP tooltip:** in Hall of Fame's description, "MVP" explains who the day's MVP is, in place of the old note in brackets.
+
+### Changed
+
+- **Skill balance:**
+  - **Speed Cleaner:** 10 / 15 / 20 / 25% more XP and gold from Cleaning quests.
+  - **Shop Savvy:** 10 / 20 / 30 / 40% more XP and 5 / 10 / 15 / 20% more gold from Shopping quests.
+  - **Fast Learner:** 40 / 60 / 80 / 100% more XP from every quest, plus 1% per character level. It no longer gives gold.
+  - **Fortune's Favor:** 3 / 4 / 5 / 6 extra tickets each new Chronicle, and 25 / 50 / 75 / 100% more gold from the Wheel of Fortune (jackpot included).
+  - **Hall of Fame:** 3 / 4 / 5 / 6 extra tickets at every 5th MVP day.
+- **Yesterday's quests:**
+  - The view now lists all quests, done and not done, and Sort, Group and Show work there too.
+  - Sort, Group and Show reset to their defaults when you switch between Today and Yesterday.
+  - Quests done yesterday are locked: they can't be fixed or edited.
+  - Cards show "0XP" (no strikethrough), and unfinished ones have a duller, faded look.
+- **Wording:** gold is written out ("10 gold" / "10 vàng") everywhere except the tight reward breakdown, which keeps "G", and Vietnamese uses "kinh nghiệm" instead of "KN" except in the smallest badges.
+- **"So close!"** on the Wheel of Fortune's miss card is now dark text, which is easier to read.
+
+### Fixed
+
+- The Wheel of Fortune's result card no longer pops up before the wheel has stopped spinning.
+- The gold amount on the Wheel's result and jackpot cards is centred in its box.
+- The "Jackpot!" title has a dark outline, so it stands out from the orange card.
+- The "Who did it?" tiles (and other pop-up content) are no longer cut off at the top.
+
 ## [1.1.1] - 2026-10-07
 
 ### Changed

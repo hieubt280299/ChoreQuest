@@ -123,8 +123,6 @@ export function inferTaskGroup(task: Pick<Task, 'id' | 'category'> & { group?: u
 }
 
 const levels = (...values: number[]) => values;
-/** XP-only skills also pay gold: half their XP bonus. */
-const halfOf = (values: number[]) => values.map((value) => value / 2);
 
 export const SKILL_POOL: SkillDefinition[] = [
   {
@@ -133,7 +131,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.speedCleaner.desc',
     icon: 'sparkles',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'cleaning', xp: levels(0.08, 0.16, 0.24, 0.32), gold: halfOf(levels(0.08, 0.16, 0.24, 0.32)) },
+    effect: { kind: 'category', category: 'cleaning', xp: levels(0.1, 0.15, 0.2, 0.25), gold: levels(0.1, 0.15, 0.2, 0.25) },
   },
   {
     id: 'master-chef',
@@ -181,7 +179,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.shopSavvy.desc',
     icon: 'cart',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'shopping', xp: levels(0.08, 0.16, 0.24, 0.32), gold: halfOf(levels(0.08, 0.16, 0.24, 0.32)) },
+    effect: { kind: 'category', category: 'shopping', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.05, 0.1, 0.15, 0.2) },
   },
   {
     id: 'zen-housekeeper',
@@ -189,7 +187,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.zenHousekeeper.desc',
     icon: 'lightbulb',
     maxLevel: 4,
-    effect: { kind: 'all', xp: levels(0.04, 0.08, 0.12, 0.16), gold: halfOf(levels(0.04, 0.08, 0.12, 0.16)) },
+    // XP grows with the character: 40/60/80/100% plus 1% per character level.
+    effect: { kind: 'all', xp: levels(0.4, 0.6, 0.8, 1), xpPerCharacterLevel: 0.01 },
   },
   {
     id: 'raid-master',
@@ -213,7 +212,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.fortunesFavor.desc',
     icon: 'ticket',
     maxLevel: 4,
-    effect: { kind: 'chronicle_tickets', values: levels(2, 3, 4, 5) },
+    // `values`: tickets at each chronicle start; `gold`: extra gold on Wheel of Fortune prizes.
+    effect: { kind: 'chronicle_tickets', values: levels(3, 4, 5, 6), gold: levels(0.25, 0.5, 0.75, 1) },
   },
   {
     id: 'gold-interest',
@@ -237,7 +237,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.hallOfFame.desc',
     icon: 'trophy',
     maxLevel: 4,
-    effect: { kind: 'mvp_tickets', values: levels(1, 2, 3, 4) },
+    effect: { kind: 'mvp_tickets', values: levels(3, 4, 5, 6) },
   },
 ];
 

@@ -113,11 +113,12 @@ src/
 #### 4. Skills Pool (14 Configurable Skills)
 
 - **Caps:** up to **8** skills per character (`MAX_SKILLS_PER_CHARACTER`), max level 4 each, skill points capped at **24**. The Skills tab lists Learned and Unlearned skills; Unlearned is hidden once all 8 slots are used.
-- **Values:** each skill lists explicit per-level `xp` / `gold` bonuses (or `values` for tickets and interest). XP-only skills also pay gold at half their XP bonus. Master Chef 10/18/26/34% gold, Quick Hands and Team Player 5/10/15/20% gold, Heavy Lifter 15/25/35/45% gold.
+- **Values:** each skill lists explicit per-level `xp` / `gold` bonuses (or `values` for tickets and interest). Speed Cleaner 10/15/20/25% XP and gold (Cleaning), Shop Savvy 10/20/30/40% XP and 5/10/15/20% gold (Shopping). Master Chef 10/18/26/34% gold, Quick Hands and Team Player 5/10/15/20% gold, Heavy Lifter 15/25/35/45% gold.
 - **Synergistic Streak** (_Cộng hưởng_): +20/30/40/50% gold and +10/15/20/25% XP on quests the spouse has an active streak on (3+ days).
-- **Hall of Fame** (_Đỉnh cao phong độ_): +1/2/3/4 wheel tickets at every 5th MVP day of a chronicle. The day's MVP (most quest gold) is settled once at day end (`settleMvpDays`, `mvpSettledOn` marker; `mvpDays` per character resets each chronicle), never retroactively.
+- **Fast Learner** (_Học nhanh_, id `zen-housekeeper`): 40/60/80/100% + 1% per character level (`xpPerCharacterLevel`) more XP on every quest, no gold. `FastLearnerTooltip` shows the live total (character lv. 5, skill lv. 2 → 65%).
+- **Hall of Fame** (_Đỉnh cao phong độ_): +3/4/5/6 wheel tickets at every 5th MVP day of a chronicle. The day's MVP (most quest gold) is settled once at day end (`settleMvpDays`, `mvpSettledOn` marker; `mvpDays` per character resets each chronicle), never retroactively. The "MVP" word in its description has a tooltip explaining MVP (`MvpTooltip`).
 - Shared pool of 14 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Golden Touch"_, _"Laundry Pro"_, _"Fast Learner"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Heavy Lifter: +15% gold from Heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
-- **Fortune's Favor** (_Kiếm vé may mắn_): start each new chronicle with 2 / 3 / 4 / 5 extra wheel tickets (granted at rollover).
+- **Fortune's Favor** (_Kiếm vé may mắn_): start each new chronicle with 3 / 4 / 5 / 6 extra wheel tickets (granted at rollover), and +25/50/75/100% gold from every wheel prize, jackpot included (`wheelGoldFor`).
 - **Gold Interest** (_Tích tiểu thành đại_): at the start of each day gain 2 / 4 / 6 / 8% of the character's current gold (rounded; compounds, since paid interest is gold). Interest is ordinary gold, so it **counts for the payout**, but each payout is also logged as an `interest` event so it is **excluded from the day's MVP** and shown in the day log's bonus tooltip ("+X Interest Gold today"). A chronicle's first day never pays (gold has just reset). It starts the day after the skill is learned (`interestOn` marker).
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
@@ -151,6 +152,9 @@ src/
   - They're logged on yesterday's date with `late: true`, so streaks continue.
   - They pay 0 XP and floor(50% × (base + skill gold)), with no streak bonus (`lateRewardBreakdown`). Re-assigning keeps the late rules.
   - Late gold counts for the payout but is excluded from MVP (`questGoldOn`), so yesterday's settled MVP never changes.
+  - The yesterday view lists **all** quests with yesterday's state, and Sort / Group / Show work as usual (they reset to defaults whenever you switch between Today and Yesterday). Yesterday's completed entries are locked (no fix button, no quest editing). Cards show "0XP" and half gold; unfinished ones use the desaturated `past` card tone.
+- **Reset quests to defaults** (moderator): built-in quests go back to their default values and custom quests are kept, unless "Remove custom quests" is ticked (`resetQuestList`).
+- **Copy rules:** write gold out (`common.goldAmount`: "{{gold}} gold" / "{{gold}} vàng"); "G" is allowed only where space is very tight (the reward breakdown table and the "Who did it?" tile totals); in Vietnamese write "kinh nghiệm" and keep "KN" only in tight micro-badges.
 - **Theme modules** (`src/themes/<id>`): each provides `SceneBack` / `SceneFront` for the shared 120×54 cabin stage plus its own `theme.css`. Cozy Hearth is bundled; the others load on demand via `loadTheme` / `useThemeModule`, and `<html data-theme>` is only switched once the chunk has arrived.
 - **Graphics quality** (`hooks/useQuality.ts`, `<html data-quality>`): Low stops only what keeps running and can lag weak phones:
   - the shared sprite clock;

@@ -196,7 +196,7 @@ export function applySkillBonuses(
         break;
     }
     if (!applies) continue;
-    xpMult += effect.xp?.[owned.level - 1] ?? 0;
+    xpMult += (effect.xp?.[owned.level - 1] ?? 0) + (effect.xpPerCharacterLevel ?? 0) * getLevelFromXp(character.xp);
     goldMult += effect.gold?.[owned.level - 1] ?? 0;
   }
 

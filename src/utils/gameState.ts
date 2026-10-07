@@ -449,3 +449,13 @@ export function changedSections(prev: GameState, next: GameState): Partial<House
   });
   return patch;
 }
+
+/**
+ * The quest list after "Reset quests to defaults": the built-in quests with their default values, followed by
+ * the custom quests unless `removeCustom` is set.
+ */
+export function resetQuestList(tasks: Task[], removeCustom = false): Task[] {
+  const defaults = DEFAULT_TASKS.map((task) => ({ ...task, names: { ...task.names } }));
+  const builtIn = new Set(DEFAULT_TASKS.map((task) => task.id));
+  return removeCustom ? defaults : [...defaults, ...tasks.filter((task) => !builtIn.has(task.id))];
+}

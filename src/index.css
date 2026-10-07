@@ -158,6 +158,15 @@ body,
     --sh: rgb(var(--c-plum-500));
   }
 
+  /* Yesterday's unfinished quests: a duller, desaturated card (contents included) for a day that's over. */
+  .px-panel-past {
+    --hl: rgb(var(--c-parchment-200));
+    --sh: rgb(var(--c-parchment-400));
+    background-color: rgb(var(--c-parchment-300));
+    background-image: linear-gradient(rgb(110 110 110 / 0.2), rgb(110 110 110 / 0.2));
+    filter: saturate(0.4);
+  }
+
   /* Tooltip bubbles: always dark text on the light panel, never the light text or outline of a board they
      sit on, and secondary text a little lighter than the main text but still high-contrast in every theme. */
   .px-tooltip,

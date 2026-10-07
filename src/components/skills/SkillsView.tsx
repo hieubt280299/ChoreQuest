@@ -71,6 +71,7 @@ function SkillCard({
   onUnlock,
   onUpgrade,
   extra,
+  characterLevel,
 }: {
   skill: SkillDefinition;
   level: number;
@@ -80,6 +81,7 @@ function SkillCard({
   onUnlock: () => void;
   onUpgrade: () => void;
   extra?: ReactNode;
+  characterLevel: number;
 }) {
   const { t } = useLanguage();
   return (
@@ -92,7 +94,7 @@ function SkillCard({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xl font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
-          <SkillDescription skill={skill} level={level} className="text-base leading-snug text-wood-600" />
+          <SkillDescription skill={skill} level={level} characterLevel={characterLevel} className="text-base leading-snug text-wood-600" />
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <TierPips level={level} />
             {extra}
@@ -145,6 +147,7 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
         canUpgrade={level > 0 && level < MAX_SKILL_LEVEL && points > 0}
         onUnlock={() => unlock(skill.id)}
         onUpgrade={() => upgradeSkill(characterId, skill.id)}
+        characterLevel={getLevelFromXp(character.xp)}
         extra={
           skill.effect.kind === 'mvp_tickets' && level > 0 ? (
             <span className="text-sm font-bold uppercase text-wood-600">
@@ -214,7 +217,12 @@ function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
                   <div className="my-1">
                     <TierPips level={owned.level} />
                   </div>
-                  <SkillDescription skill={skill!} level={owned.level} className="text-sm leading-snug text-wood-600" />
+                  <SkillDescription
+                    skill={skill!}
+                    level={owned.level}
+                    characterLevel={getLevelFromXp(character.xp)}
+                    className="text-sm leading-snug text-wood-600"
+                  />
                 </div>
               </li>
             ))}
