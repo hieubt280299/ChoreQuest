@@ -204,7 +204,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.steadyWorker.desc',
     icon: 'clock',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'main', xp: levels(0.06, 0.12, 0.18, 0.24), gold: levels(0.06, 0.12, 0.18, 0.24) },
+    effect: { kind: 'group', group: 'main', xp: levels(0.1, 0.15, 0.2, 0.25), gold: levels(0.1, 0.15, 0.2, 0.25) },
   },
   {
     id: 'fortunes-favor',
@@ -263,6 +263,9 @@ export const SKILL_MIGRATIONS: Record<string, string> = {
   'night-owl': 'raid-master',
   'lucky-charm': 'steady-worker',
 };
+
+/** Most gold Gold Interest can pay a character in one day. */
+export const DAILY_INTEREST_CAP = 100;
 
 export function createDefaultCharacter(id: CharacterId, name: string): Character {
   return { id, name, xp: 0, gold: 0, skills: [], tickets: 0, ticketLevel: 1, mvpDays: 0 };

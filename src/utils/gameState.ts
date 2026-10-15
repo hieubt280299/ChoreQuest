@@ -1,5 +1,6 @@
 import {
   createDefaultCharacter,
+  DAILY_INTEREST_CAP,
   DEFAULT_PRIZE_POOL,
   DEFAULT_TASKS,
   HALL_OF_FAME_EVERY,
@@ -255,6 +256,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     cosmetics: parseCosmetics(data.cosmetics),
     ...(isDateKey(data.mvpSettledOn) ? { mvpSettledOn: data.mvpSettledOn } : {}),
     ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
+    ...(Array.isArray(data.appliedOps) ? { appliedOps: data.appliedOps.filter((id): id is string => typeof id === 'string') } : {}),
   };
   return advance ? advanceDays(state, today) : state;
 }
@@ -288,8 +290,9 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
     const rate = skillEffectValue(GOLD_INTEREST, level);
     let gold = character.gold;
     for (let day = addDays(character.interestOn, 1); day <= upTo; day = addDays(day, 1)) {
+      // Day 1 of a chronicle never pays (gold has just reset); every later day pays at most the daily cap.
       if (day <= state.chronicle.startDate) continue;
-      const interest = Math.round(gold * rate);
+      const interest = Math.min(DAILY_INTEREST_CAP, Math.round(gold * rate));
       if (interest <= 0) continue;
       gold += interest;
       events.unshift({
@@ -402,6 +405,7 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       cosmetics: state.cosmetics,
       ...(state.mvpSettledOn ? { mvpSettledOn: state.mvpSettledOn } : {}),
       ...(state.levelResetAt !== undefined ? { levelResetAt: state.levelResetAt } : {}),
+      ...(state.appliedOps ? { appliedOps: state.appliedOps } : {}),
     },
   };
 }
@@ -432,22 +436,6 @@ export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKe
     today,
     advance,
   );
-}
-
-/**
- * Only the sections that actually changed, so a member's quest update never rewrites
- * moderator-only settings (which security rules would reject).
- */
-export function changedSections(prev: GameState, next: GameState): Partial<HouseholdSections> {
-  const before = toHouseholdSections(prev);
-  const after = toHouseholdSections(next);
-  const patch: Partial<HouseholdSections> = {};
-  (['settings', 'chronicle', 'game'] as const).forEach((key) => {
-    if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) {
-      (patch as Record<string, unknown>)[key] = after[key];
-    }
-  });
-  return patch;
 }
 
 /**

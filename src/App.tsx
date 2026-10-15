@@ -16,6 +16,7 @@ import { RewardModal } from './components/tasks/RewardModal';
 import { TasksView } from './components/tasks/TasksView';
 import { AudioToggle } from './components/ui/AudioToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
+import { SyncErrorToast } from './components/ui/SyncErrorToast';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
 import { useHousehold } from './context/HouseholdContext';
@@ -79,6 +80,7 @@ export default function App() {
       />
       <SkillPickerModal open={!!skillCharacter} characterId={skillCharacter} onClose={() => setSkillCharacter(null)} />
       <CosmeticPicker open={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
+      <SyncErrorToast />
     </div>
   );
 }

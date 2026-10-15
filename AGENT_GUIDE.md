@@ -51,10 +51,13 @@ src/
 │   └── firebase.ts     # Firebase initialization reading VITE_FIREBASE_* env vars
 ├── constants/
 │   └── gameRules.ts    # XP array, Skill tree rules, Default tasks, Default prize pool
+├── services/
+│   └── firestoreServices.ts # commitOp: saves one player action in a Firestore transaction
 ├── types/
 │   └── index.ts        # Fully typed TypeScript interfaces
 ├── utils/
 │   ├── calculations.ts # XP leveling logic, Gold split ratios, Date math
+│   ├── transactionUtils.ts # GameOp, applyOp / replayOps (apply-once), householdPatch (field-level)
 │   └── i18n.ts         # EN / VI translations dictionary
 └── App.tsx
 ```
@@ -72,6 +75,14 @@ src/
     - **Roles:** the creator (`createdBy`) is `moderator`, and **only the creator** can grant or revoke `moderator` for the partner. Only moderators edit settings (quests, prize pool, chronicle end date). If the creator leaves, founder status and moderation pass to the remaining member.
     - **Leave Household** detaches the account and returns it to onboarding; a leaving sole moderator promotes the partner, and the last member leaving deletes the household.
     - **Character binding:** an account spends skill points only for its own character, and the partner's stats are view-only. Quests may be logged for either character or both. Firestore rules (`firestore.rules`) enforce membership, the 2-member cap, and moderator-only settings.
+- **Saving (concurrency):** both partners write the same `households/{id}` document, so writes must never overwrite each other.
+    - Every game action in `GameContext` is a `GameOp`: a pure `update(state) => state | errorKey` with an id. Clocks, ids and dice rolls are fixed before the op is built, because it may run several times.
+    - `commit(op)` applies it locally right away (optimistic UI), then `commitOp` saves it in a **Firestore transaction**: read the latest document, re-apply the op on it, write only the changed field paths (`householdPatch`: `game.characters.husband` / `game.characters.wife`, `game.logs`, `game.wheel`, …). Firestore retries on contention, so the other partner's write is never lost.
+    - Op ids are kept in `game.appliedOps` (last 40), so a retried or replayed op applies once. Pending ops are replayed on every snapshot (`replayOps`), so the screen never jumps back.
+    - An op that no longer applies (e.g. the partner just logged the same quest) is rejected: the screen returns to the saved state and `SyncErrorToast` explains why.
+    - The wheel waits for its transaction before turning (the button is locked meanwhile), so the prize and jackpot shown are the server's.
+    - **Offline** (transactions need the server), the op is written as a queued field-level update from the last known state.
+    - Leaving a household and deleting an account also run as transactions on the latest document.
 - **Character names:** displayed exactly as typed (case kept, via `CharacterName`, even inside uppercase headings and buttons). Each player may rename only their own character (any in the demo) from the Home card. `customName` is at most 16 Unicode letters, digits or spaces, trimmed with inner spaces collapsed; blank means unset. The name replaces the role label throughout the app (via `useCharacterName`), except the "You are / Playing as" switcher; the Home card shows the name with the role as a subheader.
 - Each character possesses:
     - `xp`: total experience accumulated.
@@ -117,9 +128,9 @@ src/
 - **Synergistic Streak** (_Cộng hưởng_): +20/30/40/50% gold and +10/15/20/25% XP on quests the spouse has an active streak on (3+ days).
 - **Fast Learner** (_Học nhanh_, id `zen-housekeeper`): 40/60/80/100% + 1% per character level (`xpPerCharacterLevel`) more XP on every quest, no gold. `FastLearnerTooltip` shows the live total (character lv. 5, skill lv. 2 → 65%).
 - **Hall of Fame** (_Đỉnh cao phong độ_): +3/4/5/6 wheel tickets at every 5th MVP day of a chronicle. The day's MVP (most quest gold) is settled once at day end (`settleMvpDays`, `mvpSettledOn` marker; `mvpDays` per character resets each chronicle), never retroactively. The "MVP" word in its description has a tooltip explaining MVP (`MvpTooltip`).
-- Shared pool of 14 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Golden Touch"_, _"Laundry Pro"_, _"Fast Learner"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker"_, _"Heavy Lifter: +15% gold from Heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
+- Shared pool of 14 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Golden Touch"_, _"Laundry Pro"_, _"Fast Learner"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker: +10/15/20/25% XP and gold from Moderate tasks"_, _"Heavy Lifter: +15% gold from Heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
 - **Fortune's Favor** (_Kiếm vé may mắn_): start each new chronicle with 3 / 4 / 5 / 6 extra wheel tickets (granted at rollover), and +25/50/75/100% gold from every wheel prize, jackpot included (`wheelGoldFor`).
-- **Gold Interest** (_Tích tiểu thành đại_): at the start of each day gain 2 / 4 / 6 / 8% of the character's current gold (rounded; compounds, since paid interest is gold). Interest is ordinary gold, so it **counts for the payout**, but each payout is also logged as an `interest` event so it is **excluded from the day's MVP** and shown in the day log's bonus tooltip ("+X Interest Gold today"). A chronicle's first day never pays (gold has just reset). It starts the day after the skill is learned (`interestOn` marker).
+- **Gold Interest** (_Tích tiểu thành đại_): at the start of each day gain 2 / 4 / 6 / 8% of the character's current gold (rounded; compounds, since paid interest is gold), at most **100 gold per day** (`DAILY_INTEREST_CAP`). Interest is ordinary gold, so it **counts for the payout**, but each payout is also logged as an `interest` event so it is **excluded from the day's MVP** and shown in the day log's bonus tooltip ("+X Interest Gold today"). A chronicle's first day never pays (gold has just reset). It starts the day after the skill is learned (`interestOn` marker).
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
 - Descriptions list every level's value Dota-style with the active level highlighted, e.g. "Gain 8% / 16% / **24%** / 32% more XP from cleaning quests" (values come from `effect.perLevel`).
@@ -166,6 +177,7 @@ src/
 #### 8. Layout
 
 - The top bar (sound, character) and the bottom navigation are fixed to the screen edges. On phones the bottom bar has Home, Quests, Skills and **More**, a drawer with History, Calendar and Settings.
+- **Installed app (PWA) on touch screens:** scrollbars are hidden (`display-mode: standalone` + `pointer: coarse`); scrolling works as before. Browsers and desktop keep them.
 - No sideways scrolling from 320px up. The wheel spins on its own GPU layer (`will-change-transform`) and the bars sit on their own layers, so spins never repaint them.
 - Level-up cards only show for the player's own character, including level-ups caused by the spouse logging a quest (tracked per device against the last level celebrated).
 

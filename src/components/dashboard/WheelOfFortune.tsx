@@ -235,14 +235,22 @@ export function WheelOfFortune() {
 
   const characterId: CharacterId = activeCharacter;
   const tickets = state.characters[characterId].tickets;
-  const canSpin = canActAs(characterId) && tickets > 0 && !spinning;
+  // Locked while the spin is being saved (the wheel only turns once it's stored), so a double tap can't spend two tickets.
+  const [requesting, setRequesting] = useState(false);
+  const canSpin = canActAs(characterId) && tickets > 0 && !spinning && !requesting;
   const jackpot = JACKPOT_BASE_GOLD + (shownBonus ?? state.wheel.jackpotBonus);
   const ticketLabel =
     tickets === 0 ? t('wheel.noTicketsHint') : tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
 
-  const spin = () => {
-    const outcome = spinWheel(characterId);
+  const spin = async () => {
+    if (!canSpin) return;
+    setRequesting(true);
+    // Keep showing the current pot while the spin is saved, so a miss doesn't give itself away early.
+    setShownBonus(state.wheel.jackpotBonus);
+    const outcome = await spinWheel(characterId);
+    setRequesting(false);
     if (!outcome.ok) {
+      setShownBonus(null);
       setError(outcome.error);
       return;
     }
@@ -339,7 +347,7 @@ export function WheelOfFortune() {
       {/* The wheel itself is the spin button. */}
       <button
         type="button"
-        onClick={spin}
+        onClick={() => void spin()}
         disabled={!canSpin}
         aria-label={t('wheel.spin')}
         className={`px-focus group relative mx-auto block aspect-square w-full max-w-[17rem] rounded-full ${

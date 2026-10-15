@@ -13,7 +13,7 @@ import {
   type DocumentReference,
   type Firestore,
   type UpdateData,
-  type WriteBatch,
+  type Transaction,
 } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getFirebase } from '../config/firebase';
@@ -68,25 +68,30 @@ function firestoreCode(err: unknown): string {
 }
 
 /**
- * Adds "remove `uid` from this household" to a batch: the last member deletes the household and its
- * code. A leaving creator passes founder status (and moderation) to the partner, and a leaving sole
- * moderator promotes the partner, so the household is never left unmanaged.
+ * Removes `uid` from a household inside a transaction, working from the latest household document (not the
+ * last snapshot this device saw): the last member deletes the household and its code. A leaving creator passes
+ * founder status (and moderation) to the partner, and a leaving sole moderator promotes the partner, so the
+ * household is never left unmanaged.
  */
-function addLeaveToBatch(batch: WriteBatch, db: Firestore, household: HouseholdSnapshot, uid: string) {
-  const ref = doc(db, 'households', household.id);
-  const others = household.data.memberIds.filter((id) => id !== uid);
+async function leaveInTransaction(tx: Transaction, db: Firestore, householdId: string, uid: string) {
+  const ref = doc(db, 'households', householdId);
+  const snap = await tx.get(ref);
+  if (!snap.exists()) return;
+  const data = snap.data() as HouseholdDoc;
+  if (!data.memberIds.includes(uid)) return;
+  const others = data.memberIds.filter((id) => id !== uid);
   if (others.length === 0) {
-    batch.delete(ref);
-    batch.delete(doc(db, 'householdCodes', household.data.code));
+    tx.delete(ref);
+    tx.delete(doc(db, 'householdCodes', data.code));
     return;
   }
   const patch: UpdateData<DocumentData> = { memberIds: others, [`members.${uid}`]: deleteField() };
-  const leavingCreator = household.data.createdBy === uid;
-  const leavingModerator = household.data.members[uid]?.role === 'moderator';
-  const otherIsModerator = others.some((id) => household.data.members[id]?.role === 'moderator');
+  const leavingCreator = data.createdBy === uid;
+  const leavingModerator = data.members[uid]?.role === 'moderator';
+  const otherIsModerator = others.some((id) => data.members[id]?.role === 'moderator');
   if (leavingCreator) patch.createdBy = others[0];
   if ((leavingCreator || leavingModerator) && !otherIsModerator) patch[`members.${others[0]}.role`] = 'moderator';
-  batch.update(ref, patch);
+  tx.update(ref, patch);
 }
 
 function reauthErrorKey(err: unknown): TranslationKey {
@@ -285,10 +290,10 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     if (!uid || !firebase || !household) return { ok: false, error: 'onboarding.error.generic' };
     const { db } = firebase;
     try {
-      const batch = writeBatch(db);
-      addLeaveToBatch(batch, db, household, uid);
-      batch.set(doc(db, 'users', uid), { householdId: null, updatedAt: Date.now() }, { merge: true });
-      await batch.commit();
+      await runTransaction(db, async (tx) => {
+        await leaveInTransaction(tx, db, household.id, uid);
+        tx.set(doc(db, 'users', uid), { householdId: null, updatedAt: Date.now() }, { merge: true });
+      });
       return { ok: true };
     } catch (err) {
       console.error('ChoreQuest: failed to leave household', err);
@@ -313,22 +318,26 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       const { db } = firebase;
       try {
         if (household) {
-          // Unlink this account from the quest log it leaves behind (the partner keeps the history).
-          const logs = (household.data.game?.logs ?? []) as TaskLog[];
-          if (logs.some((log) => log.loggedBy === uid)) {
-            await updateDoc(doc(db, 'households', household.id), {
+          // Unlink this account from the quest log it leaves behind (the partner keeps the history). Rewritten
+          // from the latest log in a transaction, so a quest the partner logs at the same moment isn't lost.
+          const ref = doc(db, 'households', household.id);
+          await runTransaction(db, async (tx) => {
+            const snap = await tx.get(ref);
+            const logs = ((snap.data()?.game?.logs ?? []) as TaskLog[]);
+            if (!logs.some((log) => log.loggedBy === uid)) return;
+            tx.update(ref, {
               'game.logs': logs.map((log) => {
                 if (log.loggedBy !== uid) return log;
                 const { loggedBy: _removed, ...rest } = log;
                 return rest;
               }),
             });
-          }
+          });
         }
-        const batch = writeBatch(db);
-        if (household) addLeaveToBatch(batch, db, household, uid);
-        batch.delete(doc(db, 'users', uid));
-        await batch.commit();
+        await runTransaction(db, async (tx) => {
+          if (household) await leaveInTransaction(tx, db, household.id, uid);
+          tx.delete(doc(db, 'users', uid));
+        });
         // Old single-account save (households/{uid}), if any; absent for most accounts.
         await deleteDoc(doc(db, 'households', uid)).catch(() => undefined);
         await deleteUser(current);

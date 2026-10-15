@@ -332,6 +332,8 @@ export interface GameState {
    * Quest entries logged before it can no longer be undone or re-assigned.
    */
   levelResetAt?: number;
+  /** Ids of the latest applied player actions (newest first), so a retried or replayed action applies once. */
+  appliedOps?: string[];
 }
 
 export interface HouseholdUser {
@@ -381,6 +383,7 @@ export interface HouseholdDoc {
     cosmetics?: Cosmetics;
     mvpSettledOn?: string;
     levelResetAt?: number;
+    appliedOps?: string[];
   };
 }
 
