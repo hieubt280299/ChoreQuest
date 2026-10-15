@@ -2,6 +2,27 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.3.0] - 2026-10-15
+
+Spec: [UPDATE_v1.3.0.md](UPDATE_v1.3.0.md)
+
+### Changed
+
+- **Gold Interest:** at most 100 gold a day. It still starts on Day 2 of a Chronicle, and the description says both.
+- **Steady Worker:** 10 / 15 / 20 / 25% more XP and gold from Moderate quests.
+- **Installed app on phones:** scrollbars are hidden. Scrolling works exactly as before.
+
+### Fixed
+
+- **Both players acting at the same time no longer lose updates.**
+  - Before, each action saved a full copy of the game from that phone, so a spin, quest or skill point from one spouse could wipe out what the other had just done.
+  - Now each action is saved in a Firestore transaction: it's re-applied on the latest saved data, and only the fields it changed are written. If both spouses save at the same moment, Firestore retries the second one with the first one's changes included.
+  - Each action is applied only once, even when it's retried.
+  - If an action no longer makes sense (for example, your spouse logged the same quest a moment earlier), it's undone on screen and a short message explains why.
+  - Offline, actions are still saved as soon as you're back online, as before.
+- **Wheel of Fortune:** the wheel starts turning once the spin is saved, and the Spin button is locked until then, so a double tap can't spend two tickets.
+- **Leaving a household and deleting an account** now work from the latest saved data, so a quest your spouse logs at that moment isn't lost.
+
 ## [1.2.0] - 2026-10-07
 
 Spec: [UPDATE_v1.2.0.md](UPDATE_v1.2.0.md)

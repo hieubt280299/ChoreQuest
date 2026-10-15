@@ -664,3 +664,14 @@ body,
 [data-quality='low'] .will-change-transform {
   will-change: auto;
 }
+
+/* Installed app (PWA) on a phone or tablet: no visible scrollbars. Only the bar is hidden; touch scrolling,
+   momentum and scroll position work exactly as before. Browsers and desktop keep their scrollbars. */
+@media (display-mode: standalone) and (pointer: coarse), (display-mode: fullscreen) and (pointer: coarse) {
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
