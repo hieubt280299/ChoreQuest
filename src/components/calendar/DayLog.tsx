@@ -147,7 +147,7 @@ export function DayLog({
       {entries.length === 0 ? (
         <p className="px-slot px-3 py-4 text-center text-base font-bold text-wood-600">{t(empty)}</p>
       ) : (
-        <ul className="max-h-80 space-y-2 overflow-y-auto overscroll-contain pr-1" tabIndex={0} aria-label={t('calendar.questList')}>
+        <ul className="px-scroll max-h-80 space-y-2 overflow-y-auto overscroll-contain pr-1" tabIndex={0} aria-label={t('calendar.questList')}>
           {entries.map((entry) => {
             if (entry.kind === 'spin') {
               const { spin } = entry;

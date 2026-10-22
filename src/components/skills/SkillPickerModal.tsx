@@ -32,7 +32,7 @@ export function SkillPickerModal({
     <Modal open={open} onClose={onClose} title={`${t('skills.picker')} · ${name(characterId)}`}>
       <p className="mb-1 text-lg font-extrabold uppercase text-moss-700">{t('character.skillPoints', { count: points })}</p>
       {points < 1 && <p className="mb-2 text-base text-wood-600">{t('skills.noPoints')}</p>}
-      <div className="-mx-1 max-h-[55vh] space-y-4 overflow-y-auto px-2 py-2">
+      <div className="px-scroll -mx-1 max-h-[55vh] space-y-4 overflow-y-auto px-2 py-2">
         {SKILL_POOL.map((skill) => {
           const owned = character.skills.find((item) => item.skillId === skill.id);
           const canUnlock = !owned && points > 0 && character.skills.length < MAX_SKILLS_PER_CHARACTER;

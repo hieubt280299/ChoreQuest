@@ -177,7 +177,8 @@ src/
 #### 8. Layout
 
 - The top bar (sound, character) and the bottom navigation are fixed to the screen edges. On phones the bottom bar has Home, Quests, Skills and **More**, a drawer with History, Calendar and Settings.
-- **Installed app (PWA) on touch screens:** scrollbars are hidden; scrolling works as before. `utils/pwaMode.ts` adds `pwa-mobile` to `<html>` when the app runs installed (`display-mode` standalone/fullscreen, or iOS `navigator.standalone`) on a coarse pointer; `.no-scrollbar` is the same rule as a utility class. Browsers and desktop keep their scrollbars.
+- **Installed app (PWA) on touch screens:** scrollbars are hidden; scrolling works as before. `utils/pwaMode.ts` adds `pwa-mobile` to `<html>` when the app runs installed (`display-mode` standalone/fullscreen, or iOS `navigator.standalone`) on a coarse pointer; `.no-scrollbar` is the same rule as a utility class. The page scrollbar (`html`) and scroll areas inside cards and pop-ups (`.px-scroll`) use pixel scrollbars built from theme colours (Firefox gets the colours only).
+- **Dialog frame** (`ui/Modal.tsx`): the title plate hangs over the top-left border and the close X over the top-right corner, so neither takes space from the content or its scrollbar. Browsers and desktop keep their scrollbars.
 - **Dialogs** share `backdropMotion` / `dialogMotion` / `celebrationMotion` (`ui/Modal.tsx`): opacity + scale/translate only (GPU), smooth ease-out curves; celebrations use a soft spring.
 - **Render cost:** quest cards are a memoized `TaskCard` (stable handlers; streaks compared by value), the wheel face and slice labels are memoized, and components that only play sounds use `useSfx()` (stable) instead of `useAudio()`.
 - No sideways scrolling from 320px up. The wheel spins on its own GPU layer (`will-change-transform`) and the bars sit on their own layers, so spins never repaint them.

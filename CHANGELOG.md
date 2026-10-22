@@ -32,6 +32,8 @@ Spec: [UPDATE_v1.4.0.md](UPDATE_v1.4.0.md)
   - The wheel's artwork no longer redraws on every update.
   - Moving the volume sliders no longer redraws the wheel or the reward pop-ups.
 - **Installed app on phones:** scrollbars are now also hidden on iPhone home-screen apps, which the previous check missed.
+- **Pixel scrollbars:** the page, the Wardrobe and other pop-ups, the skill picker and the day log now have scrollbars in the game's style (a bevelled wood bar in a sunken track) that follow each theme's colours.
+- **Pop-up close button:** the X now hangs over each pop-up's top-right corner, level with the title, clear of the content and its scrollbar.
 - **Copy:** "Unlock up to 8 household skills" (was "buffs"), in English and Vietnamese.
 
 ## [1.3.0] - 2026-10-15

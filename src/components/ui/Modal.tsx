@@ -57,28 +57,24 @@ export function Modal({
             aria-modal="true"
             aria-label={title}
             {...dialogMotion}
-            className="px-panel mb-3 w-full max-w-md p-5"
+            className="px-panel mb-3 w-full max-w-md p-5 pt-11"
             onClick={(event) => event.stopPropagation()}
           >
             {/* Title plate hanging over the top border, like an RPG dialog. */}
             <div className="px-panel px-panel-wood absolute -top-5 left-4 max-w-[70%] px-3 py-1">
               <h2 className="truncate text-xl font-extrabold uppercase tracking-wide text-parchment-50">{title}</h2>
             </div>
-            {/* Close sits inside the card padding, clear of the bevelled frame and the title plate. */}
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-btn h-9 w-9 p-0"
-                aria-label={t('common.close')}
-              >
+            {/* Close hangs over the top-right corner, level with the title plate, so it's clear of the content and its
+                scrollbar. */}
+            <div className="absolute -right-3 -top-5">
+              <button type="button" onClick={onClose} className="px-btn h-9 w-9 p-0" aria-label={t('common.close')}>
                 <Icon as={Close} size={24} />
               </button>
             </div>
             {/* Tall content (e.g. the wardrobe) scrolls inside the card; the title plate stays put. */}
             {/* Padding inside the scroll area (offset by negative margins) so pixel borders and a raised, selected
                 button aren't clipped at its edges. */}
-            <div className="-mx-2 -mt-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-2 pb-1 pt-2">{children}</div>
+            <div className="px-scroll -mx-2 -mt-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-2 pb-1 pt-2">{children}</div>
           </motion.div>
         </motion.div>
       )}

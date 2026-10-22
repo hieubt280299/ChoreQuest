@@ -69,3 +69,13 @@ Act as a Principal Full-Stack Engineer working on our retro pixel RPG web applic
 ### 💻 Required Output Needed
 
 Output the updated TypeScript interfaces (`Character`, `WheelTicket`), modified Wheel component (`WheelOfFortune.tsx`), skill configuration file (`skillDefinitions.ts`), and global CSS scrollbar utilities.
+
+---
+
+### 🔁 Follow-up Changes (after review)
+
+These changes came from review feedback after the first implementation and are part of v1.4.0.
+
+- **Pixel scrollbars:** scroll areas inside the Wardrobe and other modals, the skill picker and the day log use a custom scrollbar that fits the design: a bevelled wood thumb with an ink outline in a sunken parchment track, using theme colours so it matches every theme. The installed mobile app still hides scrollbars.
+- **Page scrollbar:** the page's own scrollbar uses the same pixel style, with a dark wood track that sits on the page background.
+- **Dialog close button:** the X moved from inside the content (where it crowded the scrollbar) to the dialog's top-right corner, hanging over the border level with the title plate.
