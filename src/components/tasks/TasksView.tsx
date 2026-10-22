@@ -1,40 +1,28 @@
-import { Check, Fire, Home, Pencil, Plus, Search, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
+import { Fire, Plus, Search, Undo } from 'pixelarticons/react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { CharacterId, Completer, RewardBreakdown, Task, TaskCategory, TaskLog } from '../../types';
+import type { CharacterId, Completer, RewardBreakdown, Task, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { fuzzyScoreAny } from '../../utils/fuzzy';
 import { addDays, localDateKey } from '../../utils/calculations';
 import { taskName } from '../../utils/taskNames';
-import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
+import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
-import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
-import { IconButton } from '../ui/IconButton';
 import { Modal } from '../ui/Modal';
 import { PageHeader } from '../ui/PageHeader';
 import { DEFAULT_PREFS, QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
 import { RewardBreakdownTable } from './RewardBreakdownTable';
-import { StreakBadge } from './StreakBadge';
+import { TaskCard } from './TaskCard';
 import { TaskEditorModal } from './TaskEditorModal';
 import { useMinuteNow, YesterdaysQuestsBanner } from './YesterdaysQuestsBanner';
 
 type Breakdown = Record<CharacterId, RewardBreakdown | null>;
 
-export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
-  cleaning: Sparkles,
-  cooking: Fire,
-  shopping: ShoppingCart,
-  laundry: Shirt,
-  general: Home,
-};
-
-/** Completed cards are tinted by who did the quest: knight red, mage purple, gold for both. */
-const COMPLETED_TONE = { husband: 'knight', wife: 'mage', both: 'coop' } as const;
 
 function CompleterLabel({ who }: { who: Completer }) {
   const { t } = useLanguage();
@@ -217,6 +205,20 @@ export function TasksView() {
     for (const who of completerOptions) result[who] = previewReward(pending.id, who, { late: showingYesterday });
     return result;
   }, [pending, completerOptions, previewReward, showingYesterday]);
+  // Stable handlers, so the memoized quest cards don't all re-render on every change.
+  const startCompleting = useCallback(
+    (task: Task) => {
+      setError(null);
+      setCompleter(completerOptions.includes(activeCharacter) ? activeCharacter : completerOptions[0]);
+      setPending(task);
+    },
+    [completerOptions, activeCharacter],
+  );
+  const startFixing = useCallback((log: TaskLog) => {
+    setError(null);
+    setFixCompleter(log.completedBy);
+    setFixing(log);
+  }, []);
   const handle = (result: ActionResult, onOk: () => void) => {
     if (result.ok) {
       setError(null);
@@ -282,89 +284,20 @@ export function TasksView() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {section.tasks.map((task) => {
               const log = logFor(task.id);
-              const done = !!log;
-              const streaks = (['husband', 'wife'] as CharacterId[]).map((id) => getStreak(task.id, id));
               return (
-                <Card key={task.id} tone={log ? COMPLETED_TONE[log.completedBy] : showingYesterday ? 'past' : 'parchment'} className="p-3">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`${done ? 'px-slot-dark text-moss-400' : 'px-slot text-brick-600'} flex h-10 w-10 shrink-0 items-center justify-center`}
-                    >
-                      <Icon as={done ? Check : CATEGORY_ICONS[task.category]} size={24} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {/* Name and streak chips share the first line; chips drop below only when it's too narrow. */}
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className={`min-w-0 text-xl font-extrabold leading-tight [overflow-wrap:anywhere] ${done ? 'text-wood-700 line-through decoration-2' : ''}`}>
-                          {taskName(task, language)}
-                        </p>
-                        {streaks.map((streak) => (
-                          <StreakBadge key={streak.characterId} streak={streak} showAvatar />
-                        ))}
-                      </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                        {/* Late: no XP and half the (base) gold, as the reward preview details. */}
-                        <span className={`font-arcade text-[10px] ${showingYesterday ? 'text-wood-600' : 'text-moss-700'}`}>
-                          {showingYesterday ? '0XP' : `+${task.xp}XP`}
-                        </span>
-                        <GoldCounter amount={showingYesterday ? Math.floor(task.gold / 2) : task.gold} />
-                        <span className="text-sm font-bold uppercase text-wood-500">
-                          {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
-                        </span>
-                      </div>
-                    </div>
-                    {canEditSettings && !showingYesterday && (
-                      <IconButton icon={Pencil} variant="ghost" align="right" label={t('tasks.edit')} onClick={() => setEditing(task)} />
-                    )}
-                  </div>
-                  {log ? (
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <span className="flex min-w-0 items-center gap-2 text-base font-extrabold uppercase text-moss-700">
-                        <span className="flex items-end">
-                          {log.completedBy === 'both' ? (
-                            <>
-                              <CharacterAvatar id="husband" scale={1} framed={false} />
-                              <CharacterAvatar id="wife" scale={1} framed={false} />
-                            </>
-                          ) : (
-                            <CharacterAvatar id={log.completedBy} scale={1} framed={false} />
-                          )}
-                        </span>
-                        <span className="min-w-0 truncate">
-                          {log.completedBy === 'both'
-                            ? t('tasks.doneBy', { who: t('tasks.both') })
-                            : spliceName(t('tasks.doneBy', { who: NAME_SLOT }), <CharacterName id={log.completedBy} />)}
-                        </span>
-                      </span>
-                      {/* Yesterday's entries are locked: no fixing them. */}
-                      {!showingYesterday && canManageLog(log) && (
-                        <IconButton
-                          icon={Undo}
-                          align="right"
-                          label={t('tasks.editLog')}
-                          onClick={() => {
-                            setError(null);
-                            setFixCompleter(log.completedBy);
-                            setFixing(log);
-                          }}
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <Button
-                      className="mt-2.5 w-full"
-                      variant="brick"
-                      disabled={!canPlay}
-                      onClick={() => {
-                        setError(null);
-                        setCompleter(completerOptions.includes(activeCharacter) ? activeCharacter : completerOptions[0]);
-                        setPending(task);
-                      }}
-                    >
-                      {showingYesterday ? t('yesterday.complete') : t('tasks.complete')}
-                    </Button>
-                  )}
-                </Card>
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  log={log}
+                  yesterday={showingYesterday}
+                  streaks={[getStreak(task.id, 'husband'), getStreak(task.id, 'wife')]}
+                  canEdit={canEditSettings}
+                  canPlay={canPlay}
+                  canFix={!!log && canManageLog(log)}
+                  onEdit={setEditing}
+                  onComplete={startCompleting}
+                  onFix={startFixing}
+                />
               );
             })}
           </div>

@@ -100,7 +100,7 @@ src/
     - Levels 2 – 24: Standard bonus (+50 Gold/level).
     - Levels 25 – 29: High-tier bonus (+300 Gold/level).
     - Level 30 (mastery): +2,000 Gold, with a full-screen "Mastery achieved!" celebration (confetti, fanfare) and a permanent "Master" badge.
-- **Level-up rewards:** each new level also pays **1 Wheel of Fortune ticket** and a skill point (skill points stop at 24). Tickets are paid once per level (`ticketLevel` marker), so undoing and redoing a quest around a level-up can't farm them; undo keeps tickets already paid. Level-ups get their own retro modal (badge animation, gold / ticket / skill point rows) after the "Quest complete!" card.
+- **Level-up rewards:** each new level also pays **1 Golden Ticket**, Fortune's Favor's Normal Tickets (1/2/3/4 per level) and a skill point (skill points stop at 24). Tickets are paid once per level (`ticketLevel` marker), so undoing and redoing a quest around a level-up can't farm them; undo keeps tickets already paid. Level-ups get their own retro modal (badge animation, gold / Golden Ticket / Normal Ticket / skill point rows) after the "Quest complete!" card.
 - **New legend (anti-inflation):** once any player reaches level 30, a moderator can reset both players to level 1 with no skills from Settings. Gold, the chronicle, quests and history are kept; quest entries logged before the reset (`levelResetAt`) can no longer be undone or re-assigned.
 
 #### 3. Tasks & Bounties
@@ -124,12 +124,12 @@ src/
 #### 4. Skills Pool (14 Configurable Skills)
 
 - **Caps:** up to **8** skills per character (`MAX_SKILLS_PER_CHARACTER`), max level 4 each, skill points capped at **24**. The Skills tab lists Learned and Unlearned skills; Unlearned is hidden once all 8 slots are used.
-- **Values:** each skill lists explicit per-level `xp` / `gold` bonuses (or `values` for tickets and interest). Speed Cleaner 10/15/20/25% XP and gold (Cleaning), Shop Savvy 10/20/30/40% XP and 5/10/15/20% gold (Shopping). Master Chef 10/18/26/34% gold, Quick Hands and Team Player 5/10/15/20% gold, Heavy Lifter 15/25/35/45% gold.
+- **Values:** each skill lists explicit per-level `xp` / `gold` bonuses (or `values` for tickets and interest). Speed Cleaner 10/15/20/25% XP and gold (Cleaning), Shop Savvy 10/20/30/40% XP and 5/10/15/20% gold (Shopping). Master Chef 10/18/26/34% gold, Quick Hands 10/20/30/40% XP and 5/10/15/20% gold, Team Player 12/24/36/48% XP and 10/20/30/40% gold (quests done together), Heavy Lifter 15/25/35/45% gold.
 - **Synergistic Streak** (_Cộng hưởng_): +20/30/40/50% gold and +10/15/20/25% XP on quests the spouse has an active streak on (3+ days).
 - **Fast Learner** (_Học nhanh_, id `zen-housekeeper`): 40/60/80/100% + 1% per character level (`xpPerCharacterLevel`) more XP on every quest, no gold. `FastLearnerTooltip` shows the live total (character lv. 5, skill lv. 2 → 65%).
-- **Hall of Fame** (_Đỉnh cao phong độ_): +3/4/5/6 wheel tickets at every 5th MVP day of a chronicle. The day's MVP (most quest gold) is settled once at day end (`settleMvpDays`, `mvpSettledOn` marker; `mvpDays` per character resets each chronicle), never retroactively. The "MVP" word in its description has a tooltip explaining MVP (`MvpTooltip`).
+- **Hall of Fame** (_Đỉnh cao phong độ_): +1/2/3/4 **Golden Tickets** at every 5th MVP day of a chronicle. The day's MVP (most quest gold) is settled once at day end (`settleMvpDays`, `mvpSettledOn` marker; `mvpDays` per character resets each chronicle), never retroactively. The "MVP" word in its description has a tooltip explaining MVP (`MvpTooltip`).
 - Shared pool of 14 household buff skills (e.g., _"Speed Cleaner"_, _"Master Chef"_, _"Golden Touch"_, _"Laundry Pro"_, _"Fast Learner"_). Bonuses key off task **category**, **group** (_"Quick Hands"_, _"Steady Worker: +10/15/20/25% XP and gold from Moderate tasks"_, _"Heavy Lifter: +15% gold from Heavy tasks per level"_) or co-op, never time of day. Retired skills migrate to their replacements (`SKILL_MIGRATIONS`) so no points are lost.
-- **Fortune's Favor** (_Kiếm vé may mắn_): start each new chronicle with 3 / 4 / 5 / 6 extra wheel tickets (granted at rollover), and +25/50/75/100% gold from every wheel prize, jackpot included (`wheelGoldFor`).
+- **Fortune's Favor** (_Kiếm vé may mắn_): 1 / 2 / 3 / 4 extra **Normal Tickets** at the start of each new chronicle (granted at rollover) and at every level-up (`fortunesFavorTickets`), and +25/50/75/100% gold from wheel prizes won with a **Normal Ticket**, jackpot included (`wheelGoldFor`). It doesn't stack with a Golden Ticket's 2×.
 - **Gold Interest** (_Tích tiểu thành đại_): at the start of each day gain 2 / 4 / 6 / 8% of the character's current gold (rounded; compounds, since paid interest is gold), at most **100 gold per day** (`DAILY_INTEREST_CAP`). Interest is ordinary gold, so it **counts for the payout**, but each payout is also logged as an `interest` event so it is **excluded from the day's MVP** and shown in the day log's bonus tooltip ("+X Interest Gold today"). A chronicle's first day never pays (gold has just reset). It starts the day after the skill is learned (`interestOn` marker).
 - Each skill has 4 upgrade levels.
 - Skill picker modal allows assigning available points upon leveling up.
@@ -177,14 +177,17 @@ src/
 #### 8. Layout
 
 - The top bar (sound, character) and the bottom navigation are fixed to the screen edges. On phones the bottom bar has Home, Quests, Skills and **More**, a drawer with History, Calendar and Settings.
-- **Installed app (PWA) on touch screens:** scrollbars are hidden (`display-mode: standalone` + `pointer: coarse`); scrolling works as before. Browsers and desktop keep them.
+- **Installed app (PWA) on touch screens:** scrollbars are hidden; scrolling works as before. `utils/pwaMode.ts` adds `pwa-mobile` to `<html>` when the app runs installed (`display-mode` standalone/fullscreen, or iOS `navigator.standalone`) on a coarse pointer; `.no-scrollbar` is the same rule as a utility class. The page scrollbar (`html`) and scroll areas inside cards and pop-ups (`.px-scroll`) use pixel scrollbars built from theme colours (Firefox gets the colours only).
+- **Dialog frame** (`ui/Modal.tsx`): the title plate hangs over the top-left border and the close X over the top-right corner, so neither takes space from the content or its scrollbar. Browsers and desktop keep their scrollbars.
+- **Dialogs** share `backdropMotion` / `dialogMotion` / `celebrationMotion` (`ui/Modal.tsx`): opacity + scale/translate only (GPU), smooth ease-out curves; celebrations use a soft spring.
+- **Render cost:** quest cards are a memoized `TaskCard` (stable handlers; streaks compared by value), the wheel face and slice labels are memoized, and components that only play sounds use `useSfx()` (stable) instead of `useAudio()`.
 - No sideways scrolling from 320px up. The wheel spins on its own GPU layer (`will-change-transform`) and the bars sit on their own layers, so spins never repaint them.
 - Level-up cards only show for the player's own character, including level-ups caused by the spouse logging a quest (tracked per device against the last level celebrated).
 
 #### 9. Wheel of Fortune
 
-- **Tickets:** each player claims **1 free ticket per local day** from their Home card (`ticketClaimedOn`), plus 1 per level-up and Fortune's Favor tickets each chronicle. Each character card shows the count next to gold (equal-height badges; tooltip "x Wheel of Fortune tickets"). Unspent skill points show as a number on the Skills nav tab instead of on the card.
-- **Prizes** (`WHEEL_PRIZES`): Small +3 Gold (35%), Normal +5 (30%), Big +10 (15%), **Jackpot** +(100 + `jackpotBonus`) (1%), No prize (19%, "Good luck next time!"). Rolls use `crypto.getRandomValues`.
+- **Tickets:** two kinds. **Normal Tickets** (`tickets`): 1 free per local day from the Home card (`ticketClaimedOn`), Fortune's Favor's tickets each chronicle and level-up, and Golden-miss refunds. **Golden Tickets** (`goldenTickets`): 1 per level-up and Hall of Fame. A spin **always uses a Golden Ticket first** (`nextTicket`): it pays **2× gold** on every prize (jackpot included), and a miss still adds +10 to the jackpot and refunds 1 Normal Ticket (`spinOnState`; spin events record `ticket` and `refunded`). The wheel shows both counts and a "Next spin: Golden / Normal Ticket" chip; character cards show gold, Golden (when any) and Normal Ticket badges. Unspent skill points show as a number on the Skills nav tab instead of on the card.
+- **Prizes** (`WHEEL_PRIZES`): Small +5 gold (35%), Normal +10 (30%), Big +15 (15%), **Jackpot** +(500 + `jackpotBonus`) (2%), No prize (18%, "Good luck next time!"). Rolls use `crypto.getRandomValues`.
 - **Jackpot scaling:** the household's `wheel.jackpotBonus` starts at 0, grows by +10 on every miss, and resets to 0 when anyone hits the jackpot, which triggers pixel confetti and a fanfare.
 - Wheel gold, like interest, is ordinary gold: it **counts for the payout** but **not for the day's MVP** (or the calendar's best day). Each spin is saved immediately as a `spin` event; the day log lists spins and adds wheel gold to the same bonus tooltip as interest. Players tap the wheel itself to spin (no separate button). The 8 drawn slices have weighted sizes (`WHEEL_SEGMENTS`, jackpot smallest) but are decorative; the odds come from the prize table; the wheel's info tooltip lists the prizes only (no odds). After each spin a result card pops up ("Congratulations! You have won X gold!", or "So close! Good luck next time!" for a miss); a jackpot gets the full celebration instead.
 
@@ -204,6 +207,11 @@ src/
     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
 ```
+
+### 🧪 Tests
+
+- `npm test` bundles the pure game logic (`tests/logic-entry.ts`, esbuild) and runs every `tests/*.test.mjs` suite in Node; `npm test -- v140` runs one. Suites are grouped by version (`core`, `streaks`, `v020` … `v140`).
+- When a rule changes, update the affected expectations and add checks to that version's suite. Keep new logic in pure functions so it can be tested here.
 
 ### 🚀 Getting Started
 

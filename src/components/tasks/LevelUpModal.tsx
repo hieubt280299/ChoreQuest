@@ -10,7 +10,7 @@ import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { LevelBadge } from '../ui/LevelBadge';
-import { pixelEase } from '../ui/Modal';
+import { backdropMotion, celebrationMotion, pixelEase } from '../ui/Modal';
 import { Ticket } from '../ui/pixel/TicketIcon';
 
 function RewardRow({ icon, label, children, delay }: { icon: ReactNode; label: string; children: ReactNode; delay: number }) {
@@ -45,20 +45,14 @@ export function LevelUpModal({
   return (
     <motion.div
       className="fixed inset-0 z-[85] flex items-center justify-center bg-wood-950/80 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: pixelEase(3) }}
+      {...backdropMotion}
       onClick={onContinue}
     >
       <motion.div
         role="dialog"
         aria-modal="true"
         aria-label={`${t('tasks.levelUp')} ${name(levelUp.characterId)}`}
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: [0.5, 1.08, 1], opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.35, ease: pixelEase(5) }}
+        {...celebrationMotion}
         className="px-panel px-panel-ember w-full max-w-sm p-6 text-center"
         onClick={(event) => event.stopPropagation()}
       >
@@ -101,8 +95,13 @@ export function LevelUpModal({
           <RewardRow icon={<Icon as={Star} size={24} className="text-ember-600" />} label={t('levelUp.gold')} delay={0.6}>
             <GoldCounter amount={levelUp.bonusGold} spin />
           </RewardRow>
+          {levelUp.goldenTickets > 0 && (
+            <RewardRow icon={<Icon as={Ticket} size={24} className="text-ember-600" />} label={t('levelUp.goldenTickets')} delay={0.75}>
+              <span className="font-arcade text-[10px]">+{levelUp.goldenTickets}</span>
+            </RewardRow>
+          )}
           {levelUp.tickets > 0 && (
-            <RewardRow icon={<Icon as={Ticket} size={24} className="text-plum-600" />} label={t('levelUp.tickets')} delay={0.75}>
+            <RewardRow icon={<Icon as={Ticket} size={24} className="text-plum-600" />} label={t('levelUp.tickets')} delay={0.8}>
               <span className="font-arcade text-[10px]">+{levelUp.tickets}</span>
             </RewardRow>
           )}

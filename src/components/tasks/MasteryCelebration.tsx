@@ -8,7 +8,7 @@ import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { LevelBadge } from '../ui/LevelBadge';
-import { pixelEase } from '../ui/Modal';
+import { backdropMotion, celebrationMotion } from '../ui/Modal';
 import { PixelConfetti } from '../ui/pixel/PixelConfetti';
 
 /** Full-screen celebration when a character reaches the level cap. */
@@ -28,10 +28,7 @@ export function MasteryCelebration({
   return (
     <motion.div
       className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: pixelEase(3) }}
+      {...backdropMotion}
       role="dialog"
       aria-modal="true"
       aria-label={t('mastery.title')}
@@ -39,9 +36,7 @@ export function MasteryCelebration({
       <PixelConfetti />
 
       <motion.div
-        initial={{ scale: 0.4, opacity: 0 }}
-        animate={{ scale: [0.4, 1.1, 1], opacity: 1 }}
-        transition={{ duration: 0.5, ease: pixelEase(6) }}
+        {...celebrationMotion}
         className="px-panel px-panel-ember relative w-full max-w-sm p-6 text-center"
       >
         <div className="mx-auto mb-3 flex items-center justify-center gap-2 text-brick-700">

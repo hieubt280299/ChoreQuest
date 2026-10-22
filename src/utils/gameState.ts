@@ -233,6 +233,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       gold: count(rest.gold),
       skills: migrateSkills(rest.skills),
       tickets: Math.floor(count(rest.tickets)),
+      goldenTickets: Math.floor(count(rest.goldenTickets)),
       // Characters from before tickets existed start counting from their current level (no back pay).
       ticketLevel: Math.floor(count(rest.ticketLevel, getLevelFromXp(xp))) || 1,
       mvpDays: Math.floor(count(mvpDays)),
@@ -329,7 +330,7 @@ export function advanceDays(state: GameState, today = localDateKey()): GameState
 
 /**
  * Hall of Fame: at each day's end the day's MVP (most quest gold) gets +1 MVP day for the chronicle, and
- * every 5th one pays the skill's extra wheel tickets. Each day is settled once (`mvpSettledOn`), and only
+ * every 5th one pays the skill's Golden Tickets. Each day is settled once (`mvpSettledOn`), and only
  * days inside the running chronicle count. Without a marker (older saves) counting starts now, so nothing
  * is paid out retroactively.
  */
@@ -345,7 +346,7 @@ export function settleMvpDays(state: GameState, upTo: string): GameState {
     const mvpDays = character.mvpDays + 1;
     const level = skillLevel(character, HALL_OF_FAME.id);
     const bonus = mvpDays % HALL_OF_FAME_EVERY === 0 ? skillEffectValue(HALL_OF_FAME, level) : 0;
-    characters[mvp] = { ...character, mvpDays, tickets: character.tickets + bonus };
+    characters[mvp] = { ...character, mvpDays, goldenTickets: character.goldenTickets + bonus };
   }
   return { ...state, characters, mvpSettledOn: upTo };
 }

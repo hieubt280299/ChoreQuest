@@ -3,7 +3,7 @@ import { Fire, Sparkles } from 'pixelarticons/react';
 import { useEffect } from 'react';
 import { COIN } from '../../assets/sprites';
 import { MAX_LEVEL } from '../../constants/gameRules';
-import { useAudio } from '../../context/AudioContext';
+import { useSfx } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
@@ -13,7 +13,7 @@ import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
-import { pixelEase } from '../ui/Modal';
+import { backdropMotion, dialogMotion } from '../ui/Modal';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
 import { useOwnLevelUp } from '../../hooks/useOwnLevelUp';
 import { LevelUpModal } from './LevelUpModal';
@@ -27,7 +27,7 @@ import { MasteryCelebration } from './MasteryCelebration';
 export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void }) {
   const { t, language } = useLanguage();
   const { state, reward, clearReward, activeCharacter, canActAs } = useGame();
-  const { playTaskCompleteSFX, playLevelUpSFX, playMasterySFX } = useAudio();
+  const { playTaskCompleteSFX, playLevelUpSFX, playMasterySFX } = useSfx();
   const own = useOwnLevelUp(activeCharacter);
   // The level-up card waits until the quest card is closed.
   const levelUp = !reward ? own.pending : null;
@@ -58,20 +58,14 @@ export function RewardModal({ onAssignSkills }: { onAssignSkills?: () => void })
         <motion.div
           key={`reward-${reward.id}`}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15, ease: pixelEase(3) }}
+          {...backdropMotion}
           onClick={advance}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-label={t('tasks.reward')}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.25, ease: pixelEase(5) }}
+            {...dialogMotion}
             className="px-panel w-full max-w-sm p-6 text-center"
             onClick={(event) => event.stopPropagation()}
           >
