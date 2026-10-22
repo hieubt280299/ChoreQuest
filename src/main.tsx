@@ -9,6 +9,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 import './hooks/useQuality';
 import './utils/installPrompt';
+import './utils/pwaMode';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

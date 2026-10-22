@@ -1,22 +1,22 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { CircleInfo, Close, Crown, Sparkles } from 'pixelarticons/react';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { COIN } from '../../assets/sprites';
 import { JACKPOT_BASE_GOLD, JACKPOT_MISS_BONUS, WHEEL_PRIZES, WHEEL_SEGMENTS } from '../../constants/gameRules';
-import { useAudio } from '../../context/AudioContext';
+import { useSfx } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
 import type { CharacterId, WheelPrize, WheelSpinEvent } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
-import { secureRandom } from '../../utils/wheel';
+import { nextTicket, secureRandom } from '../../utils/wheel';
 import { prefersReducedMotion, useQuality } from '../../hooks/useQuality';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
-import { pixelEase } from '../ui/Modal';
+import { backdropMotion, celebrationMotion, dialogMotion } from '../ui/Modal';
 import { PixelConfetti } from '../ui/pixel/PixelConfetti';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
 import { Ticket } from '../ui/pixel/TicketIcon';
@@ -53,9 +53,10 @@ const rgb = (hex: string) => [1, 3, 5].map((start) => parseInt(hex.slice(start, 
 
 /**
  * The wheel face, drawn pixel by pixel on a 72x72 canvas and scaled up with crisp pixels: rim with gold
- * studs at the slice borders, dithered shading towards the edge, and a gold hub.
+ * studs at the slice borders, dithered shading towards the edge, and a gold hub. Static, so it's memoized:
+ * state changes (tickets, jackpot, spin progress) never redraw it.
  */
-function WheelFace() {
+const WheelFace = memo(function WheelFace() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
@@ -93,7 +94,7 @@ function WheelFace() {
     ctx.putImageData(image, 0, 0);
   }, []);
   return <canvas ref={ref} width={FACE_SIZE} height={FACE_SIZE} className="absolute inset-0 h-full w-full [image-rendering:pixelated]" aria-hidden />;
-}
+});
 
 function SliceLabel({ prize }: { prize: WheelPrize }) {
   if (prize === 'none') return <Icon as={Close} size={24} />;
@@ -110,19 +111,14 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
   return (
     <motion.div
       className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: pixelEase(3) }}
+      {...backdropMotion}
       role="dialog"
       aria-modal="true"
       aria-label={t('wheel.jackpotTitle')}
     >
       <PixelConfetti />
       <motion.div
-        initial={{ scale: 0.4, opacity: 0, rotate: -6 }}
-        animate={{ scale: [0.4, 1.15, 1], opacity: 1, rotate: 0 }}
-        transition={{ duration: 0.5, ease: pixelEase(6) }}
+        {...celebrationMotion}
         className="px-panel px-panel-ember relative w-full max-w-sm p-6 text-center"
       >
         <Icon as={Crown} size={48} className="px-blink mx-auto text-brick-700" />
@@ -142,8 +138,11 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
           </span>
         </div>
         <p className="mb-4 text-lg font-bold">{t('wheel.jackpotWon', { name: name(spin.characterId) })}</p>
-        <div className="px-slot mx-auto mb-5 flex w-fit items-center justify-center px-4 py-2">
-          <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
+        <div className="mb-5 flex flex-col items-center gap-2">
+          <div className="px-slot flex w-fit items-center justify-center px-4 py-2">
+            <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
+          </div>
+          {spin.ticket === 'golden' && <GoldenBadge />}
         </div>
         <Button className="w-full" variant="brick" onClick={onClose}>
           {t('mastery.continue')}
@@ -153,6 +152,38 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
   );
 }
 
+/** "Golden Ticket · 2× gold" tag on a result won with a Golden Ticket. */
+function GoldenBadge() {
+  const { t } = useLanguage();
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-ink px-2.5 py-1 text-sm font-extrabold uppercase text-flame-300">
+      <Icon as={Ticket} size={24} />
+      {t('wheel.goldenTicket')} · {t('wheel.goldenDouble')}
+    </span>
+  );
+}
+
+/** The prize labels around the wheel (static, memoized like the face). */
+const SliceLabels = memo(function SliceLabels() {
+  return (
+    <>
+      {SLICES.map((slice, index) => (
+        // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
+        <div
+          key={index}
+          className="absolute left-1/2 top-0 h-full w-0"
+          style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)`, transformOrigin: '50% 50%' }}
+          aria-hidden
+        >
+          <span className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}>
+            <SliceLabel prize={slice.prize} />
+          </span>
+        </div>
+      ))}
+    </>
+  );
+});
+
 /** Result card after a spin (like "Quest complete!"): the gold won, or a good-luck wish for a miss. */
 function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () => void }) {
   const { t } = useLanguage();
@@ -160,20 +191,14 @@ function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () =
   return (
     <motion.div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: pixelEase(3) }}
+      {...backdropMotion}
       onClick={onClose}
     >
       <motion.div
         role="dialog"
         aria-modal="true"
         aria-label={won ? t('wheel.wonTitle') : t('wheel.missTitle')}
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.25, ease: pixelEase(5) }}
+        {...dialogMotion}
         className="px-panel w-full max-w-sm p-6 text-center"
         onClick={(event) => event.stopPropagation()}
       >
@@ -199,11 +224,22 @@ function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () =
         </h2>
         <p className="mb-5 mt-2 text-xl font-bold text-wood-700">{won ? t('wheel.won', { gold: spin.gold }) : t('wheel.miss')}</p>
         {won ? (
-          <div className="px-slot mx-auto mb-5 flex w-fit items-center justify-center px-4 py-2">
-            <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
+          <div className="mb-5 flex flex-col items-center gap-2">
+            <div className="px-slot flex w-fit items-center justify-center px-4 py-2">
+              <GoldCounter amount={spin.gold} spin size="lg" className="leading-none" />
+            </div>
+            {spin.ticket === 'golden' && <GoldenBadge />}
           </div>
         ) : (
-          <p className="mb-5 text-base font-bold text-brick-600">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</p>
+          <div className="mb-5 space-y-2">
+            <p className="text-base font-bold text-brick-600">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</p>
+            {spin.refunded && (
+              <p className="flex items-center justify-center gap-2 text-base font-bold text-plum-600">
+                <Icon as={Ticket} size={24} />
+                {t('wheel.refunded')}
+              </p>
+            )}
+          </div>
         )}
         <Button className="w-full" onClick={onClose}>
           {t('common.close')}
@@ -217,7 +253,7 @@ function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () =
 export function WheelOfFortune() {
   const { t } = useLanguage();
   const { state, activeCharacter, canActAs, spinWheel } = useGame();
-  const { playWheelTickSFX, playWheelWinSFX, playWheelMissSFX, playJackpotSFX } = useAudio();
+  const { playWheelTickSFX, playWheelWinSFX, playWheelMissSFX, playJackpotSFX } = useSfx();
   const [rotation, setRotation] = useState(REST_ROTATION);
   const [duration, setDuration] = useState(SPIN_MIN_SECONDS);
   const [spinning, setSpinning] = useState(false);
@@ -234,13 +270,16 @@ export function WheelOfFortune() {
   const lastSlice = useRef(0);
 
   const characterId: CharacterId = activeCharacter;
-  const tickets = state.characters[characterId].tickets;
+  const character = state.characters[characterId];
+  const { tickets, goldenTickets } = character;
+  // The ticket the next spin will use: Golden Tickets always go first.
+  const queued = nextTicket(character);
   // Locked while the spin is being saved (the wheel only turns once it's stored), so a double tap can't spend two tickets.
   const [requesting, setRequesting] = useState(false);
-  const canSpin = canActAs(characterId) && tickets > 0 && !spinning && !requesting;
+  const canSpin = canActAs(characterId) && queued !== null && !spinning && !requesting;
   const jackpot = JACKPOT_BASE_GOLD + (shownBonus ?? state.wheel.jackpotBonus);
-  const ticketLabel =
-    tickets === 0 ? t('wheel.noTicketsHint') : tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
+  const ticketLabel = tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
+  const goldenLabel = goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: goldenTickets });
 
   const spin = async () => {
     if (!canSpin) return;
@@ -316,6 +355,7 @@ export function WheelOfFortune() {
                 </span>
               ))}
               <span className="mt-1 block text-wood-700">{t('wheel.jackpotGrows', { gold: JACKPOT_MISS_BONUS })}</span>
+              <span className="mt-1 block text-wood-700">{t('wheel.goldenRule')}</span>
             </>
           }
         />
@@ -328,21 +368,49 @@ export function WheelOfFortune() {
           {t('wheel.prize.jackpot')}
           <GoldCounter amount={jackpot} color="text-flame-300" size="lg" />
         </span>
+        {/* Golden, then Normal Tickets on hand. */}
         <Tooltip
           align="right"
           label={
             <>
-              <Icon as={Ticket} size={24} />
-              <span className="font-arcade text-sm">{tickets}</span>
-              <span className="sr-only">{ticketLabel}</span>
+              <span className={`inline-flex items-center gap-1 ${goldenTickets > 0 ? 'text-flame-300' : 'text-wood-500'}`}>
+                <Icon as={Ticket} size={24} />
+                <span className="font-arcade text-sm">{goldenTickets}</span>
+              </span>
+              <span className={`inline-flex items-center gap-1 ${tickets > 0 ? 'text-parchment-100' : 'text-brick-400'}`}>
+                <Icon as={Ticket} size={24} />
+                <span className="font-arcade text-sm">{tickets}</span>
+              </span>
+              <span className="sr-only">
+                {goldenLabel}, {ticketLabel}
+              </span>
             </>
           }
-          content={ticketLabel}
-          triggerClassName={`inline-flex shrink-0 items-center gap-1.5 border-l-[3px] border-wood-700 pl-3 ${
-            tickets > 0 ? 'text-parchment-100' : 'text-brick-400'
-          }`}
+          content={
+            <>
+              <span className="block font-extrabold">{goldenLabel}</span>
+              <span className="block font-extrabold">{ticketLabel}</span>
+              <span className="mt-1 block text-wood-700">{t('wheel.goldenRule')}</span>
+            </>
+          }
+          triggerClassName="inline-flex shrink-0 items-center gap-2.5 border-l-[3px] border-wood-700 pl-3"
         />
       </div>
+
+      {/* Which ticket the next spin uses. */}
+      {queued && (
+        <div
+          className={`mx-auto mb-4 flex w-fit items-center gap-2 px-3 py-1 text-base font-extrabold uppercase ${
+            queued === 'golden' ? 'bg-ink text-flame-300' : 'px-slot text-plum-600'
+          }`}
+          aria-live="polite"
+        >
+          <Icon as={Ticket} size={24} />
+          <span>
+            {t('wheel.nextTicket')}: {queued === 'golden' ? `${t('wheel.goldenTicket')} · ${t('wheel.goldenDouble')}` : t('wheel.normalTicket')}
+          </span>
+        </div>
+      )}
 
       {/* The wheel itself is the spin button. */}
       <button
@@ -381,21 +449,7 @@ export function WheelOfFortune() {
           }}
         >
           <WheelFace />
-          {SLICES.map((slice, index) => (
-            // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
-            <div
-              key={index}
-              className="absolute left-1/2 top-0 h-full w-0"
-              style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)`, transformOrigin: '50% 50%' }}
-              aria-hidden
-            >
-              <span
-                className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}
-              >
-                <SliceLabel prize={slice.prize} />
-              </span>
-            </div>
-          ))}
+          <SliceLabels />
         </motion.div>
         </div>
         {/* Idle hint on the hub: press to spin. */}

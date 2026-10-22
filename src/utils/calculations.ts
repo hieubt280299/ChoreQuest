@@ -1,4 +1,5 @@
 import {
+  fortunesFavorTickets,
   HIGH_TIER_LEVEL_GOLD,
   MASTERY_LEVEL_GOLD,
   MAX_LEVEL,
@@ -374,8 +375,9 @@ export function computeRewardSplit(
 }
 
 /**
- * Adds rewards, including level-up bonus gold and one wheel ticket per newly reached level. Tickets are
- * paid once per level (tracked by `ticketLevel`), so undoing and redoing a quest can't farm them.
+ * Adds rewards, including level-up bonus gold, one Golden Ticket per newly reached level and Fortune's Favor's
+ * Normal Tickets for each of those levels. Tickets are paid once per level (tracked by `ticketLevel`), so undoing
+ * and redoing a quest can't farm them.
  */
 export function grantRewards(
   characters: Record<CharacterId, Character>,
@@ -391,13 +393,16 @@ export function grantRewards(
     const xp = prev.xp + gained.xp;
     const to = getLevelFromXp(xp);
     const bonusGold = goldForLevelRange(from, to);
-    const tickets = Math.max(0, to - Math.max(from, prev.ticketLevel));
+    const levelsPaid = Math.max(0, to - Math.max(from, prev.ticketLevel));
+    const goldenTickets = levelsPaid;
+    const tickets = levelsPaid * fortunesFavorTickets(prev);
     if (to > from) {
       levelUps.push({
         characterId: id,
         from,
         to,
         bonusGold,
+        goldenTickets,
         tickets,
         skillPoints: skillPointsEarned(to) - skillPointsEarned(from),
       });
@@ -407,6 +412,7 @@ export function grantRewards(
       xp,
       gold: prev.gold + gained.gold + bonusGold,
       tickets: prev.tickets + tickets,
+      goldenTickets: prev.goldenTickets + goldenTickets,
       ticketLevel: Math.max(prev.ticketLevel, to),
     };
   });

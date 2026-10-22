@@ -18,14 +18,16 @@ export const DEFAULT_PRIZE_POOL = 1_000_000;
 
 // Wheel of Fortune. Weights are percentages; a miss grows the jackpot until someone hits it.
 export const WHEEL_PRIZES: { prize: WheelPrize; gold: number; weight: number }[] = [
-  { prize: 'small', gold: 3, weight: 35 },
-  { prize: 'normal', gold: 5, weight: 30 },
-  { prize: 'big', gold: 10, weight: 15 },
-  { prize: 'jackpot', gold: 100, weight: 1 },
-  { prize: 'none', gold: 0, weight: 19 },
+  { prize: 'small', gold: 5, weight: 35 },
+  { prize: 'normal', gold: 10, weight: 30 },
+  { prize: 'big', gold: 15, weight: 15 },
+  { prize: 'jackpot', gold: 500, weight: 2 },
+  { prize: 'none', gold: 0, weight: 18 },
 ];
-export const JACKPOT_BASE_GOLD = 100;
+export const JACKPOT_BASE_GOLD = 500;
 export const JACKPOT_MISS_BONUS = 10;
+/** A Golden Ticket doubles every gold prize; a miss on one refunds a Normal Ticket. */
+export const GOLDEN_TICKET_MULTIPLIER = 2;
 /**
  * The slices drawn on the wheel, clockwise from the top, with their relative sizes. Sizes are visual only
  * (odds come from WHEEL_PRIZES), but the jackpot slice is kept the smallest to hint at its rarity.
@@ -163,7 +165,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.teamPlayer.desc',
     icon: 'hearts',
     maxLevel: 4,
-    effect: { kind: 'together', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.05, 0.1, 0.15, 0.2) },
+    effect: { kind: 'together', xp: levels(0.12, 0.24, 0.36, 0.48), gold: levels(0.1, 0.2, 0.3, 0.4) },
   },
   {
     id: 'iron-will',
@@ -212,8 +214,9 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.fortunesFavor.desc',
     icon: 'ticket',
     maxLevel: 4,
-    // `values`: tickets at each chronicle start; `gold`: extra gold on Wheel of Fortune prizes.
-    effect: { kind: 'chronicle_tickets', values: levels(3, 4, 5, 6), gold: levels(0.25, 0.5, 0.75, 1) },
+    // `values`: Normal Tickets at each chronicle start and each level-up; `gold`: extra gold on Wheel of Fortune
+    // prizes won with a Normal Ticket.
+    effect: { kind: 'chronicle_tickets', values: levels(1, 2, 3, 4), gold: levels(0.25, 0.5, 0.75, 1) },
   },
   {
     id: 'gold-interest',
@@ -237,7 +240,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.hallOfFame.desc',
     icon: 'trophy',
     maxLevel: 4,
-    effect: { kind: 'mvp_tickets', values: levels(3, 4, 5, 6) },
+    // Golden Tickets at every 5th MVP day.
+    effect: { kind: 'mvp_tickets', values: levels(1, 2, 3, 4) },
   },
 ];
 
@@ -264,9 +268,15 @@ export const SKILL_MIGRATIONS: Record<string, string> = {
   'lucky-charm': 'steady-worker',
 };
 
+/** Normal Tickets Fortune's Favor gives this character at each new chronicle and each level-up (0 if not learned). */
+export function fortunesFavorTickets(character: Pick<Character, 'skills'>): number {
+  const favor = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor');
+  return favor ? skillEffectValue(favor, skillLevel(character, favor.id)) : 0;
+}
+
 /** Most gold Gold Interest can pay a character in one day. */
 export const DAILY_INTEREST_CAP = 100;
 
 export function createDefaultCharacter(id: CharacterId, name: string): Character {
-  return { id, name, xp: 0, gold: 0, skills: [], tickets: 0, ticketLevel: 1, mvpDays: 0 };
+  return { id, name, xp: 0, gold: 0, skills: [], tickets: 0, goldenTickets: 0, ticketLevel: 1, mvpDays: 0 };
 }

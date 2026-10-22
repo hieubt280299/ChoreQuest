@@ -19,8 +19,10 @@ export interface Character {
   /** Gold earned this chronicle (quests, wheel, interest); decides the payout split. */
   gold: number;
   skills: CharacterSkill[];
-  /** Wheel of Fortune tickets on hand. */
+  /** Normal Wheel of Fortune tickets on hand. */
   tickets: number;
+  /** Golden Tickets on hand: spent first, they double the gold of any prize (a miss refunds a Normal Ticket). */
+  goldenTickets: number;
   /** Last local day (`YYYY-MM-DD`) the free daily ticket was claimed. */
   ticketClaimedOn?: string;
   /**
@@ -214,7 +216,9 @@ export interface LevelUpReward {
   from: number;
   to: number;
   bonusGold: number;
-  /** Wheel tickets granted (one per level not rewarded before). */
+  /** Golden Tickets granted (one per level not rewarded before). */
+  goldenTickets: number;
+  /** Normal Tickets from Fortune's Favor (its level's count per level not rewarded before). */
   tickets: number;
   /** Skill points gained (stop growing once every slot can be maxed). */
   skillPoints: number;
@@ -232,6 +236,9 @@ export interface WheelState {
 }
 
 /** One spin of the wheel. */
+/** The ticket a spin uses. Golden Tickets go first whenever the player has one. */
+export type WheelTicket = 'normal' | 'golden';
+
 export interface WheelSpinEvent {
   id: string;
   type: 'spin';
@@ -240,6 +247,10 @@ export interface WheelSpinEvent {
   timestamp: number;
   prize: WheelPrize;
   gold: number;
+  /** Ticket used (spins from before Golden Tickets: normal). */
+  ticket?: WheelTicket;
+  /** A Golden Ticket miss gave a Normal Ticket back. */
+  refunded?: boolean;
 }
 
 /** Gold Interest paid at the start of a day (counts for the payout, not for the day's MVP). */

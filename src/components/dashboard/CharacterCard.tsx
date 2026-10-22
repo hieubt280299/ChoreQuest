@@ -49,6 +49,8 @@ export function CharacterCard({ character, active }: { character: Character; act
   const id = character.id;
   const claimed = character.ticketClaimedOn === today;
   const ticketLabel = character.tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: character.tickets });
+  const goldenLabel =
+    character.goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: character.goldenTickets });
 
   return (
     <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
@@ -97,11 +99,24 @@ export function CharacterCard({ character, active }: { character: Character; act
           <ProgressBar percent={progress.percent} label="XP" />
         </div>
 
-        {/* Equal-height badges: gold, and wheel tickets (count only; the tooltip spells it out). */}
+        {/* Equal-height badges: gold, Golden Tickets (when there are any), then Normal Tickets (counts only; the tooltips spell them out). */}
         <div className="flex flex-wrap items-center gap-2">
           <Stat label={`${t('character.gold')}: ${formatGold(character.gold)}`}>
             <GoldCounter amount={character.gold} spin />
           </Stat>
+          {character.goldenTickets > 0 && (
+            <Tooltip
+              label={
+                <span className="inline-flex items-center gap-1.5 text-ember-600">
+                  <Icon as={Ticket} size={24} />
+                  <span className="font-arcade text-[10px]">{character.goldenTickets}</span>
+                  <span className="sr-only">{goldenLabel}</span>
+                </span>
+              }
+              content={goldenLabel}
+              triggerClassName={`${STAT_CLASS} inline-flex`}
+            />
+          )}
           <Tooltip
             label={
               <span className="inline-flex items-center gap-1.5 text-plum-600">

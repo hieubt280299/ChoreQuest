@@ -2,6 +2,38 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.4.0] - 2026-10-22
+
+Spec: [UPDATE_v1.4.0.md](UPDATE_v1.4.0.md)
+
+### Added
+
+- **Golden Tickets:**
+  - Leveling up now gives 1 Golden Ticket (instead of a Normal Ticket).
+  - The wheel always uses a Golden Ticket first, and it doubles the gold of every prize, jackpot included.
+  - If a Golden Ticket misses, the jackpot still grows by 10 gold and you get 1 Normal Ticket back.
+- **Tests in the repo:** `npm test` runs all the game-logic test suites (`tests/`). They were kept outside the repo before.
+- **Wheel ticket display:** the wheel shows both ticket counts and which ticket the next spin will use ("Next spin: Golden Ticket · 2× gold" or "Normal Ticket"). Results won with a Golden Ticket are tagged, and a refunded miss says so. Character cards show a Golden Ticket badge when you have any.
+
+### Changed
+
+- **Wheel prizes:**
+  - Small: 5 gold
+  - Normal: 10 gold
+  - Big: 15 gold
+  - Jackpot: 500 gold + the pot, now a 2% chance
+  - Miss: 18% chance
+- **Fortune's Favor:** 1 / 2 / 3 / 4 Normal Tickets at the start of each Chronicle **and** at every level-up, plus 25 / 50 / 75 / 100% more gold when spinning with a Normal Ticket (not with a Golden Ticket).
+- **Hall of Fame:** 1 / 2 / 3 / 4 Golden Tickets at every 5th MVP day.
+- **Team Player:** 12 / 24 / 36 / 48% more XP and 10 / 20 / 30 / 40% more gold on quests done together.
+- **Smoother pop-ups:** every dialog opens and closes with a smooth fade and scale (the step-by-step pixel motion looked jerky on phones), and celebrations pop in with a soft bounce.
+- **Faster screens:**
+  - Completing or fixing a quest now redraws only the quest cards that changed, not the whole list.
+  - The wheel's artwork no longer redraws on every update.
+  - Moving the volume sliders no longer redraws the wheel or the reward pop-ups.
+- **Installed app on phones:** scrollbars are now also hidden on iPhone home-screen apps, which the previous check missed.
+- **Copy:** "Unlock up to 8 household skills" (was "buffs"), in English and Vietnamese.
+
 ## [1.3.0] - 2026-10-15
 
 Spec: [UPDATE_v1.3.0.md](UPDATE_v1.3.0.md)

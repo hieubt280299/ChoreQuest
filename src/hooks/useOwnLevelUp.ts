@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import type { CharacterId, LevelUpReward } from '../types';
 import { getLevelFromXp, goldForLevelRange, skillPointsEarned } from '../utils/calculations';
+import { fortunesFavorTickets } from '../constants/gameRules';
 import { useThemeScope } from './useTheme';
 
 const keyFor = (scope: string, characterId: CharacterId) => `chorequest.seenLevel.${scope}.${characterId}`;
@@ -69,7 +70,8 @@ export function useOwnLevelUp(characterId: CharacterId): { pending: LevelUpRewar
           from,
           to: level,
           bonusGold: goldForLevelRange(from, level),
-          tickets: level - from,
+          goldenTickets: level - from,
+          tickets: (level - from) * fortunesFavorTickets(state.characters[characterId]),
           skillPoints: skillPointsEarned(level) - skillPointsEarned(from),
         }
       : null;

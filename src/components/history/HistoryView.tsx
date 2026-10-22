@@ -16,7 +16,7 @@ import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { PageHeader } from '../ui/PageHeader';
 import { PastChronicles } from './PastChronicles';
-import { CATEGORY_ICONS } from '../tasks/TasksView';
+import { CATEGORY_ICONS } from '../tasks/TaskCard';
 
 const other = (id: CharacterId): CharacterId => (id === 'husband' ? 'wife' : 'husband');
 /** Quests listed before "Show all quests". */

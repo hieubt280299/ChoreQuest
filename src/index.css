@@ -665,13 +665,25 @@ body,
   will-change: auto;
 }
 
-/* Installed app (PWA) on a phone or tablet: no visible scrollbars. Only the bar is hidden; touch scrolling,
-   momentum and scroll position work exactly as before. Browsers and desktop keep their scrollbars. */
-@media (display-mode: standalone) and (pointer: coarse), (display-mode: fullscreen) and (pointer: coarse) {
-  * {
-    scrollbar-width: none;
-  }
-  *::-webkit-scrollbar {
-    display: none;
-  }
+/* Hide a scrollbar while keeping scrolling (touch, momentum, wheel and keyboard) exactly as it is. */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and old Edge */
+  scrollbar-width: none; /* Firefox, Chrome 121+ */
 }
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Installed app (PWA) on a phone or tablet (`pwa-mobile`, set by utils/pwaMode.ts, which also detects iOS
+   home-screen apps): no visible scrollbars anywhere, page and inner scroll areas alike. Browsers and desktop
+   keep their scrollbars. */
+.pwa-mobile,
+.pwa-mobile * {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.pwa-mobile::-webkit-scrollbar,
+.pwa-mobile *::-webkit-scrollbar {
+  display: none;
+}
+

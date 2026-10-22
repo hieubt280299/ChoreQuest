@@ -41,7 +41,7 @@ import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
-import { nextWheelState, rollWheelPrize, wheelGoldFor } from '../utils/wheel';
+import { rollWheelPrize, spinOnState } from '../utils/wheel';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 
@@ -519,20 +519,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const { result, saved } = commit({
         id: newOpId(),
         update: (current) => {
-          const character = current.characters[characterId];
-          if (character.tickets < 1) return 'wheel.error.noTickets';
-          const gold = wheelGoldFor(prize, current.wheel, character);
+          // Golden Tickets go first (2x gold; a miss refunds a Normal Ticket), see `spinOnState`.
+          const outcome = spinOnState(current, characterId, prize, { id: spinId, date, timestamp: now });
+          if (!outcome) return 'wheel.error.noTickets';
           seen.jackpotBefore = current.wheel.jackpotBonus;
-          const spin: WheelSpinEvent = { id: spinId, type: 'spin', characterId, date, timestamp: now, prize, gold };
-          return {
-            ...current,
-            wheel: nextWheelState(prize, current.wheel),
-            events: [spin, ...current.events],
-            characters: {
-              ...current.characters,
-              [characterId]: { ...character, tickets: character.tickets - 1, gold: character.gold + gold },
-            },
-          };
+          return outcome.state;
         },
       });
       if (!result.ok) return { ok: false, error: result.error };

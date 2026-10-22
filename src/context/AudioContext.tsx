@@ -151,6 +151,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   return <AudioSettingsContext.Provider value={value}>{children}</AudioSettingsContext.Provider>;
 }
 
+/**
+ * Just the sound effects. They never change (the engine handles mute and volume itself), so components that
+ * only play sounds don't re-render when the audio settings do, unlike with `useAudio`.
+ */
+export function useSfx() {
+  return sfx;
+}
+
 export function useAudio() {
   const ctx = useContext(AudioSettingsContext);
   if (!ctx) throw new Error('useAudio must be used within AudioProvider');
