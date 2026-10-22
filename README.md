@@ -55,6 +55,7 @@ Without these variables the app still runs, in demo mode only.
 | --- | --- |
 | `npm run dev` | Start the dev server (add `-- --host` to test on a phone on the same network) |
 | `npm run build` | Type-check and build to `dist/` |
+| `npm test` | Run the game-logic test suites (`npm test -- v140` runs one) |
 | `npm run preview` | Serve the production build locally |
 | `npm run generate-pwa-assets` | Regenerate the PWA icons |
 
@@ -81,13 +82,14 @@ src/
   utils/        Pure game logic: rewards, streaks, chronicles and interest, wheel, i18n, chiptune
   hooks/        Small shared hooks
   types/        Game and Firestore types
+tests/          Game-logic test suites (plain Node, no browser), run with `npm test`
 firestore.rules     Firestore security rules (household membership, roles, chronicle rollover)
 AGENT_GUIDE.md      Detailed product spec and game mechanics
 UPDATE_vX.Y.Z.md    Feature specs for each version
 CHANGELOG.md        Release notes
 ```
 
-All game rules live in `src/constants/gameRules.ts` and `src/utils/` as pure functions, so they're easy to read and test separately from the UI.
+All game rules live in `src/constants/gameRules.ts` and `src/utils/` as pure functions, so they're easy to read and test separately from the UI. `tests/run.mjs` bundles them with esbuild (`tests/logic-entry.ts`) and runs each `tests/*.test.mjs` suite in Node.
 
 ### Data model
 
@@ -104,7 +106,7 @@ Days that pass while the app is closed (interest, chronicle rollover) are settle
 
 1. Branch from `main`, for example `feat/my-change`.
 2. Keep game logic in pure functions under `src/utils/` and text in `src/utils/i18n.ts`. Every string needs both English and Vietnamese.
-3. Check that `npm run build` passes, and look at your change at phone width (about 375px).
+3. Check that `npm run build` and `npm test` pass, and look at your change at phone width (about 375px). Rule changes get a check in `tests/` (one suite per version, e.g. `v140.test.mjs`).
 4. Open a pull request against `main`.
 
 For new versions, the feature spec goes in `UPDATE_vX.Y.Z.md`. When the work is done, add the matching section to `CHANGELOG.md` and bump the version in `package.json`.
