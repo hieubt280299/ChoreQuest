@@ -13,7 +13,7 @@
   --c-wood-900: 43 26 18;
   --c-wood-800: 61 37 24;
   --c-wood-700: 90 54 33;
-  --c-wood-600: 122 74 42;
+  --c-wood-600: 116 70 40;
   --c-wood-500: 156 99 55;
   --c-wood-400: 185 128 73;
   --c-parchment-50: 255 248 231;
@@ -23,18 +23,18 @@
   --c-parchment-400: 184 149 92;
   --c-parchment-500: 138 106 60;
   --c-brick-700: 110 42 34;
-  --c-brick-600: 143 58 44;
+  --c-brick-600: 136 55 42;
   --c-brick-500: 176 74 52;
   --c-brick-400: 204 106 74;
-  --c-ember-700: 164 74 20;
-  --c-ember-600: 200 95 31;
+  --c-ember-700: 133 60 16;
+  --c-ember-600: 172 82 27;
   --c-ember-500: 232 119 46;
   --c-ember-400: 243 154 61;
   --c-ember-300: 247 183 106;
   --c-flame-400: 247 197 72;
   --c-flame-300: 255 209 102;
   --c-flame-200: 255 224 138;
-  --c-moss-700: 63 90 36;
+  --c-moss-700: 62 88 35;
   --c-moss-600: 79 112 48;
   --c-moss-500: 99 140 60;
   --c-moss-400: 134 176 73;
@@ -165,6 +165,12 @@ body,
     background-color: rgb(var(--c-parchment-300));
     background-image: linear-gradient(rgb(110 110 110 / 0.2), rgb(110 110 110 / 0.2));
     filter: saturate(0.4);
+  }
+
+  /* Text on tinted (completed) and faded (past) quest cards: the light secondary colours lose contrast on the
+     tint, so they become 82% ink, readable on every theme's tints. */
+  :is(.px-panel-knight, .px-panel-mage, .px-panel-coop, .px-panel-past) :is(.text-wood-500, .text-wood-600, .text-wood-700, .text-moss-700) {
+    color: rgb(var(--c-ink) / 0.82);
   }
 
   /* Tooltip bubbles: always dark text on the light panel, never the light text or outline of a board they
@@ -387,6 +393,10 @@ body,
   }
   .px-tab:hover {
     color: rgb(var(--c-parchment-50));
+  }
+  .px-tab:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
   .px-tab[aria-current='page'] {
     --hl: rgb(var(--c-parchment-50));

@@ -1,4 +1,4 @@
-import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup, WheelPrize } from '../types';
+import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup, TaskIntensity, WheelPrize } from '../types';
 
 export const XP_CURVE = [
   230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100,
@@ -62,14 +62,14 @@ export const DEFAULT_TASKS: Task[] = [
   { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 13, gold: 15, category: 'laundry', group: 'main', enabled: true },
   { id: 'cleanFridge', nameKey: 'task.cleanFridge', names: { en: 'Clean Fridge', vi: 'Lau dọn tủ lạnh' }, xp: 15, gold: 15, category: 'cleaning', group: 'main', enabled: true },
   { id: 'sweep', nameKey: 'task.sweep', names: { en: 'Sweep House', vi: 'Quét nhà' }, xp: 15, gold: 20, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 25, gold: 30, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 25, gold: 30, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 28, gold: 30, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 28, gold: 30, category: 'cleaning', group: 'main', enabled: true },
   { id: 'dustFurniture', nameKey: 'task.dustFurniture', names: { en: 'Dust Furniture', vi: 'Lau bụi bàn ghế & kệ' }, xp: 20, gold: 20, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 40, gold: 45, category: 'cooking', group: 'main', enabled: true },
-  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 40, gold: 45, category: 'cooking', group: 'main', enabled: true },
-  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 40, gold: 45, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
   // Heavy tasks: 41+ XP
-  { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 42, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 42, gold: 42, category: 'cleaning', group: 'heavy', enabled: true },
   { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 45, gold: 50, category: 'shopping', group: 'heavy', enabled: true },
   { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 45, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
   { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 55, gold: 65, category: 'cleaning', group: 'heavy', enabled: true },
@@ -80,11 +80,10 @@ export function groupForXp(xp: number): TaskGroup {
   return xp <= 10 ? 'quick' : xp <= 40 ? 'main' : 'heavy';
 }
 
-/**
- * Built-in quests still on their v0.2 values get the v1.0 rebalance (values and group). Quests a moderator
- * has edited are left alone.
- */
-const V1_REBALANCE: Record<string, { from: [number, number, TaskGroup]; to: [number, number, TaskGroup] }> = {
+type Rebalance = Record<string, { from: [number, number, TaskGroup]; to: [number, number, TaskGroup] }>;
+
+/** v1.0 rebalance of the v0.2 built-in quests (values and group). */
+const V1_REBALANCE: Rebalance = {
   laundry: { from: [5, 5, 'quick'], to: [8, 8, 'quick'] },
   collectClothes: { from: [5, 5, 'quick'], to: [8, 8, 'quick'] },
   trash: { from: [5, 5, 'quick'], to: [5, 10, 'quick'] },
@@ -101,12 +100,49 @@ const V1_REBALANCE: Record<string, { from: [number, number, TaskGroup]; to: [num
   mop: { from: [45, 55, 'heavy'], to: [45, 50, 'heavy'] },
 };
 
+/** v1.5 rebalance: dishwashing 28 XP / 30 gold, cooking 40 / 42, vacuum 42 / 42. */
+const V15_REBALANCE: Rebalance = {
+  dishesLunch: { from: [25, 30, 'main'], to: [28, 30, 'main'] },
+  dishesDinner: { from: [25, 30, 'main'], to: [28, 30, 'main'] },
+  cookLunch: { from: [40, 45, 'main'], to: [40, 42, 'main'] },
+  cooking: { from: [40, 45, 'main'], to: [40, 42, 'main'] },
+  cookPetFood: { from: [40, 45, 'main'], to: [40, 42, 'main'] },
+  vacuum: { from: [42, 50, 'heavy'], to: [42, 42, 'heavy'] },
+};
+
+/**
+ * Built-in quests still on the values of an earlier version are moved to the current defaults, one rebalance at
+ * a time (v0.2 -> v1.0 -> v1.5). Quests a moderator has edited are left alone.
+ */
 export function rebalanceTask<T extends Pick<Task, 'id' | 'xp' | 'gold' | 'group'>>(task: T): T {
-  const change = V1_REBALANCE[task.id];
-  if (!change) return task;
-  const [xp, gold, group] = change.from;
-  if (task.xp !== xp || task.gold !== gold || task.group !== group) return task;
-  return { ...task, xp: change.to[0], gold: change.to[1], group: change.to[2] };
+  let current = task;
+  for (const step of [V1_REBALANCE, V15_REBALANCE]) {
+    const change = step[current.id];
+    if (!change) continue;
+    const [xp, gold, group] = change.from;
+    if (current.xp !== xp || current.gold !== gold || current.group !== group) continue;
+    current = { ...current, xp: change.to[0], gold: change.to[1], group: change.to[2] };
+  }
+  return current;
+}
+
+/** Base XP / gold multiplier for each effort level of an intensity-enabled quest. */
+export const INTENSITY_MULTIPLIER: Record<TaskIntensity, number> = { light: 0.5, normal: 1, heavy: 1.5 };
+export const TASK_INTENSITIES: TaskIntensity[] = ['light', 'normal', 'heavy'];
+
+/** Whether completing this quest asks for an effort level: intensity is on and it's a Moderate quest. */
+export function intensityApplies(task: Pick<Task, 'group' | 'intensityEnabled'>): boolean {
+  return task.group === 'main' && task.intensityEnabled === true;
+}
+
+/**
+ * The quest's base XP and gold for an effort level (rounded down); skills, streaks and the "Both" split all
+ * work from these. Quests without intensity always use their normal values.
+ */
+export function intensityBase<T extends Pick<Task, 'xp' | 'gold' | 'group' | 'intensityEnabled'>>(task: T, intensity: TaskIntensity = 'normal'): T {
+  if (!intensityApplies(task) || intensity === 'normal') return task;
+  const factor = INTENSITY_MULTIPLIER[intensity];
+  return { ...task, xp: Math.floor(task.xp * factor), gold: Math.floor(task.gold * factor) };
 }
 
 const DEFAULT_GROUP_BY_ID = new Map(DEFAULT_TASKS.map((task) => [task.id, task.group]));
@@ -141,7 +177,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.masterChef.desc',
     icon: 'chef',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'cooking', gold: levels(0.1, 0.18, 0.26, 0.34) },
+    effect: { kind: 'category', category: 'cooking', xp: levels(0.04, 0.08, 0.12, 0.16), gold: levels(0.1, 0.18, 0.26, 0.34) },
   },
   {
     id: 'gold-doubler',
@@ -149,7 +185,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldDoubler.desc',
     icon: 'coins',
     maxLevel: 4,
-    effect: { kind: 'all', gold: levels(0.05, 0.1, 0.15, 0.2) },
+    effect: { kind: 'all', gold: levels(0.06, 0.12, 0.18, 0.24) },
   },
   {
     id: 'quick-hands',
@@ -173,7 +209,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.ironWill.desc',
     icon: 'shirt',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'laundry', gold: levels(0.1, 0.2, 0.3, 0.4) },
+    effect: { kind: 'category', category: 'laundry', xp: levels(0.04, 0.08, 0.12, 0.16), gold: levels(0.1, 0.2, 0.3, 0.4) },
   },
   {
     id: 'shop-savvy',
@@ -224,7 +260,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldInterest.desc',
     icon: 'trending',
     maxLevel: 4,
-    effect: { kind: 'daily_interest', values: levels(0.02, 0.04, 0.06, 0.08) },
+    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05) },
   },
   {
     id: 'synergistic-streak',

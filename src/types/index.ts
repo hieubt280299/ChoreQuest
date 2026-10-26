@@ -107,7 +107,15 @@ export interface Task {
   category: TaskCategory;
   group: TaskGroup;
   enabled: boolean;
+  /**
+   * Moderate quests only: the player picks how much effort it took (Light / Normal / Heavy) when completing it,
+   * which scales the base XP and gold. Off by default; ignored while the quest is in another group.
+   */
+  intensityEnabled?: boolean;
 }
+
+/** Effort picked for an intensity-enabled quest: 0.5x / 1x / 1.5x base XP and gold (rounded down). */
+export type TaskIntensity = 'light' | 'normal' | 'heavy';
 
 export interface TaskLog {
   id: string;
@@ -132,6 +140,8 @@ export interface TaskLog {
    * no streak bonus but the streak is kept, and it never changes yesterday's settled MVP.
    */
   late?: boolean;
+  /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
+  intensity?: TaskIntensity;
 }
 
 /**

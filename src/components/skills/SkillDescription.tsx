@@ -5,7 +5,7 @@ import type { SkillDefinition } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
-import { FastLearnerTooltip, MvpTooltip } from './FastLearnerTooltip';
+import { FastLearnerTooltip, MvpTooltip, TicketTooltip } from './FastLearnerTooltip';
 
 type ValueField = 'xp' | 'gold' | 'values';
 
@@ -74,7 +74,7 @@ export function SkillDescription({
   characterLevel?: number;
 }) {
   const { t } = useLanguage();
-  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target|levelBonus|mvp)\}\})/);
+  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target|levelBonus|mvp|normalTickets|goldenTickets)\}\})/);
 
   return (
     <p className={className}>
@@ -84,6 +84,8 @@ export function SkillDescription({
           return <FastLearnerTooltip key={partIndex} skill={skill} level={level} characterLevel={characterLevel} interactive={interactive} />;
         }
         if (part === '{{mvp}}') return <MvpTooltip key={partIndex} interactive={interactive} />;
+        if (part === '{{normalTickets}}') return <TicketTooltip key={partIndex} kind="normal" interactive={interactive} />;
+        if (part === '{{goldenTickets}}') return <TicketTooltip key={partIndex} kind="golden" interactive={interactive} />;
         const field = part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : null;
         if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
         const values = skillLevelValues(skill, field);

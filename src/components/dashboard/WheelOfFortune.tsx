@@ -11,6 +11,7 @@ import type { CharacterId, WheelPrize, WheelSpinEvent } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { nextTicket, secureRandom } from '../../utils/wheel';
 import { prefersReducedMotion, useQuality } from '../../hooks/useQuality';
+import { setWheelBusy } from '../../hooks/useWheelBusy';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -276,6 +277,9 @@ export function WheelOfFortune() {
   const queued = nextTicket(character);
   // Locked while the spin is being saved (the wheel only turns once it's stored), so a double tap can't spend two tickets.
   const [requesting, setRequesting] = useState(false);
+  // Navigation is locked while the spin is saved and the wheel turns, so the result card always shows.
+  useEffect(() => setWheelBusy(requesting || spinning), [requesting, spinning]);
+  useEffect(() => () => setWheelBusy(false), []);
   const canSpin = canActAs(characterId) && queued !== null && !spinning && !requesting;
   const jackpot = JACKPOT_BASE_GOLD + (shownBonus ?? state.wheel.jackpotBonus);
   const ticketLabel = tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
@@ -397,12 +401,13 @@ export function WheelOfFortune() {
         />
       </div>
 
-      {/* Which ticket the next spin uses. */}
-      {queued && (
+      {/* Which ticket the next spin uses. Hidden while the wheel turns (it keeps its space, so the wheel doesn't jump). */}
+      {/* Kept (invisible) during a spin that used the last ticket too, so nothing shifts until the wheel stops. */}
+      {(queued || spinning || requesting) && (
         <div
           className={`mx-auto mb-4 flex w-fit items-center gap-2 px-3 py-1 text-base font-extrabold uppercase ${
             queued === 'golden' ? 'bg-ink text-flame-300' : 'px-slot text-plum-600'
-          }`}
+          } ${spinning || requesting ? 'invisible' : ''}`}
           aria-live="polite"
         >
           <Icon as={Ticket} size={24} />

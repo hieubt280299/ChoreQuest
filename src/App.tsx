@@ -17,10 +17,12 @@ import { TasksView } from './components/tasks/TasksView';
 import { AudioToggle } from './components/ui/AudioToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SyncErrorToast } from './components/ui/SyncErrorToast';
+import { StartupNotices } from './components/chronicle/StartupNotices';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
 import { useHousehold } from './context/HouseholdContext';
 import { useApplyTheme, useTheme } from './hooks/useTheme';
+import { isWheelBusy } from './hooks/useWheelBusy';
 import type { AppView, CharacterId } from './types';
 import { getLevelFromXp, skillPointsAvailable } from './utils/calculations';
 
@@ -28,7 +30,11 @@ export default function App() {
   const { user, demoMode, loading: authLoading } = useAuth();
   const { status } = useHousehold();
   const { state, loading: gameLoading, activeCharacter, canActAs } = useGame();
-  const [view, setView] = useState<AppView>('dashboard');
+  const [view, setViewState] = useState<AppView>('dashboard');
+  // No leaving the Home tab while the wheel spins: its result card would never show.
+  const setView = (next: AppView) => {
+    if (!isWheelBusy()) setViewState(next);
+  };
   const [skillCharacter, setSkillCharacter] = useState<CharacterId | null>(null);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   // This player's theme (per device), applied to the whole page.
@@ -81,6 +87,7 @@ export default function App() {
       <SkillPickerModal open={!!skillCharacter} characterId={skillCharacter} onClose={() => setSkillCharacter(null)} />
       <CosmeticPicker open={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
       <SyncErrorToast />
+      <StartupNotices onOpenWardrobe={() => setWardrobeOpen(true)} />
     </div>
   );
 }

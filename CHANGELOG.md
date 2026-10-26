@@ -2,6 +2,38 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.5.0] - 2026-10-26
+
+Spec: [UPDATE_v1.5.0.md](UPDATE_v1.5.0.md)
+
+### Added
+
+- **Chronicle summary:** the first time you open the app in a new Chronicle (from Chronicle 2, any day), a dialog shows the one that just ended: the winner, both players' gold and MVP days, and each player's prize and share. If you have rewards to claim, a button takes you to the Wardrobe.
+- **What's New:** after each update, a dialog explains the changes in plain language (Major features, Balance adjustments, Bug fixes, Performance). It shows once per device and can be reopened from Settings → About, which also shows the app version.
+- **Effort levels:** a moderator can turn on effort levels for any Moderate quest in Quest configuration (or in the quest editor). Completing that quest then asks for **Light** (half XP and gold), **Normal** or **Heavy** (1.5×), rounded down, before skills and streaks are added. The quest card shows the effort when it wasn't Normal.
+- **Ticket tips:** "Normal Tickets" and "Golden Tickets" in skill descriptions (Fortune's Favor, Hall of Fame) show what each ticket does when tapped.
+
+### Changed
+
+- **Chronicle rewards:** both players now unlock 1 new avatar when a Chronicle ends, and the winner also unlocks 1 new theme. Previously only the winner picked one theme or avatar.
+- **Quests:** Dishwashing (lunch and dinner) 28 XP and 30 gold. Cooking (lunch, dinner and pet food) 40 XP and 42 gold. Vacuuming 42 XP and 42 gold. Built-in quests still on their old values are updated automatically; quests a moderator edited are kept.
+- **Skills:**
+  - **Master Chef:** now also 4 / 8 / 12 / 16% more XP on cooking quests.
+  - **Laundry Pro:** now also 4 / 8 / 12 / 16% more XP on laundry quests.
+  - **Golden Touch:** 6 / 12 / 18 / 24% more gold on every quest.
+  - **Gold Interest:** 2 / 3 / 4 / 5% a day (still at most 100 gold a day, from Day 2).
+- **Wheel of Fortune:** the "Next spin" ticket notice is hidden while the wheel spins.
+
+### Fixed
+
+- **Wheel result always shows:** switching tabs while the wheel was spinning could lose the result card. While it spins, the other tabs (and the demo's character switch) are now locked until the result appears.
+- **Readable text in every theme** (checked against WCAG contrast in all four themes):
+  - Mushroom Kingdom made every title white for the sky, so "So close!" and other pop-up titles were white on white. Titles inside pop-ups and panels now keep their own colours.
+  - Text colours used on light panels (wood, brick, moss, gold and plum tones) were darkened slightly where needed, so they reach 4.5:1 on every light surface. Icon gold reaches 3:1.
+  - Secondary text on finished (tinted) and yesterday's (faded) quest cards is now a strong ink colour.
+  - Light text straight on the page: it gets a black outline over Mushroom Kingdom's clouds, and is dark ink on Whimsical Cottage's pale sky.
+  - Whimsical Cottage's brick buttons and boards are deeper, so their light text reads. Quest group labels and the Golden Ticket count use darker tones.
+
 ## [1.4.0] - 2026-10-22
 
 Spec: [UPDATE_v1.4.0.md](UPDATE_v1.4.0.md)

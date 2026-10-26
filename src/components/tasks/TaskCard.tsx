@@ -71,7 +71,7 @@ export const TaskCard = memo(
               {/* Late: no XP and half the (base) gold, as the reward preview details. */}
               <span className={`font-arcade text-[10px] ${yesterday ? 'text-wood-600' : 'text-moss-700'}`}>{yesterday ? '0XP' : `+${task.xp}XP`}</span>
               <GoldCounter amount={yesterday ? Math.floor(task.gold / 2) : task.gold} />
-              <span className="text-sm font-bold uppercase text-wood-500">
+              <span className="text-sm font-bold uppercase text-wood-600">
                 {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
               </span>
             </div>
@@ -95,6 +95,8 @@ export const TaskCard = memo(
                 {log.completedBy === 'both'
                   ? t('tasks.doneBy', { who: t('tasks.both') })
                   : spliceName(t('tasks.doneBy', { who: NAME_SLOT }), <CharacterName id={log.completedBy} />)}
+                {/* Effort picked for an intensity-enabled quest (Normal isn't mentioned). */}
+                {log.intensity && ` · ${t(`intensity.${log.intensity}` as TranslationKey)}`}
               </span>
             </span>
             {/* Yesterday's entries are locked: no fixing them. */}

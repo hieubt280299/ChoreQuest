@@ -107,7 +107,7 @@ export function CharacterCard({ character, active }: { character: Character; act
           {character.goldenTickets > 0 && (
             <Tooltip
               label={
-                <span className="inline-flex items-center gap-1.5 text-ember-600">
+                <span className="inline-flex items-center gap-1.5 text-ember-700">
                   <Icon as={Ticket} size={24} />
                   <span className="font-arcade text-[10px]">{character.goldenTickets}</span>
                   <span className="sr-only">{goldenLabel}</span>

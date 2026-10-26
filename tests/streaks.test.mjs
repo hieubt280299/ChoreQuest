@@ -164,7 +164,7 @@ test('new legend: reset levels and skills, keep gold/chronicle/quests/history; p
 
 test('default quest values (v1.0 rebalance)', () => {
   const by = (id) => m.createInitialState('2026-10-01').tasks.find((t) => t.id === id);
-  assert.deepEqual(['beds', 'cleanLitter', 'changeSheets', 'cooking', 'bathroom'].map((id) => [by(id).xp, by(id).gold]), [[5, 5], [8, 10], [13, 15], [40, 45], [55, 65]]);
+  assert.deepEqual(['beds', 'cleanLitter', 'changeSheets', 'cooking', 'bathroom'].map((id) => [by(id).xp, by(id).gold]), [[5, 5], [8, 10], [13, 15], [40, 42], [55, 65]]);
 });
 
 console.log(`\n${passed} passed`);

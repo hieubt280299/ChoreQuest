@@ -1,5 +1,6 @@
 import { Crown, Sliders } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
+import { useWheelBusy } from '../../hooks/useWheelBusy';
 import { useHousehold } from '../../context/HouseholdContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId } from '../../types';
@@ -13,6 +14,7 @@ import { Icon } from '../ui/Icon';
 export function ProfileSwitcher({ onOpenWardrobe }: { onOpenWardrobe: () => void }) {
   const { t } = useLanguage();
   const { activeCharacter, setActiveCharacter, canSwitchCharacter } = useGame();
+  const locked = useWheelBusy();
   const { status, isModerator } = useHousehold();
 
   if (!canSwitchCharacter) {
@@ -43,6 +45,7 @@ export function ProfileSwitcher({ onOpenWardrobe }: { onOpenWardrobe: () => void
           <button
             key={id}
             type="button"
+            disabled={locked && !active}
             onClick={() => (active ? onOpenWardrobe() : setActiveCharacter(id))}
             aria-pressed={active}
             aria-label={active ? `${t(`character.${id}`)} · ${t('cosmetics.title')}` : t(`character.${id}`)}
