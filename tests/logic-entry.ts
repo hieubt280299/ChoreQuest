@@ -10,3 +10,6 @@ export * from '../src/utils/chronicleStats';
 export * from '../src/utils/chiptune';
 export * from '../src/utils/transactionUtils';
 export * from '../src/constants/gameRules';
+export * from '../src/utils/chronicleRewards';
+export * from '../src/constants/patchNotes';
+export * from '../src/constants/cosmetics';

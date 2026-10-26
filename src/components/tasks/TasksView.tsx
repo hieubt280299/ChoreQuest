@@ -1,97 +1,23 @@
-import { Fire, Plus, Search, Undo } from 'pixelarticons/react';
+import { Plus, Search, Undo } from 'pixelarticons/react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { TASK_GROUPS } from '../../constants/gameRules';
 import { TASK_CATEGORIES, useGame, type ActionResult } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { CharacterId, Completer, RewardBreakdown, Task, TaskLog } from '../../types';
+import type { Completer, Task, TaskIntensity, TaskLog } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { fuzzyScoreAny } from '../../utils/fuzzy';
 import { addDays, localDateKey } from '../../utils/calculations';
 import { taskName } from '../../utils/taskNames';
-import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 import { PageHeader } from '../ui/PageHeader';
 import { DEFAULT_PREFS, QuestViewControls, useQuestViewPrefs, type QuestViewPrefs } from './QuestViewControls';
-import { RewardBreakdownTable } from './RewardBreakdownTable';
 import { TaskCard } from './TaskCard';
 import { TaskEditorModal } from './TaskEditorModal';
+import { CompleterPicker, WhoDidItModal } from './WhoDidItModal';
 import { useMinuteNow, YesterdaysQuestsBanner } from './YesterdaysQuestsBanner';
-
-type Breakdown = Record<CharacterId, RewardBreakdown | null>;
-
-
-function CompleterLabel({ who }: { who: Completer }) {
-  const { t } = useLanguage();
-  return <span className="block max-w-full truncate">{who === 'both' ? t('tasks.both') : <CharacterName id={who} />}</span>;
-}
-
-/** Character-select tiles for "Who did it?". */
-function CompleterPicker({
-  options,
-  value,
-  onChange,
-  previews,
-}: {
-  options: Completer[];
-  value: Completer;
-  onChange: (who: Completer) => void;
-  /** Live reward per option, summed over recipients, shown under each tile. */
-  previews?: Partial<Record<Completer, Breakdown | null>>;
-}) {
-  const { t } = useLanguage();
-  return (
-    <div
-      className={`mb-5 grid gap-3 ${options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}
-      role="radiogroup"
-      aria-label={t('tasks.who')}
-    >
-      {options.map((who) => {
-        const selected = value === who;
-        return (
-          <button
-            key={who}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(who)}
-            className={`px-btn flex-col gap-2 px-1 py-3 ${selected ? 'px-btn-primary -translate-y-1' : ''}`}
-          >
-            <span className="flex h-[52px] items-end">
-              {who === 'both' ? (
-                <>
-                  <CharacterAvatar id="husband" scale={2} framed={false} />
-                  <CharacterAvatar id="wife" scale={2} framed={false} />
-                </>
-              ) : (
-                <CharacterAvatar id={who} scale={3} framed={false} />
-              )}
-            </span>
-            <CompleterLabel who={who} />
-            {previews?.[who] && <OptionTotal breakdown={previews[who]!} />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Compact reward total under a "Who did it?" tile: one of the few spots short enough on space for "G". */
-function OptionTotal({ breakdown }: { breakdown: Breakdown }) {
-  const parts = Object.values(breakdown).filter((part): part is RewardBreakdown => !!part);
-  const xp = Math.round(parts.reduce((sum, part) => sum + part.xp, 0));
-  const gold = Math.round(parts.reduce((sum, part) => sum + part.gold, 0));
-  const streak = parts.some((part) => part.streakGold > 0);
-  return (
-    <span className="flex items-center gap-1 font-arcade text-[8px] normal-case leading-tight">
-      +{xp}XP {gold}G
-      {streak && <Icon as={Fire} size={12} className="text-brick-700" />}
-    </span>
-  );
-}
 
 function sortTasks(
   tasks: Task[],
@@ -136,7 +62,6 @@ export function TasksView() {
     reassignLog,
     getTodayLog,
     getStreak,
-    previewReward,
     yesterdayOpen,
     yesterdayQuests,
     upsertTask,
@@ -199,12 +124,6 @@ export function TasksView() {
       .filter((section) => section.tasks.length > 0);
   }, [enabled, prefs, query, language, locale, getStreak, logFor, activeCharacter, t]);
 
-  const previews = useMemo(() => {
-    if (!pending) return undefined;
-    const result: Partial<Record<Completer, Breakdown | null>> = {};
-    for (const who of completerOptions) result[who] = previewReward(pending.id, who, { late: showingYesterday });
-    return result;
-  }, [pending, completerOptions, previewReward, showingYesterday]);
   // Stable handlers, so the memoized quest cards don't all re-render on every change.
   const startCompleting = useCallback(
     (task: Task) => {
@@ -304,20 +223,17 @@ export function TasksView() {
         </Fragment>
       ))}
 
-      <Modal open={!!pending} onClose={() => setPending(null)} title={t('tasks.who')}>
-        <CompleterPicker options={completerOptions} value={completer} onChange={setCompleter} previews={previews} />
-        {previews?.[completer] && <RewardBreakdownTable breakdown={previews[completer]!} />}
-        <ErrorNote error={error} />
-        <Button
-          className="w-full"
-          onClick={() => {
-            if (!pending) return;
-            handle(completeTask(pending.id, completer, { late: showingYesterday }), () => setPending(null));
-          }}
-        >
-          {t('common.confirm')}
-        </Button>
-      </Modal>
+      <WhoDidItModal
+        task={pending}
+        late={showingYesterday}
+        initialCompleter={completer}
+        error={pending ? error : null}
+        onClose={() => setPending(null)}
+        onConfirm={(who: Completer, intensity: TaskIntensity) => {
+          if (!pending) return;
+          handle(completeTask(pending.id, who, { late: showingYesterday, intensity }), () => setPending(null));
+        }}
+      />
 
       <Modal open={!!fixing} onClose={() => setFixing(null)} title={t('tasks.editLog')}>
         {fixing && (

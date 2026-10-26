@@ -54,7 +54,7 @@ check('Synergistic Streak only when the spouse has a 3+ day streak on that quest
 check('quest rebalance: v0.2 built-ins migrate, edited quests are kept', () => {
   assert.deepEqual(
     [m.rebalanceTask({ id: 'cooking', xp: 45, gold: 55, group: 'main' })].map((t) => [t.xp, t.gold, t.group])[0],
-    [40, 45, 'main'],
+    [40, 42, 'main'], // through the v1.0 and v1.5 rebalances
   );
   assert.deepEqual(m.rebalanceTask({ id: 'trash', xp: 5, gold: 5, group: 'quick' }).gold, 10);
   const edited = { id: 'cooking', xp: 60, gold: 55, group: 'main' };

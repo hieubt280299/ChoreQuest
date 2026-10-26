@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
+import { intensityApplies, intensityBase, MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
 import type {
   AvatarId,
   CharacterId,
@@ -10,11 +10,12 @@ import type {
   Streak,
   Task,
   TaskCategory,
+  TaskIntensity,
   TaskLog,
   ThemeId,
   WheelSpinEvent,
 } from '../types';
-import { AVATARS, DEFAULT_AVATAR, THEMES, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
+import { AVATARS, DEFAULT_AVATAR, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
 import {
   addDays,
   computeRewardBreakdown,
@@ -40,6 +41,7 @@ import {
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
+import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
 import { rollWheelPrize, spinOnState } from '../utils/wheel';
 import { useAuth } from './AuthContext';
@@ -97,14 +99,17 @@ interface GameContextValue {
   canRename: (characterId: CharacterId) => boolean;
   /** Set (or clear, with a blank name) a character's display name. */
   setCharacterName: (characterId: CharacterId, name: string) => ActionResult;
-  /** The cosmetic reward this character may still claim for winning the previous chronicle, if any. */
-  pendingReward: (characterId: CharacterId) => { chronicleId: number } | null;
-  /** Claim the winner's reward: unlock one theme or one of your own avatars. */
+  /** The cosmetic unlocks this character may still claim for the previous chronicle, if any. */
+  pendingReward: (characterId: CharacterId) => RewardOffer | null;
+  /** Claim a chronicle reward: an avatar of your own (both players) or a theme (the winner). */
   claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId) => ActionResult;
   /** Switch your character's avatar to one the household has unlocked (shared with your spouse). */
   setAvatar: (characterId: CharacterId, avatar: AvatarId) => ActionResult;
-  /** Log a quest for today, or (`late`) for yesterday through "Yesterday's quests". */
-  completeTask: (taskId: string, completer: Completer, options?: { late?: boolean }) => ActionResult;
+  /**
+   * Log a quest for today, or (`late`) for yesterday through "Yesterday's quests". `intensity` is the effort
+   * picked for an intensity-enabled Moderate quest (Normal otherwise).
+   */
+  completeTask: (taskId: string, completer: Completer, options?: { late?: boolean; intensity?: TaskIntensity }) => ActionResult;
   /**
    * "Yesterday's quests" is open: before noon, nothing logged yet today, and today isn't the first day of a
    * chronicle (yesterday then belongs to a settled one). `now` is passed so callers can re-check each minute.
@@ -141,7 +146,11 @@ interface GameContextValue {
   /** A character's live streak on a quest. */
   getStreak: (taskId: string, characterId: CharacterId) => Streak;
   /** Exact reward breakdown completing a quest today would give, per character (null = not a recipient). */
-  previewReward: (taskId: string, completer: Completer, options?: { late?: boolean }) => Record<CharacterId, RewardBreakdown | null> | null;
+  previewReward: (
+    taskId: string,
+    completer: Completer,
+    options?: { late?: boolean; intensity?: TaskIntensity },
+  ) => Record<CharacterId, RewardBreakdown | null> | null;
   /** Why the last action couldn't be saved (e.g. the other player just did the same quest), until dismissed. */
   syncError: TranslationKey | null;
   clearSyncError: () => void;
@@ -177,26 +186,6 @@ function streakFields(breakdown: Record<CharacterId, RewardBreakdown | null>) {
     }
   }
   return { streakDays, streakGold };
-}
-
-/**
- * Chronicle winner's reward: the previous chronicle's top earner (ties: both) may unlock one theme or avatar
- * while the next chronicle runs. It's offered from its Day 1.
- */
-function rewardOffer(state: GameState, characterId: CharacterId): { chronicleId: number } | null {
-  const last = state.prizeHistory[0];
-  if (!last || state.chronicle.id !== last.chronicleId + 1) return null;
-  const gold = last.goldSnapshot;
-  const top = Math.max(gold.husband, gold.wife);
-  if (top <= 0 || gold[characterId] !== top) return null;
-  if (state.cosmetics.rewards.some((reward) => reward.chronicleId === last.chronicleId && reward.characterId === characterId)) return null;
-  // Nothing left to unlock: no reward to offer.
-  const lockedThemes = THEMES.filter((theme) => theme !== DEFAULT_THEME && !state.cosmetics.themes.includes(theme));
-  const lockedAvatars = AVATARS[characterId].filter(
-    (avatar) => avatar !== DEFAULT_AVATAR[characterId] && !state.cosmetics.avatars[characterId].includes(avatar),
-  );
-  if (lockedThemes.length + lockedAvatars.length === 0) return null;
-  return { chronicleId: last.chronicleId };
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -348,7 +337,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           id: newOpId(),
           update: (current) => {
             const reward = rewardOffer(current, characterId);
-            if (!reward) return 'cosmetics.error.noReward';
+            if (!reward || !reward[kind]) return 'cosmetics.error.noReward';
             const cosmetics = current.cosmetics;
             if (kind === 'theme') {
               if (!isThemeId(item) || item === DEFAULT_THEME || cosmetics.themes.includes(item)) return 'cosmetics.error.locked';
@@ -418,7 +407,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const completeTask = useCallback(
-    (taskId: string, completer: Completer, options?: { late?: boolean }): ActionResult => {
+    (taskId: string, completer: Completer, options?: { late?: boolean; intensity?: TaskIntensity }): ActionResult => {
       if (!canPlay) return fail('household.error.inactive');
       const late = !!options?.late;
       if (late && !yesterdayOpen()) return fail('tasks.error.yesterdayClosed');
@@ -435,9 +424,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (!task) return 'tasks.error.missing';
           // Also catches the other player logging the same quest a moment earlier.
           if (current.logs.some((log) => log.taskId === taskId && log.date === date)) return 'tasks.alreadyDone';
+          // Effort (intensity-enabled Moderate quests) scales the base first; skills and streaks build on it.
+          const intensity = intensityApplies(task) ? (options?.intensity ?? 'normal') : 'normal';
+          const base = intensityBase(task, intensity);
           const index = buildStreakIndex(current.logs);
           const full = computeRewardBreakdown(
-            task,
+            base,
             completer,
             current.characters,
             SKILL_POOL,
@@ -456,12 +448,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
             goldAwarded: { husband: split.husband.gold, wife: split.wife.gold },
             timestamp: now,
             loggedBy,
-            baseXp: task.xp,
-            baseGold: task.gold,
+            baseXp: base.xp,
+            baseGold: base.gold,
             category: task.category,
             group: task.group,
             ...streakFields(breakdown),
             ...(late ? { late: true } : {}),
+            ...(intensity !== 'normal' ? { intensity } : {}),
           };
           Object.assign(outcome, { task, log, levelUps });
           return { ...current, characters, logs: [log, ...current.logs] };
@@ -756,7 +749,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (!task) return null;
         const date = options?.late ? addDays(today, -1) : today;
         const full = computeRewardBreakdown(
-          task,
+          intensityBase(task, options?.intensity),
           completer,
           state.characters,
           SKILL_POOL,

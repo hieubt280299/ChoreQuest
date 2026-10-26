@@ -10,6 +10,7 @@ import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import { rewardCopy } from './rewardCopy';
 import { ThemePreview } from './ThemePreview';
 
 type Choice = { kind: 'theme'; item: ThemeId } | { kind: 'avatar'; item: AvatarId };
@@ -50,8 +51,8 @@ function Tile({
 }
 
 /**
- * Wardrobe: pick your theme (this device only) and your character's avatar (seen by your spouse too). A
- * chronicle winner also picks one locked theme or avatar to unlock for the household.
+ * Wardrobe: pick your theme (this device only) and your character's avatar (seen by your spouse too). After a
+ * chronicle, each player unlocks one locked avatar, and the winner also one theme for the household.
  */
 export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useLanguage();
@@ -62,6 +63,7 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
   const me: CharacterId = activeCharacter;
   const { cosmetics } = state;
   const reward = canRename(me) ? pendingReward(me) : null;
+  const copy = reward ? rewardCopy(reward) : null;
 
   const themeOwned = (item: ThemeId) => item === DEFAULT_THEME || cosmetics.themes.includes(item);
   const avatarOwned = (item: AvatarId) => item === DEFAULT_AVATAR[me] || cosmetics.avatars[me].includes(item);
@@ -87,9 +89,9 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
             <Icon as={Trophy} size={24} className="mt-0.5 text-flame-300" />
             <div className="min-w-0">
               <p className="text-lg font-extrabold uppercase leading-tight text-flame-300">
-                {t('cosmetics.rewardTitle', { id: reward.chronicleId })}
+                {t(copy!.title, { id: reward.chronicleId })}
               </p>
-              <p className="text-base text-parchment-100">{t('cosmetics.rewardHint')}</p>
+              <p className="text-base text-parchment-100">{t(copy!.hint)}</p>
             </div>
           </div>
         )}
@@ -100,7 +102,7 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {THEMES.map((item) => {
               const owned = themeOwned(item);
-              const state = item === theme ? 'active' : owned ? 'owned' : reward ? 'claimable' : 'locked';
+              const state = item === theme ? 'active' : owned ? 'owned' : reward?.theme ? 'claimable' : 'locked';
               return (
                 <Tile
                   key={item}
@@ -122,7 +124,7 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {AVATARS[me].map((item) => {
               const owned = avatarOwned(item);
-              const state = item === cosmetics.activeAvatar[me] ? 'active' : owned ? 'owned' : reward ? 'claimable' : 'locked';
+              const state = item === cosmetics.activeAvatar[me] ? 'active' : owned ? 'owned' : reward?.avatar ? 'claimable' : 'locked';
               return (
                 <Tile
                   key={item}
@@ -156,7 +158,7 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
             <Icon as={Trophy} size={24} />
             {choice
               ? t('cosmetics.claim', { item: t(`${choice.kind === 'theme' ? 'theme' : 'avatar'}.${choice.item}` as TranslationKey) })
-              : t('cosmetics.pickReward')}
+              : t(reward.avatar && reward.theme ? 'cosmetics.pickReward' : reward.theme ? 'cosmetics.pickTheme' : 'cosmetics.pickAvatar')}
           </Button>
         )}
       </div>

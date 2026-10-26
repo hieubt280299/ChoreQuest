@@ -7,13 +7,13 @@ const check = (label, fn) => { fn(); passed += 1; console.log('ok -', label); };
 check('late reward: 0 XP, half of base + skill gold rounded down, no streak bonus', () => {
   const s = m.createInitialState('2026-10-01');
   s.characters.wife.skills = [{ skillId: 'master-chef', level: 1 }]; // +10% gold on cooking
-  const task = s.tasks.find((t) => t.id === 'cooking'); // 40 XP / 45 G
+  const task = s.tasks.find((t) => t.id === 'cooking'); // 40 XP / 42 gold (v1.5)
   const full = m.computeRewardBreakdown(task, 'wife', s.characters, m.SKILL_POOL, { wife: 6 });
   assert.ok(full.wife.streakGold > 0);
   const late = m.lateRewardBreakdown(full).wife;
   assert.equal(late.xp, 0);
   assert.equal(late.streakGold, 0);
-  assert.equal(late.gold, Math.floor((45 + 4.5) / 2)); // 24
+  assert.equal(late.gold, Math.floor((42 + 4.2) / 2)); // 23
   assert.equal(late.baseGold + late.skillGold, late.gold, 'parts add up');
   assert.equal(late.streakDays, 6, 'streak day is still recorded');
 });

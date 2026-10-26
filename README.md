@@ -55,7 +55,7 @@ Without these variables the app still runs, in demo mode only.
 | --- | --- |
 | `npm run dev` | Start the dev server (add `-- --host` to test on a phone on the same network) |
 | `npm run build` | Type-check and build to `dist/` |
-| `npm test` | Run the game-logic test suites (`npm test -- v140` runs one) |
+| `npm test` | Run the game-logic test suites (`npm test -- v150` runs one) |
 | `npm run preview` | Serve the production build locally |
 | `npm run generate-pwa-assets` | Regenerate the PWA icons |
 
@@ -109,4 +109,4 @@ Days that pass while the app is closed (interest, chronicle rollover) are settle
 3. Check that `npm run build` and `npm test` pass, and look at your change at phone width (about 375px). Rule changes get a check in `tests/` (one suite per version, e.g. `v140.test.mjs`).
 4. Open a pull request against `main`.
 
-For new versions, the feature spec goes in `UPDATE_vX.Y.Z.md`. When the work is done, add the matching section to `CHANGELOG.md` and bump the version in `package.json`.
+For new versions, the feature spec goes in `UPDATE_vX.Y.Z.md`. When the work is done, add the matching section to `CHANGELOG.md`, bump the version in `package.json`, and add the player-facing notes for that version at the top of `src/constants/patchNotes.ts` (shown in "What's New").

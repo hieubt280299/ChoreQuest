@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Calendar, Home, MoreHorizontal, Sliders, Sword, TreePine } from 'pixelarticons/react';
 import { useState } from 'react';
+import { useWheelBusy } from '../../hooks/useWheelBusy';
 import { FIRE } from '../../assets/sprites';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -59,6 +60,7 @@ export function BottomNav({
 }) {
   const { t } = useLanguage();
   const points = useUnspentPoints();
+  const locked = useWheelBusy();
   const [moreOpen, setMoreOpen] = useState(false);
   const inMore = MORE.some((item) => item.id === view);
   const tabClass = (active: boolean) =>
@@ -92,6 +94,7 @@ export function BottomNav({
                   key={item.id}
                   type="button"
                   role="menuitem"
+                  disabled={locked}
                   onClick={() => {
                     onChange(item.id);
                     setMoreOpen(false);
@@ -118,6 +121,7 @@ export function BottomNav({
                 <button
                   key={item.id}
                   type="button"
+                  disabled={locked && !active}
                   onClick={() => {
                     onChange(item.id);
                     setMoreOpen(false);
@@ -133,6 +137,7 @@ export function BottomNav({
             })}
           <button
             type="button"
+            disabled={locked && !inMore}
             onClick={() => setMoreOpen((value) => !value)}
             aria-expanded={moreOpen}
             aria-controls="more-drawer"
@@ -157,6 +162,7 @@ export function SideNav({
 }) {
   const { t } = useLanguage();
   const points = useUnspentPoints();
+  const locked = useWheelBusy();
   return (
     <aside className="hidden w-56 shrink-0 md:block">
       <div className="sticky top-24 space-y-5">
@@ -171,6 +177,7 @@ export function SideNav({
               <button
                 key={item.id}
                 type="button"
+                disabled={locked && !active}
                 onClick={() => onChange(item.id)}
                 aria-current={active ? 'page' : undefined}
                 className={`px-tab w-full px-4 py-2.5 text-lg ${active ? 'translate-x-2' : ''}`}

@@ -42,6 +42,14 @@ export function FastLearnerTooltip({
   );
 }
 
+/** "Normal Tickets" / "Golden Tickets" in a skill description, explained in a tooltip. */
+export function TicketTooltip({ kind, interactive }: { kind: 'normal' | 'golden'; interactive: boolean }) {
+  const { t } = useLanguage();
+  const label = t(kind === 'golden' ? 'skills.goldenTickets' : 'skills.normalTickets');
+  if (!interactive) return <span className="font-extrabold">{label}</span>;
+  return <Tooltip label={label} triggerClassName={highlight} content={t(kind === 'golden' ? 'skills.goldenTicketHelp' : 'skills.normalTicketHelp')} />;
+}
+
 /** The "MVP" keyword in a skill description, explained in a tooltip. */
 export function MvpTooltip({ interactive }: { interactive: boolean }) {
   const { t } = useLanguage();

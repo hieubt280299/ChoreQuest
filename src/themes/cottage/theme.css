@@ -6,7 +6,7 @@
   --c-wood-900: 63 52 36;
   --c-wood-800: 84 70 51;
   --c-wood-700: 111 93 68;
-  --c-wood-600: 140 119 90;
+  --c-wood-600: 115 98 74;
   --c-wood-500: 171 149 118;
   --c-wood-400: 201 180 146;
   --c-parchment-50: 255 253 246;
@@ -16,11 +16,11 @@
   --c-parchment-400: 185 168 126;
   --c-parchment-500: 138 122 86;
   --c-brick-700: 142 74 94;
-  --c-brick-600: 181 96 122;
+  --c-brick-600: 148 79 100;
   --c-brick-500: 212 128 154;
   --c-brick-400: 234 166 187;
-  --c-ember-700: 176 122 32;
-  --c-ember-600: 216 154 52;
+  --c-ember-700: 134 93 24;
+  --c-ember-600: 168 120 41;
   --c-ember-500: 242 184 75;
   --c-ember-400: 247 205 115;
   --c-ember-300: 251 224 163;
@@ -61,4 +61,18 @@
 }
 [data-theme='cottage'] .px-panel-wood {
   background-image: repeating-linear-gradient(180deg, transparent 0 22px, rgb(var(--c-wood-900) / 0.25) 22px 24px);
+}
+
+/* Text straight on the pale sky and meadow (subtitles, filter labels, counts) is dark ink: light text with an
+   outline looked blotchy at small sizes. Titles keep their outlined look. */
+[data-theme='cottage'] :is(.px-subtitle, .text-parchment-100, .text-parchment-300):not(:is(.px-panel, .px-slot-dark, .px-tooltip) *) {
+  color: rgb(var(--c-ink));
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
+}
+/* Deeper boards and brick buttons than the pastel palette's, so the light text on them reads. */
+[data-theme='cottage'] .px-panel-wood {
+  background-color: rgb(var(--c-wood-800));
+}
+[data-theme='cottage'] .px-btn-brick {
+  background-color: rgb(var(--c-brick-600));
 }

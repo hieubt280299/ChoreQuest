@@ -5,7 +5,7 @@
   --c-wood-950: 48 15 0;
   --c-wood-900: 92 32 0;
   --c-wood-800: 136 48 0;
-  --c-wood-700: 200 76 12;
+  --c-wood-700: 166 63 10;
   --c-wood-600: 168 60 8;
   --c-wood-500: 216 92 28;
   --c-wood-400: 232 128 76;
@@ -19,8 +19,8 @@
   --c-brick-600: 184 16 0;
   --c-brick-500: 216 40 0;
   --c-brick-400: 248 88 56;
-  --c-ember-700: 168 112 0;
-  --c-ember-600: 216 152 0;
+  --c-ember-700: 131 87 0;
+  --c-ember-600: 164 116 0;
   --c-ember-500: 248 184 0;
   --c-ember-400: 252 200 68;
   --c-ember-300: 252 216 124;
@@ -61,11 +61,12 @@
 [data-theme='mushroom'] .px-panel-wood .text-parchment-300 {
   color: #ffffff;
 }
-[data-theme='mushroom'] .px-subtitle {
+/* White outlined headings are for the sky only: titles inside panels and dialogs keep their own colours. */
+[data-theme='mushroom'] .px-subtitle:not(.px-panel .px-subtitle) {
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000;
 }
-[data-theme='mushroom'] .px-title {
+[data-theme='mushroom'] .px-title:not(.px-panel .px-title) {
   color: #ffffff;
   text-shadow:
     2px 2px 0 #000000,
@@ -73,4 +74,20 @@
 }
 [data-theme='mushroom'] .px-title {
   letter-spacing: 0.06em;
+}
+
+/* Light text straight on the sky (subtitles, filter labels, counts) gets a black pixel outline, so it stays readable
+   over the white clouds. Text inside panels and dark slots keeps its own styling. */
+[data-theme='mushroom'] :is(.px-subtitle, .text-parchment-100, .text-parchment-300):not(:is(.px-panel, .px-slot-dark, .px-tooltip) *) {
+  color: #ffffff;
+  text-shadow:
+    -1px -1px 0 #000000,
+    0 -1px 0 #000000,
+    1px -1px 0 #000000,
+    -1px 0 0 #000000,
+    1px 0 0 #000000,
+    -1px 1px 0 #000000,
+    0 1px 0 #000000,
+    1px 1px 0 #000000,
+    2px 2px 0 #000000;
 }

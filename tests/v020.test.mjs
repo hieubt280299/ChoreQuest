@@ -90,14 +90,14 @@ check('interest adds rate x current gold each new day (compounding) and logs it 
     interestOn: day(-3),
   });
   const next = m.applyDailyInterest(s, today);
-  // 4% a day on current gold: 100 -> 104 -> 108 (4.16) -> 112 (4.32)
-  assert.equal(next.characters.wife.gold, 112, 'interest is ordinary gold (counts for the payout)');
+  // Level 2 = 3% a day on current gold (v1.5): 100 -> 103 -> 106 (3.09) -> 109 (3.18)
+  assert.equal(next.characters.wife.gold, 109, 'interest is ordinary gold (counts for the payout)');
   assert.equal(next.characters.wife.interestOn, today);
   assert.equal('interestGold' in next.characters.wife, false);
   assert.deepEqual(next.events.filter((e) => e.type === 'interest').map((e) => [e.date, e.gold]).sort(), [
-    [day(-2), 4],
-    [day(-1), 4],
-    [today, 4],
+    [day(-2), 3],
+    [day(-1), 3],
+    [today, 3],
   ]);
   assert.equal(m.applyDailyInterest(next, today), next, 'same day again: no change');
 });

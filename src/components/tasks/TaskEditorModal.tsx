@@ -34,6 +34,8 @@ export function TaskEditorModal({
   const [gold, setGold] = useState(initial?.gold ?? 15);
   const [category, setCategory] = useState<TaskCategory>(initial?.category ?? 'general');
   const [group, setGroup] = useState<TaskGroup>(initial?.group ?? groupForXp(initial?.xp ?? 20));
+  // Effort levels (Light / Normal / Heavy) are a Moderate-quest option, off by default.
+  const [intensityEnabled, setIntensityEnabled] = useState(initial?.intensityEnabled ?? false);
   // Show the field for the current language first.
   const fields = [...NAME_FIELDS].sort((a, b) => Number(b.language === language) - Number(a.language === language));
 
@@ -62,6 +64,7 @@ export function TaskEditorModal({
             category,
             group,
             enabled: initial?.enabled ?? true,
+            ...(group === 'main' && intensityEnabled ? { intensityEnabled: true } : {}),
           });
           onClose();
         }}
@@ -125,6 +128,20 @@ export function TaskEditorModal({
             ))}
           </select>
         </label>
+        {group === 'main' && (
+          <label className="flex items-start gap-3 text-base font-bold">
+            <input
+              type="checkbox"
+              className="px-check mt-0.5"
+              checked={intensityEnabled}
+              onChange={(event) => setIntensityEnabled(event.target.checked)}
+            />
+            <span>
+              {t('tasks.intensity')}
+              <span className="block text-sm font-normal text-wood-600">{t('tasks.intensityHint')}</span>
+            </span>
+          </label>
+        )}
         <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           {t('tasks.category')}
           <select

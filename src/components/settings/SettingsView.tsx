@@ -1,4 +1,4 @@
-import { Calendar, Check, ChevronDown, ChevronUp, CircleInfo, Coins, Languages, Lock, Script, User } from 'pixelarticons/react';
+import { Calendar, Check, ChevronDown, ChevronUp, CircleInfo, Coins, Languages, Lock, Script, Sparkles, User } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -22,6 +22,8 @@ import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
 import { NewLegendCard } from './NewLegendCard';
 import { ResetQuestsButton } from './ResetQuestsButton';
+import { PatchNotesModal } from './PatchNotesModal';
+import { APP_VERSION } from '../../constants/patchNotes';
 
 function SectionTitle({ icon, children }: { icon: typeof Coins; children: string }) {
   return (
@@ -114,6 +116,7 @@ function ChronicleCard() {
 export function SettingsView() {
   const { t, language, setLanguage, locale } = useLanguage();
   const [changingPassword, setChangingPassword] = useState(false);
+  const [patchNotesOpen, setPatchNotesOpen] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
   const [showAllQuests, setShowAllQuests] = useState(false);
   const { state, canEditSettings, setPrizePool, upsertTask } = useGame();
@@ -233,6 +236,18 @@ export function SettingsView() {
                   />
                   {t('settings.enabled')}
                 </label>
+                {/* Moderate quests can ask for effort (Light / Normal / Heavy) when completed; off by default. */}
+                {task.group === 'main' && (
+                  <label className="flex items-center gap-2 text-base font-bold">
+                    <input
+                      type="checkbox"
+                      className="px-check"
+                      checked={task.intensityEnabled === true}
+                      onChange={(event) => upsertTask({ ...task, intensityEnabled: event.target.checked })}
+                    />
+                    {t('settings.intensity')}
+                  </label>
+                )}
               </div>
             );
           })}
@@ -287,6 +302,18 @@ export function SettingsView() {
             {t('auth.exitDemo')}
           </Button>
         )}
+      </Card>
+      {/* App version and its "What's New" notes (also shown once after each update). */}
+      <Card>
+        <SectionTitle icon={CircleInfo}>{t('settings.about')}</SectionTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-arcade text-[10px] text-wood-600">{t('settings.version', { version: APP_VERSION })}</p>
+          <Button variant="secondary" onClick={() => setPatchNotesOpen(true)}>
+            <Icon as={Sparkles} size={24} />
+            {t('patch.open')}
+          </Button>
+        </div>
+        <PatchNotesModal open={patchNotesOpen} onClose={() => setPatchNotesOpen(false)} />
       </Card>
     </section>
   );
