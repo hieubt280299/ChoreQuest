@@ -17,6 +17,32 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.5.1',
+    date: '2026-10-27',
+    notes: {
+      features: {
+        en: [
+          'A tidier Settings page: everything is grouped into Preferences, Household and Account.',
+          'Cleaner character cards: your gold and tickets sit together in one bar.',
+          'The Wardrobe has two tabs: Themes and Avatars.',
+          'Forgot your password? Tap “Forgot password?” on the sign-in screen to get a reset link by email.',
+          'Vietnamese is now the default language, with clearer wording throughout.',
+        ],
+        vi: [
+          'Trang Cài đặt gọn gàng hơn: mọi thứ được xếp vào Tùy chọn, Gia đình và Tài khoản.',
+          'Thẻ nhân vật gọn hơn: vàng và vé nằm chung một thanh.',
+          'Tủ đồ có hai thẻ: Chủ đề và Nhân vật.',
+          'Quên mật khẩu? Chạm “Quên mật khẩu?” ở màn hình đăng nhập để nhận đường dẫn đặt lại qua email.',
+          'Tiếng Việt giờ là ngôn ngữ mặc định, với cách diễn đạt rõ ràng hơn.',
+        ],
+      },
+      fixes: {
+        en: ['Tips on the Home cards are no longer hidden behind the other card.'],
+        vi: ['Lời giải thích trên thẻ ở Nhà không còn bị thẻ bên cạnh che mất.'],
+      },
+    },
+  },
+  {
     version: '1.5.0',
     date: '2026-10-26',
     notes: {

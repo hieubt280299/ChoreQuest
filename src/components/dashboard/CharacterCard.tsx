@@ -21,17 +21,21 @@ import { Tooltip } from '../ui/Tooltip';
 import { RenameCharacterModal } from './RenameCharacterModal';
 import { SkillChip } from './SkillChip';
 
-const STAT_CLASS = 'px-slot h-9 items-center gap-1.5 px-2 text-base font-extrabold leading-none';
-
-/** Small sunken stat badge, a fixed 36px tall so badges with icons of different sizes line up. */
-function Stat({ label, children }: { label: string; children: ReactNode }) {
+/** One part of the inventory strip (gold or a ticket count), with its meaning in a tooltip. */
+function InventoryItem({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span className={`${STAT_CLASS} inline-flex`}>
-      <span aria-hidden className="inline-flex items-center gap-1.5">
-        {children}
-      </span>
-      <span className="sr-only">{label}</span>
-    </span>
+    <Tooltip
+      label={
+        <>
+          <span aria-hidden className="inline-flex items-center gap-1.5">
+            {children}
+          </span>
+          <span className="sr-only">{label}</span>
+        </>
+      }
+      content={label}
+      triggerClassName="inline-flex h-full items-center gap-1.5 px-3 text-base font-extrabold leading-none"
+    />
   );
 }
 
@@ -53,7 +57,7 @@ export function CharacterCard({ character, active }: { character: Character; act
     character.goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: character.goldenTickets });
 
   return (
-    <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
+    <motion.div className="tooltip-host h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
       <div className={`px-panel flex h-full flex-col gap-3 p-4 transition-transform ${active ? 'px-panel-ember -translate-y-1' : ''}`}>
         <div className="flex items-start gap-3">
           <CharacterAvatar id={id} scale={3} className="shrink-0" />
@@ -99,44 +103,46 @@ export function CharacterCard({ character, active }: { character: Character; act
           <ProgressBar percent={progress.percent} label="XP" />
         </div>
 
-        {/* Equal-height badges: gold, Golden Tickets (when there are any), then Normal Tickets (counts only; the tooltips spell them out). */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Stat label={`${t('character.gold')}: ${formatGold(character.gold)}`}>
+        {/* Inventory in one sunken strip: gold, Golden Tickets (when there are any), Normal Tickets. Counts only; each
+            part's tooltip spells it out. */}
+        <div className="px-slot flex h-10 w-fit max-w-full items-stretch divide-x-2 divide-ink/15">
+          <InventoryItem label={`${t('character.gold')}: ${formatGold(character.gold)}`}>
             <GoldCounter amount={character.gold} spin />
-          </Stat>
+          </InventoryItem>
           {character.goldenTickets > 0 && (
-            <Tooltip
-              label={
-                <span className="inline-flex items-center gap-1.5 text-ember-700">
-                  <Icon as={Ticket} size={24} />
-                  <span className="font-arcade text-[10px]">{character.goldenTickets}</span>
-                  <span className="sr-only">{goldenLabel}</span>
-                </span>
-              }
-              content={goldenLabel}
-              triggerClassName={`${STAT_CLASS} inline-flex`}
-            />
-          )}
-          <Tooltip
-            label={
-              <span className="inline-flex items-center gap-1.5 text-plum-600">
+            <InventoryItem label={goldenLabel}>
+              <span className="inline-flex items-center gap-1.5 text-ember-700">
                 <Icon as={Ticket} size={24} />
-                <span className="font-arcade text-[10px]">{character.tickets}</span>
-                <span className="sr-only">{ticketLabel}</span>
+                <span className="font-arcade text-[10px]">{character.goldenTickets}</span>
               </span>
-            }
-            content={ticketLabel}
-            triggerClassName={`${STAT_CLASS} inline-flex`}
-          />
+            </InventoryItem>
+          )}
+          <InventoryItem label={ticketLabel}>
+            <span className="inline-flex items-center gap-1.5 text-plum-600">
+              <Icon as={Ticket} size={24} />
+              <span className="font-arcade text-[10px]">{character.tickets}</span>
+            </span>
+          </InventoryItem>
         </div>
 
+        {/* Skills as a plain line ("Master Chef 1 · Fast Learner 1"); tap a name for its description. */}
         {character.skills.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {character.skills.map((owned) => {
+          <p className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm leading-tight">
+            {character.skills.map((owned, index) => {
               const def = SKILL_POOL.find((skill) => skill.id === owned.skillId);
-              return def ? <SkillChip key={owned.skillId} skill={def} level={owned.level} /> : null;
+              if (!def) return null;
+              return (
+                <span key={owned.skillId} className="inline-flex items-center gap-1">
+                  {index > 0 && (
+                    <span aria-hidden className="text-wood-500">
+                      ·
+                    </span>
+                  )}
+                  <SkillChip skill={def} level={owned.level} />
+                </span>
+              );
             })}
-          </div>
+          </p>
         )}
 
         {/* Daily ticket, pinned to the bottom so both cards align. */}

@@ -37,11 +37,14 @@ export function Modal({
   onClose,
   title,
   children,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Wider on big screens, for long editable lists (phones always use the full width). */
+  wide?: boolean;
 }) {
   const { t } = useLanguage();
   return (
@@ -57,7 +60,7 @@ export function Modal({
             aria-modal="true"
             aria-label={title}
             {...dialogMotion}
-            className="px-panel mb-3 w-full max-w-md p-5 pt-11"
+            className={`px-panel mb-3 w-full p-5 pt-11 ${wide ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}
             onClick={(event) => event.stopPropagation()}
           >
             {/* Title plate hanging over the top border, like an RPG dialog. */}

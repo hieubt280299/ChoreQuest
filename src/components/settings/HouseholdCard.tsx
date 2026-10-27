@@ -13,6 +13,7 @@ import { HouseholdCode } from '../ui/HouseholdCode';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Modal } from '../ui/Modal';
+import { TEXT_ACTION } from '../ui/textAction';
 
 /** Join code, members and roles, and leaving. Only shown for online households. */
 export function HouseholdCard() {
@@ -112,10 +113,13 @@ export function HouseholdCard() {
           {t(error)}
         </p>
       )}
-      <Button className="mt-5" variant="secondary" onClick={() => setConfirmLeave(true)}>
-        <Icon as={Logout} size={24} />
-        {t('household.leave')}
-      </Button>
+      {/* Rarely used: a quiet text action (it still asks to confirm). */}
+      <div className="mt-4 flex justify-end border-t-[3px] border-ink/15 pt-2">
+        <button type="button" className={`${TEXT_ACTION} text-brick-600`} onClick={() => setConfirmLeave(true)}>
+          <Icon as={Logout} size={12} />
+          {t('household.leave')}
+        </button>
+      </div>
 
       <Modal open={confirmLeave} onClose={() => setConfirmLeave(false)} title={t('household.leaveConfirmTitle')}>
         <p className="mb-3 text-base">{t('household.leaveConfirm')}</p>

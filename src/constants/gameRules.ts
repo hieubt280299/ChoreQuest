@@ -50,7 +50,7 @@ export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
 // gold ~ 1.2 per minute x effort, rounded to 5 (min 5).
 export const DEFAULT_TASKS: Task[] = [
   // Quick tasks: up to 10 XP
-  { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn dẹp giường' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
+  { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn giường' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
   { id: 'feedPet', nameKey: 'task.feedPet', names: { en: 'Feed Pet', vi: 'Cho thú cưng ăn' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
   { id: 'trash', nameKey: 'task.trash', names: { en: 'Take Out Trash', vi: 'Đổ rác' }, xp: 5, gold: 10, category: 'general', group: 'quick', enabled: true },
   { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 8, gold: 8, category: 'laundry', group: 'quick', enabled: true },

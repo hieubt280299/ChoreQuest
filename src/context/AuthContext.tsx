@@ -3,6 +3,7 @@ import {
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updatePassword,
@@ -10,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { firebaseConfigured, getFirebase, getMissingFirebaseKeys } from '../config/firebase';
-import type { HouseholdUser } from '../types';
+import type { HouseholdUser, LanguageCode } from '../types';
 import type { TranslationKey } from '../utils/i18n';
 import { newPasswordProblem } from '../utils/password';
 
@@ -28,6 +29,11 @@ interface AuthContextValue {
   register: (email: string, password: string, confirm: string) => Promise<void>;
   /** Re-authenticate with the current password, then set a new one. */
   changePassword: (current: string, next: string, confirm: string) => Promise<{ ok: true } | { ok: false; error: TranslationKey }>;
+  /**
+   * Email a password-reset link (Firebase's hosted reset page, then back to the app). Resolves `ok` whether or not
+   * the email has an account, so the screen never reveals which emails are registered.
+   */
+  sendPasswordReset: (email: string, language: LanguageCode) => Promise<{ ok: true } | { ok: false; error: TranslationKey }>;
   logout: () => Promise<void>;
 }
 
@@ -145,6 +151,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await updatePassword(account, next);
           return { ok: true };
         } catch (err) {
+          return { ok: false, error: toErrorKey(err) };
+        }
+      },
+      sendPasswordReset: async (email, language) => {
+        const firebase = getFirebase();
+        if (!firebase) return { ok: false, error: 'auth.missingFirebase' };
+        const address = email.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { ok: false, error: 'auth.error.invalidEmail' };
+        // The email is written in the player's language.
+        firebase.auth.languageCode = language;
+        const send = (withReturnLink: boolean) =>
+          sendPasswordResetEmail(
+            firebase.auth,
+            address,
+            // After setting the new password, the reset page offers a link back to the app.
+            withReturnLink ? { url: window.location.origin, handleCodeInApp: false } : undefined,
+          );
+        try {
+          try {
+            await send(true);
+          } catch (err) {
+            const code = err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
+            // This domain isn't in Firebase's authorized domains: send the plain reset email instead.
+            if (code !== 'auth/unauthorized-continue-uri' && code !== 'auth/invalid-continue-uri') throw err;
+            await send(false);
+          }
+          return { ok: true };
+        } catch (err) {
+          const code = err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
+          // Same answer for unknown emails (older projects without email enumeration protection report them).
+          if (code === 'auth/user-not-found') return { ok: true };
           return { ok: false, error: toErrorKey(err) };
         }
       },

@@ -7,8 +7,8 @@ import { SkillDescription } from '../skills/SkillDescription';
 import { SkillIcon } from '../ui/SkillIcon';
 
 /**
- * Learned-skill chip ("Heavy Lifter lv. 1"). Hover, focus or tap shows a tooltip with the full
- * description and the current level's value highlighted; Escape or tapping elsewhere closes it.
+ * A learned skill on the character card, as plain text ("Heavy Lifter 1", no box). Hover, focus or tap shows a
+ * tooltip with the full description and the current level's value highlighted; Escape or tapping elsewhere closes it.
  */
 export function SkillChip({ skill, level }: { skill: SkillDefinition; level: number }) {
   const { t } = useLanguage();
@@ -41,11 +41,15 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
         onClick={() => setOpen((value) => !value)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="px-slot px-focus inline-flex items-center gap-1 px-2 py-0.5 text-sm font-bold text-wood-800"
+        className="px-focus inline-flex min-h-7 items-center gap-1 text-sm font-bold text-wood-800 hover:text-ink"
       >
-        <SkillIcon icon={skill.icon} size={12} />
+        <span className="text-wood-600">
+          <SkillIcon icon={skill.icon} size={12} />
+        </span>
         {t(skill.nameKey as TranslationKey)}
-        <span className="text-sm font-extrabold text-brick-600">{t('skills.levelShort', { level })}</span>
+        <span className="font-arcade text-[9px] text-brick-600" aria-label={t('skills.levelShort', { level })}>
+          {level}
+        </span>
       </button>
       {open && (
         <span
