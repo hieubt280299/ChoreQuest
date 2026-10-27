@@ -17,6 +17,8 @@ export function NewLegendCard() {
   const { levelResetUnlocked, canEditSettings, resetLevels } = useGame();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
+  // Hidden until it unlocks; the mastery celebration tells players to look for it here.
+  if (!levelResetUnlocked) return null;
 
   return (
     <Card tone={levelResetUnlocked ? 'ember' : 'parchment'}>

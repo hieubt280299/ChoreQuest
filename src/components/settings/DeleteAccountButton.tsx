@@ -6,6 +6,7 @@ import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import { TEXT_ACTION } from '../ui/textAction';
 
 /** Permanently deletes the signed-in account and its data, after a password confirmation. */
 export function DeleteAccountButton() {
@@ -38,10 +39,11 @@ export function DeleteAccountButton() {
 
   return (
     <>
-      <Button variant="brick" onClick={() => setOpen(true)}>
-        <Icon as={Trash} size={24} />
+      {/* Rarely used, so a small text action rather than a big red button; the dialog still asks for the password. */}
+      <button type="button" className={`${TEXT_ACTION} text-brick-600`} onClick={() => setOpen(true)}>
+        <Icon as={Trash} size={12} />
         {t('account.delete')}
-      </Button>
+      </button>
       <Modal open={open} onClose={close} title={t('account.deleteTitle')}>
         <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
           <p className="text-base">{t('account.deleteWarning')}</p>

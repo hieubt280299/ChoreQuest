@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'ChoreQuest',
         short_name: 'ChoreQuest',
         description: 'A cozy quest for a happier home',
-        lang: 'en',
+        lang: 'vi',
         start_url: '/',
         scope: '/',
         display: 'standalone',

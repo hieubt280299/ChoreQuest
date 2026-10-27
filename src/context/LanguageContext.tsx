@@ -24,9 +24,10 @@ function initialLanguage(): LanguageCode {
     const legacy = JSON.parse(localStorage.getItem('chorequest.game.v1') ?? 'null') as { language?: string } | null;
     if (legacy?.language === 'en' || legacy?.language === 'vi') return legacy.language;
   } catch {
-    // Storage unavailable: fall back to the browser language.
+    // Storage unavailable: use the default.
   }
-  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('vi') ? 'vi' : 'en';
+  // Vietnamese by default (since v1.5.1); a language picked in Settings is kept per device.
+  return 'vi';
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

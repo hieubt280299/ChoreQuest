@@ -2,6 +2,37 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.5.1] - 2026-10-27
+
+Spec: [UPDATE_v1.5.1.md](UPDATE_v1.5.1.md)
+
+### Added
+
+- **Forgot password:** a "Forgot password?" link on the sign-in screen opens a reset screen.
+  - Enter your email (pre-filled from the sign-in form) and Firebase sends a reset link in your language.
+  - The confirmation reads the same whether or not the email has an account, so it never reveals who's registered. It reminds you to check Spam.
+  - "Send again" is allowed after 60 seconds.
+
+### Changed
+
+- **Vietnamese is the default language.** A language you already picked in Settings is kept.
+- **Vietnamese text reviewed.** Clashing words are fixed: "Category" is now "Loại" (it shared "Nhóm" with Group), moderator is "Quản lý" everywhere, and "Rửa bát" is used throughout. English-style phrasing is gone (e.g. "{{who}} đã làm" instead of "Làm bởi…"). "Mùa" is capitalised consistently, and the demo is called "Chơi thử".
+- The weak-password message now matches the real rule (8+ characters with a letter and a number).
+- **Settings is simpler on phones.** It's now three labelled groups instead of nine separate cards:
+  - **Preferences:** Sound & music, and Display (graphics quality and language together).
+  - **Household:** members, Chronicle (end date and prize pool together) and Quest configuration. The quest list opens in a dialog (wider on computers), so it no longer stretches the page, and "Reset quests to defaults" sits inside it. New legend appears only once a player reaches level 30.
+  - **Account:** your email, Sign out and Change password.
+- **Rarely used actions are quieter:** "Delete account" and "Leave household" are now small text links instead of big buttons. Both still ask you to confirm. The app version and "What's New" sit in a small footer under Account.
+- The Settings page title is now just "Settings".
+- **Cleaner character cards on Home:**
+  - Gold, Golden Tickets and Normal Tickets now sit together in one bar. Each still explains itself when tapped.
+  - Skills are a plain line of text ("Master Chef 1 · Fast Learner 1") instead of separate boxes. Tap a name for its description.
+- **Wardrobe tabs:** Themes and Avatars are now two tabs, so the Wardrobe no longer scrolls through both. It opens on Avatars when an avatar is the only reward left to pick, and a trophy marks the tab with a reward to claim.
+
+### Fixed
+
+- Tips opened on a Home character card (skills, gold, tickets) are no longer hidden behind the other player's card.
+
 ## [1.5.0] - 2026-10-26
 
 Spec: [UPDATE_v1.5.0.md](UPDATE_v1.5.0.md)

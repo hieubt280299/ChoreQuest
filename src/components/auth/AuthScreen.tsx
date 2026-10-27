@@ -6,11 +6,13 @@ import { CabinScene } from '../dashboard/CabinScene';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
+import { TEXT_ACTION } from '../ui/textAction';
+import { ForgotPassword } from './ForgotPassword';
 
 export function AuthScreen() {
   const { t } = useLanguage();
   const { login, register, enterDemo, firebaseConfigured, missingKeys, error } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -34,6 +36,16 @@ export function AuthScreen() {
         </Card>
       )}
       <Card className="pt-6">
+        {mode === 'forgot' ? (
+          <ForgotPassword
+            initialEmail={email}
+            onBack={(typed) => {
+              setEmail(typed);
+              setMode('login');
+            }}
+          />
+        ) : (
+        <>
         <h2 className="mb-5 text-3xl font-extrabold uppercase">{t('auth.welcome')}</h2>
         <form
           className="space-y-5"
@@ -63,6 +75,13 @@ export function AuthScreen() {
             className="px-input"
             disabled={!firebaseConfigured}
           />
+          {mode === 'login' && (
+            <div className="-mt-3 flex justify-end">
+              <button type="button" className={`${TEXT_ACTION} text-wood-700`} onClick={() => setMode('forgot')} disabled={!firebaseConfigured}>
+                {t('auth.forgot')}
+              </button>
+            </div>
+          )}
           {mode === 'register' && (
             <>
               <input
@@ -101,6 +120,8 @@ export function AuthScreen() {
           <Icon as={Play} size={24} />
           {t('auth.demo')}
         </Button>
+        </>
+        )}
       </Card>
     </div>
   );
