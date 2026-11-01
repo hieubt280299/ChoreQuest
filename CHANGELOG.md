@@ -2,6 +2,48 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.7.0] - 2026-11-01
+
+Spec: [UPDATE_v1.7.0.md](UPDATE_v1.7.0.md)
+
+### Added
+
+- **Today card on Home:** quests done, streaks at risk, the daily ticket, tickets to spin and skill points, each one tap away. New players see a short First steps checklist there instead.
+- **Invite links:** "Share link" uses the phone's share sheet, or copies the link. Opening it fills in the code on the join screen, even after signing up first.
+- **Skill filters:** chips for Cleaning, Cooking, Laundry, Shopping, By effort and General.
+- **Calendar legend:** explains the player dots, quest count, crown and flag.
+- **Offline badge:** shows when you're offline in a household, so you know your actions will sync later.
+- **Show/hide password** on every password field.
+- **Wardrobe** is now in the More drawer, the desktop menu and Settings, and the avatar shortcut has a shirt icon.
+- **Suggested rewards:** picking a Group on a new quest fills in its usual XP and gold, until you type your own.
+
+### Changed
+
+- **One-tap quests:** the check button completes a quest for you straight away, and a short notice shows the reward with **Undo** and **Change** (who did it). Quests with effort levels and late quests still open the dialog, and level-ups still get their card.
+- **Shorter quest list:** compact rows with the action on the right, about half the old height. Finished quests collapse into "Done today (n)", and the page shows "3/21 done today".
+- **Filter button:** sort, group and show moved into a dialog next to the search box. A dot marks non-default filters.
+- **Edit mode:** a pencil at the top reveals New quest and each quest's editor, so the list stays clean.
+- **Colours:** Complete is green, and red is kept for destructive actions. Done rows are quiet, with a bar in the colour of who did the quest.
+- **Home on phones:** Today comes first, your own card comes before your partner's, and the cabin scene no longer repeats names and levels. The subtitle now shows today's quests and gold (it used to show the Chronicle's gold total).
+- **Skills:** cards show level 1's value, or current → next, instead of all four levels.
+- **Wheel:** with no tickets it folds to a small row, and it can still be opened. Labels on the lower half turn over, so 15 no longer reads "ST".
+- **Spending a skill point** now shows what it buys and asks first, because points can't be taken back.
+- **Onboarding on phones:** "I have a code" and "Create new" show one card at a time. An invite link opens on joining.
+- **Quieter Play demo** on the sign-in screen.
+- **Vietnamese level badge** reads "Cấp". "XP" stays only in tight numeric tags, like "G" for gold.
+- The Calendar page is titled "Calendar" in English, matching its tab.
+
+### Fixed
+
+- **Numbers:** Handjet's zero looked like an 8. Digits now use Jersey 20, loaded as a digits-only subset.
+- **Dialogs:** Escape now closes them, keyboard focus stays inside and returns afterwards, and tapping outside no longer discards the quest, rename or delete forms.
+- **Tap targets:** buttons and fields are at least 44px tall, and small icons have a 44px tap area.
+- **Calendar:** month labels no longer overflow or get cut off, day numbers are larger, and today's label is readable.
+- **Contrast in every theme:** green buttons are darker (they were too pale in Whimsical Cottage and Enchanted Forest), and tab labels, count badges, the calendar's quest counts, streak text and the empty ticket count are easier to read.
+- **Zero rows** are gone from the reward preview.
+- The stray "·" before "Last done" in History, and missing screen-reader names on the info buttons.
+- "Every quest is done" now appears with no grouping too.
+
 ## [1.6.0] - 2026-11-01
 
 Spec: [UPDATE_v1.6.0.md](UPDATE_v1.6.0.md)

@@ -13,6 +13,13 @@ const NAME_FIELDS: { language: LanguageCode; label: TranslationKey }[] = [
   { language: 'vi', label: 'tasks.nameVi' },
 ];
 
+/** Typical rewards per group, offered on a new quest until the moderator types their own. */
+export const SUGGESTED_REWARDS: Record<TaskGroup, { xp: number; gold: number }> = {
+  quick: { xp: 8, gold: 10 },
+  main: { xp: 20, gold: 20 },
+  heavy: { xp: 45, gold: 50 },
+};
+
 export function TaskEditorModal({
   open,
   onClose,
@@ -30,8 +37,10 @@ export function TaskEditorModal({
   const { state } = useGame();
   const [names, setNames] = useState(() => editableTaskNames(initial));
   const [nameError, setNameError] = useState(false);
-  const [xp, setXp] = useState(initial?.xp ?? 20);
-  const [gold, setGold] = useState(initial?.gold ?? 15);
+  const [xp, setXp] = useState(initial?.xp ?? SUGGESTED_REWARDS.main.xp);
+  const [gold, setGold] = useState(initial?.gold ?? SUGGESTED_REWARDS.main.gold);
+  // Picking a group fills in its usual rewards, unless they were typed by hand (or it's an existing quest).
+  const [rewardsTyped, setRewardsTyped] = useState(!!initial);
   const [category, setCategory] = useState<TaskCategory>(initial?.category ?? 'general');
   const [group, setGroup] = useState<TaskGroup>(initial?.group ?? groupForXp(initial?.xp ?? 20));
   // Effort levels (Light / Normal / Heavy) are a Moderate-quest option, off by default.
@@ -40,7 +49,7 @@ export function TaskEditorModal({
   const fields = [...NAME_FIELDS].sort((a, b) => Number(b.language === language) - Number(a.language === language));
 
   return (
-    <Modal open={open} onClose={onClose} title={initial ? t('tasks.edit') : t('tasks.create')}>
+    <Modal persistent open={open} onClose={onClose} title={initial ? t('tasks.edit') : t('tasks.create')}>
       <form
         className="space-y-4"
         noValidate
@@ -101,6 +110,7 @@ export function TaskEditorModal({
               value={xp}
               onChange={(event) => {
                 // Changing the XP re-picks the group (Quick / Moderate / Heavy); it can still be overridden below.
+                setRewardsTyped(true);
                 setXp(Number(event.target.value));
                 setGroup(groupForXp(Number(event.target.value)));
               }}
@@ -113,14 +123,27 @@ export function TaskEditorModal({
               type="number"
               min={0}
               value={gold}
-              onChange={(event) => setGold(Number(event.target.value))}
+              onChange={(event) => {
+                setRewardsTyped(true);
+                setGold(Number(event.target.value));
+              }}
               className="px-input mt-2"
             />
           </label>
         </div>
         <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           {t('tasks.group')}
-          <select value={group} onChange={(event) => setGroup(event.target.value as TaskGroup)} className="px-input mt-2">
+          <select
+            value={group}
+            onChange={(event) => {
+              const next = event.target.value as TaskGroup;
+              setGroup(next);
+              if (rewardsTyped) return;
+              setXp(SUGGESTED_REWARDS[next].xp);
+              setGold(SUGGESTED_REWARDS[next].gold);
+            }}
+            className="px-input mt-2"
+          >
             {TASK_GROUPS.map((item) => (
               <option key={item} value={item}>
                 {t(`group.${item}`)}

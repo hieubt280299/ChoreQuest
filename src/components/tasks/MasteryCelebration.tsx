@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { Crown } from 'pixelarticons/react';
+import { useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 import type { CharacterId } from '../../types';
 import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -25,13 +27,17 @@ export function MasteryCelebration({
 }) {
   const { t } = useLanguage();
   const { name } = useCharacterName();
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panel, onContinue);
   return (
     <motion.div
-      className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4"
+      ref={panel}
+      className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4 outline-none"
       {...backdropMotion}
       role="dialog"
       aria-modal="true"
       aria-label={t('mastery.title')}
+      tabIndex={-1}
     >
       <PixelConfetti />
 
@@ -62,7 +68,7 @@ export function MasteryCelebration({
           </span>
         </div>
         <p className="mb-5 text-base text-wood-800">{t('mastery.unlocked')}</p>
-        <Button className="w-full" variant="brick" onClick={onContinue}>
+        <Button className="w-full" variant="moss" onClick={onContinue}>
           {t('mastery.continue')}
         </Button>
       </motion.div>

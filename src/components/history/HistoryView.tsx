@@ -147,7 +147,7 @@ export function HistoryView() {
                       <span className="flex flex-wrap items-center gap-2 text-sm font-bold uppercase text-wood-600">
                         {task && t(`group.${task.group}` as TranslationKey)}
                         {entry.mine.lastDate && (
-                          <span>· {t('history.lastDone', { date: formatDay(entry.mine.lastDate, locale, false) })}</span>
+                          <span>{t('history.lastDone', { date: formatDay(entry.mine.lastDate, locale, false) })}</span>
                         )}
                         {streak.days >= STREAK_MIN_DAYS && (
                           <span className="inline-flex items-center gap-1 bg-ember-400 px-1 text-ink shadow-[0_0_0_2px_#2b1a12]">

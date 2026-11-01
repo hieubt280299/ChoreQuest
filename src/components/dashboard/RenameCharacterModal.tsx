@@ -35,7 +35,7 @@ export function RenameCharacterModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={t('character.renameTitle')}>
+    <Modal persistent open={open} onClose={onClose} title={t('character.renameTitle')}>
       <form className="space-y-4" onSubmit={onSubmit} noValidate>
         <label className="block text-base font-extrabold uppercase tracking-wide text-wood-700">
           <span className="flex items-baseline justify-between gap-2">

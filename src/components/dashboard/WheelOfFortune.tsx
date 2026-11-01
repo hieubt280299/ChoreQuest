@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CircleInfo, Close, Crown, Sparkles } from 'pixelarticons/react';
+import { ChevronDown, CircleInfo, Close, Crown, Sparkles } from 'pixelarticons/react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { COIN } from '../../assets/sprites';
 import { JACKPOT_BASE_GOLD, JACKPOT_MISS_BONUS, WHEEL_PRIZES, WHEEL_SEGMENTS } from '../../constants/gameRules';
@@ -7,6 +7,7 @@ import { useSfx } from '../../context/AudioContext';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 import type { CharacterId, WheelPrize, WheelSpinEvent } from '../../types';
 import type { TranslationKey } from '../../utils/i18n';
 import { nextTicket, secureRandom } from '../../utils/wheel';
@@ -21,6 +22,7 @@ import { backdropMotion, celebrationMotion, dialogMotion } from '../ui/Modal';
 import { PixelConfetti } from '../ui/pixel/PixelConfetti';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
 import { Ticket } from '../ui/pixel/TicketIcon';
+import { TEXT_ACTION } from '../ui/textAction';
 import { Tooltip } from '../ui/Tooltip';
 
 // Slice angles (degrees, clockwise from the top) from the relative sizes.
@@ -37,6 +39,11 @@ const sliceAt = (angle: number) => {
 // At rest the pointer sits on the middle of the jackpot slice.
 const JACKPOT_SLICE = SLICES.find((slice) => slice.prize === 'jackpot')!;
 const REST_ROTATION = -(JACKPOT_SLICE.start + JACKPOT_SLICE.end) / 2;
+/** Whether a label at this angle of the face hangs upside down while the wheel rests. */
+const upsideDownAtRest = (angle: number) => {
+  const atRest = ((angle + REST_ROTATION) % 360 + 360) % 360;
+  return atRest > 90 && atRest < 270;
+};
 // Each spin lasts a random 5-10 seconds.
 const SPIN_MIN_SECONDS = 5;
 const SPIN_MAX_SECONDS = 10;
@@ -109,13 +116,17 @@ function SliceLabel({ prize }: { prize: WheelPrize }) {
 function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: () => void }) {
   const { t } = useLanguage();
   const { name } = useCharacterName();
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panel, onClose);
   return (
     <motion.div
-      className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4"
+      ref={panel}
+      className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-wood-950/85 p-4 outline-none"
       {...backdropMotion}
       role="dialog"
       aria-modal="true"
       aria-label={t('wheel.jackpotTitle')}
+      tabIndex={-1}
     >
       <PixelConfetti />
       <motion.div
@@ -145,7 +156,7 @@ function JackpotCelebration({ spin, onClose }: { spin: WheelSpinEvent; onClose: 
           </div>
           {spin.ticket === 'golden' && <GoldenBadge />}
         </div>
-        <Button className="w-full" variant="brick" onClick={onClose}>
+        <Button className="w-full" variant="moss" onClick={onClose}>
           {t('mastery.continue')}
         </Button>
       </motion.div>
@@ -168,19 +179,25 @@ function GoldenBadge() {
 const SliceLabels = memo(function SliceLabels() {
   return (
     <>
-      {SLICES.map((slice, index) => (
-        // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
-        <div
-          key={index}
-          className="absolute left-1/2 top-0 h-full w-0"
-          style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)`, transformOrigin: '50% 50%' }}
-          aria-hidden
-        >
-          <span className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}>
-            <SliceLabel prize={slice.prize} />
-          </span>
-        </div>
-      ))}
+      {SLICES.map((slice, index) => {
+        const angle = (slice.start + slice.end) / 2;
+        return (
+          // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
+          <div
+            key={index}
+            className="absolute left-1/2 top-0 h-full w-0"
+            style={{ transform: `rotate(${angle}deg)`, transformOrigin: '50% 50%' }}
+            aria-hidden
+          >
+            <span className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}>
+              {/* Labels on the lower half turn over, so 15 doesn't read "ST" on the wheel at rest. */}
+              <span className={`inline-block ${upsideDownAtRest(angle) ? 'rotate-180' : ''}`}>
+                <SliceLabel prize={slice.prize} />
+              </span>
+            </span>
+          </div>
+        );
+      })}
     </>
   );
 });
@@ -189,6 +206,8 @@ const SliceLabels = memo(function SliceLabels() {
 function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () => void }) {
   const { t } = useLanguage();
   const won = spin.gold > 0;
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panel, onClose);
   return (
     <motion.div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-wood-950/75 p-4"
@@ -196,11 +215,13 @@ function SpinResultCard({ spin, onClose }: { spin: WheelSpinEvent; onClose: () =
       onClick={onClose}
     >
       <motion.div
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={won ? t('wheel.wonTitle') : t('wheel.missTitle')}
+        tabIndex={-1}
         {...dialogMotion}
-        className="px-panel w-full max-w-sm p-6 text-center"
+        className="px-panel w-full max-w-sm p-6 text-center outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-2 flex items-center justify-center gap-3 text-ember-500">
@@ -281,6 +302,9 @@ export function WheelOfFortune() {
   useEffect(() => setWheelBusy(requesting || spinning), [requesting, spinning]);
   useEffect(() => () => setWheelBusy(false), []);
   const canSpin = canActAs(characterId) && queued !== null && !spinning && !requesting;
+  // With nothing to spin, the wheel folds away (it can still be opened to look at).
+  const [expanded, setExpanded] = useState(false);
+  const folded = !canSpin && !spinning && !requesting && !result && !celebrate && !expanded;
   const jackpot = JACKPOT_BASE_GOLD + (shownBonus ?? state.wheel.jackpotBonus);
   const ticketLabel = tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: tickets });
   const goldenLabel = goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: goldenTickets });
@@ -340,6 +364,7 @@ export function WheelOfFortune() {
   const still = prefersReducedMotion();
 
   return (
+    <section id="wheel" className="scroll-mt-20">
     <Card className="p-4">
       <div className="mb-3 flex items-center gap-2">
         <h2 className="flex flex-1 items-center gap-2 text-2xl font-extrabold uppercase leading-none text-brick-600">
@@ -349,6 +374,8 @@ export function WheelOfFortune() {
         <Tooltip
           align="right"
           label={<Icon as={CircleInfo} size={24} className="text-wood-600" />}
+          ariaLabel={t('common.info')}
+          triggerClassName="px-hit"
           content={
             <>
               <span className="mb-1 block font-extrabold">{t('wheel.prizes')}</span>
@@ -366,7 +393,7 @@ export function WheelOfFortune() {
       </div>
 
       {/* Jackpot pot on the left, your tickets on the right. */}
-      <div className="px-slot-dark mb-4 flex items-center justify-between gap-3 px-3 py-2">
+      <div className={`px-slot-dark flex items-center justify-between gap-3 px-3 py-2 ${folded ? '' : 'mb-4'}`}>
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-lg font-extrabold uppercase text-flame-300">
           <Icon as={Crown} size={24} className={spinning ? '' : 'px-blink'} />
           {t('wheel.prize.jackpot')}
@@ -377,7 +404,7 @@ export function WheelOfFortune() {
           align="right"
           label={
             <>
-              <span className={`inline-flex items-center gap-1 ${goldenTickets > 0 ? 'text-flame-300' : 'text-wood-500'}`}>
+              <span className={`inline-flex items-center gap-1 ${goldenTickets > 0 ? 'text-flame-300' : 'text-parchment-300'}`}>
                 <Icon as={Ticket} size={24} />
                 <span className="font-arcade text-sm">{goldenTickets}</span>
               </span>
@@ -397,10 +424,14 @@ export function WheelOfFortune() {
               <span className="mt-1 block text-wood-700">{t('wheel.goldenRule')}</span>
             </>
           }
-          triggerClassName="inline-flex shrink-0 items-center gap-2.5 border-l-[3px] border-wood-700 pl-3"
+          triggerClassName="px-hit inline-flex shrink-0 items-center gap-2.5 border-l-[3px] border-wood-700 pl-3"
         />
       </div>
 
+      {folded ? (
+        <p className="mt-2 text-center text-base font-bold text-wood-600">{t('wheel.noTicketsHint')}</p>
+      ) : (
+        <>
       {/* Which ticket the next spin uses. Hidden while the wheel turns (it keeps its space, so the wheel doesn't jump). */}
       {/* Kept (invisible) during a spin that used the last ticket too, so nothing shifts until the wheel stops. */}
       {(queued || spinning || requesting) && (
@@ -475,6 +506,16 @@ export function WheelOfFortune() {
           <p className="text-center text-base font-bold text-wood-600">{canSpin ? t('wheel.tapHint') : t('wheel.noTicketsHint')}</p>
         )}
       </div>
+        </>
+      )}
+      {(folded || (expanded && !canSpin && !spinning && !requesting)) && (
+        <div className="mt-1 text-center">
+          <button type="button" className={`${TEXT_ACTION} text-wood-700`} aria-expanded={!folded} onClick={() => setExpanded((value) => !value)}>
+            <Icon as={ChevronDown} size={12} className={folded ? '' : 'rotate-180'} />
+            {t(folded ? 'wheel.showWheel' : 'wheel.hideWheel')}
+          </button>
+        </div>
+      )}
       {error && (
         <p className="mt-3 text-base font-bold text-brick-600" role="alert">
           {t(error)}
@@ -486,5 +527,6 @@ export function WheelOfFortune() {
         {result && <SpinResultCard key={result.id} spin={result} onClose={() => setResult(null)} />}
       </AnimatePresence>
     </Card>
+    </section>
   );
 }

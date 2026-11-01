@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import { PasswordInput } from '../ui/PasswordInput';
 import { TEXT_ACTION } from '../ui/textAction';
 
 /** Permanently deletes the signed-in account and its data, after confirming with the password (or Google, if it has none). */
@@ -48,7 +49,7 @@ export function DeleteAccountButton() {
         <Icon as={Trash} size={12} />
         {t('account.delete')}
       </button>
-      <Modal open={open} onClose={close} title={t('account.deleteTitle')}>
+      <Modal persistent open={open} onClose={close} title={t('account.deleteTitle')}>
         <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
           <p className="text-base">{t('account.deleteWarning')}</p>
           <p className="text-base font-extrabold text-brick-600">
@@ -59,12 +60,11 @@ export function DeleteAccountButton() {
           ) : (
             <label className="block text-base font-extrabold uppercase text-wood-700">
               {t('account.password')}
-              <input
-                type="password"
+              <PasswordInput
+                wrapperClassName="mt-2"
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="px-input mt-2"
                 required
               />
             </label>

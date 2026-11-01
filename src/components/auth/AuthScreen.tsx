@@ -8,7 +8,9 @@ import { Card } from '../ui/Card';
 import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
 import { LanguageToggle } from '../ui/LanguageToggle';
+import { PasswordInput } from '../ui/PasswordInput';
 import { TEXT_ACTION } from '../ui/textAction';
+import { readInvite } from '../../utils/invite';
 import { ForgotPassword } from './ForgotPassword';
 import { LinkGoogle } from './LinkGoogle';
 
@@ -20,6 +22,7 @@ export function AuthScreen() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [invited] = useState(() => !!readInvite());
 
   const onGoogle = async () => {
     setGoogleBusy(true);
@@ -49,6 +52,7 @@ export function AuthScreen() {
           {missingKeys.length > 0 && <p className="mt-2 break-all font-mono text-xs">{missingKeys.join(', ')}</p>}
         </Card>
       )}
+      {invited && <Card tone="ember" className="text-center text-lg font-bold !py-3">{t('auth.invited')}</Card>}
       <Card className="pt-6">
         {mode === 'forgot' ? (
           <ForgotPassword
@@ -96,14 +100,12 @@ export function AuthScreen() {
             className="px-input"
             disabled={!firebaseConfigured}
           />
-          <input
-            type="password"
+          <PasswordInput
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             placeholder={t('auth.password')}
             aria-label={t('auth.password')}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="px-input"
             disabled={!firebaseConfigured}
           />
           {mode === 'login' && (
@@ -115,14 +117,12 @@ export function AuthScreen() {
           )}
           {mode === 'register' && (
             <>
-              <input
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 placeholder={t('auth.confirmPassword')}
                 aria-label={t('auth.confirmPassword')}
                 value={confirm}
                 onChange={(event) => setConfirm(event.target.value)}
-                className="px-input"
                 disabled={!firebaseConfigured}
               />
               <p className="text-sm text-wood-600">{t('password.rules')}</p>
@@ -147,10 +147,13 @@ export function AuthScreen() {
             </Button>
           </div>
         </form>
-        <Button className="mt-6 w-full" variant="brick" onClick={enterDemo}>
-          <Icon as={Play} size={24} />
-          {t('auth.demo')}
-        </Button>
+        {/* Only for trying the app, so it stays quiet next to signing in. */}
+        <div className="mt-3 text-center">
+          <button type="button" className={`${TEXT_ACTION} text-wood-700`} onClick={enterDemo}>
+            <Icon as={Play} size={12} />
+            {t('auth.demo')}
+          </button>
+        </div>
         </>
         )}
       </Card>

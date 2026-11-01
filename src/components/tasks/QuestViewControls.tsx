@@ -63,9 +63,9 @@ function Select<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1 text-sm font-extrabold uppercase text-parchment-100 sm:flex-row sm:items-center sm:gap-2 sm:text-base">
-      <span className="px-subtitle shrink-0">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as T)} className="px-input w-full min-w-0 px-1.5 py-1 text-sm sm:w-auto sm:px-3 sm:text-base">
+    <label className="block text-base font-extrabold uppercase text-wood-700">
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value as T)} className="px-input mt-2">
         {options.map((option) => (
           <option key={option} value={option}>
             {optionLabel(option)}
@@ -76,11 +76,11 @@ function Select<T extends string>({
   );
 }
 
-/** Three compact dropdowns: one row of three on phones (label above), inline on wider screens. */
+/** The sort, group and show dropdowns, in the quest board's Filter dialog. */
 export function QuestViewControls({ prefs, onChange }: { prefs: QuestViewPrefs; onChange: (next: QuestViewPrefs) => void }) {
   const { t } = useLanguage();
   return (
-    <div className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:gap-x-6">
+    <div className="space-y-4">
       <Select
         label={t('tasks.sortBy')}
         value={prefs.sort}

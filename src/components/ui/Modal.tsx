@@ -1,7 +1,8 @@
 import { AnimatePresence, motion, type MotionProps } from 'framer-motion';
 import { Close } from 'pixelarticons/react';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { Icon } from './Icon';
 
 /** Stepped easing so motion snaps frame-by-frame like a 16-bit game. */
@@ -38,6 +39,7 @@ export function Modal({
   title,
   children,
   wide = false,
+  persistent = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -45,22 +47,28 @@ export function Modal({
   children: ReactNode;
   /** Wider on big screens, for long editable lists (phones always use the full width). */
   wide?: boolean;
+  /** A form: tapping outside doesn't close it, so a stray tap can't throw away what was typed. */
+  persistent?: boolean;
 }) {
   const { t } = useLanguage();
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogA11y(open, panel, onClose);
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 z-[60] flex items-end justify-center bg-wood-950/70 p-4 sm:items-center"
           {...backdropMotion}
-          onClick={onClose}
+          onClick={persistent ? undefined : onClose}
         >
           <motion.div
+            ref={panel}
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            tabIndex={-1}
             {...dialogMotion}
-            className={`px-panel mb-3 w-full p-5 pt-11 ${wide ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}
+            className={`px-panel mb-3 w-full p-5 pt-11 outline-none ${wide ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}
             onClick={(event) => event.stopPropagation()}
           >
             {/* Title plate hanging over the top border, like an RPG dialog. */}
@@ -70,7 +78,7 @@ export function Modal({
             {/* Close hangs over the top-right corner, level with the title plate, so it's clear of the content and its
                 scrollbar. */}
             <div className="absolute -right-3 -top-5">
-              <button type="button" onClick={onClose} className="px-btn h-9 w-9 p-0" aria-label={t('common.close')}>
+              <button type="button" onClick={onClose} className="px-btn h-11 w-11 p-0" aria-label={t('common.close')}>
                 <Icon as={Close} size={24} />
               </button>
             </div>

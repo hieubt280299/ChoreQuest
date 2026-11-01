@@ -10,6 +10,7 @@ export function Tooltip({
   content,
   triggerClassName = '',
   align = 'left',
+  ariaLabel,
 }: {
   /** The inline trigger content. */
   label: ReactNode;
@@ -17,6 +18,8 @@ export function Tooltip({
   triggerClassName?: string;
   /** Anchor the bubble to the trigger's left (default) or right edge, e.g. for triggers near the right of the screen. */
   align?: 'left' | 'right';
+  /** The trigger's name for screen readers, when it's only an icon. */
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -44,6 +47,7 @@ export function Tooltip({
     <span ref={ref} className={`relative ${flexTrigger ? 'inline-flex' : 'inline'}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button
         type="button"
+        aria-label={ariaLabel}
         aria-describedby={open ? tooltipId : undefined}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}

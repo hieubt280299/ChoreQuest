@@ -34,7 +34,7 @@ function InventoryItem({ label, children }: { label: string; children: ReactNode
         </>
       }
       content={label}
-      triggerClassName="inline-flex h-full items-center gap-1.5 px-3 text-base font-extrabold leading-none"
+      triggerClassName="px-hit inline-flex h-full items-center gap-1.5 px-3 text-base font-extrabold leading-none"
     />
   );
 }
@@ -70,7 +70,7 @@ export function CharacterCard({ character, active }: { character: Character; act
                   <button
                     type="button"
                     onClick={() => setRenaming(true)}
-                    className="px-focus ml-1 inline-flex p-0.5 align-middle text-wood-600 hover:text-brick-600"
+                    className="px-focus px-hit ml-1 inline-flex p-0.5 align-middle text-wood-600 hover:text-brick-600"
                     aria-label={t('character.rename')}
                     title={t('character.rename')}
                   >

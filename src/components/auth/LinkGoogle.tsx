@@ -5,6 +5,7 @@ import type { PendingGoogleLink } from '../../services/authService';
 import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { GoogleLogo } from '../ui/GoogleLogo';
+import { PasswordInput } from '../ui/PasswordInput';
 import { TEXT_ACTION } from '../ui/textAction';
 
 /**
@@ -49,15 +50,13 @@ export function LinkGoogle({ link, onForgot }: { link: PendingGoogleLink; onForg
           className="px-input"
         />
       )}
-      <input
-        type="password"
+      <PasswordInput
         autoComplete="current-password"
         autoFocus
         placeholder={t('auth.password')}
         aria-label={t('auth.password')}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        className="px-input"
       />
       <div className="-mt-3 flex justify-end">
         <button type="button" className={`${TEXT_ACTION} text-wood-700`} onClick={() => onForgot(email)}>

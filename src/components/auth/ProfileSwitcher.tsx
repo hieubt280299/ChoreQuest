@@ -1,4 +1,4 @@
-import { Crown, Sliders } from 'pixelarticons/react';
+import { Crown, Shirt } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useWheelBusy } from '../../hooks/useWheelBusy';
 import { useHousehold } from '../../context/HouseholdContext';
@@ -32,7 +32,7 @@ export function ProfileSwitcher({ onOpenWardrobe }: { onOpenWardrobe: () => void
             <Icon as={Crown} size={24} className="text-brick-700" />
           </span>
         )}
-        <Icon as={Sliders} size={12} className="text-ink/70" />
+        <Icon as={Shirt} size={12} className="text-ink/70" />
       </button>
     );
   }
@@ -53,7 +53,7 @@ export function ProfileSwitcher({ onOpenWardrobe }: { onOpenWardrobe: () => void
           >
             <CharacterAvatar id={id} scale={2} framed={false} />
             <span className="hidden sm:inline">{t(`character.${id}`)}</span>
-            {active && <Icon as={Sliders} size={12} className="text-ink/70" />}
+            {active && <Icon as={Shirt} size={12} className="text-ink/70" />}
           </button>
         );
       })}

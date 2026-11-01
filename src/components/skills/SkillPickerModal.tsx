@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -8,6 +9,7 @@ import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { SkillIcon } from '../ui/SkillIcon';
+import { SkillConfirm, type SkillChoice } from './SkillConfirm';
 import { SkillDescription } from './SkillDescription';
 import { TierPips } from './SkillsView';
 
@@ -23,12 +25,14 @@ export function SkillPickerModal({
   const { t } = useLanguage();
   const { name } = useCharacterName();
   const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
+  const [choice, setChoice] = useState<SkillChoice | null>(null);
   if (!characterId || !canActAs(characterId)) return null;
 
   const character = state.characters[characterId];
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
 
   return (
+    <>
     <Modal open={open} onClose={onClose} title={`${t('skills.picker')} · ${name(characterId)}`}>
       <p className="mb-1 text-lg font-extrabold uppercase text-moss-700">{t('character.skillPoints', { count: points })}</p>
       {points < 1 && <p className="mb-2 text-base text-wood-600">{t('skills.noPoints')}</p>}
@@ -52,11 +56,11 @@ export function SkillPickerModal({
               {owned?.level === 4 ? (
                 <span className="text-base font-extrabold uppercase text-moss-700">{t('skills.maxed')}</span>
               ) : owned ? (
-                <Button disabled={!canUpgrade} onClick={() => upgradeSkill(characterId, skill.id)}>
+                <Button disabled={!canUpgrade} onClick={() => setChoice({ skill, level: owned.level })}>
                   {t('skills.upgrade')}
                 </Button>
               ) : (
-                <Button variant="secondary" disabled={!canUnlock} onClick={() => unlockSkill(characterId, skill.id)}>
+                <Button variant="secondary" disabled={!canUnlock} onClick={() => setChoice({ skill, level: 0 })}>
                   {t('skills.unlock')}
                 </Button>
               )}
@@ -65,5 +69,18 @@ export function SkillPickerModal({
         })}
       </div>
     </Modal>
+    <SkillConfirm
+      choice={choice}
+      characterLevel={getLevelFromXp(character.xp)}
+      onCancel={() => setChoice(null)}
+      onConfirm={() => {
+        if (choice) {
+          if (choice.level > 0) upgradeSkill(characterId, choice.skill.id);
+          else unlockSkill(characterId, choice.skill.id);
+        }
+        setChoice(null);
+      }}
+    />
+    </>
   );
 }

@@ -53,9 +53,9 @@ function SkillTarget({ skill, interactive }: { skill: SkillDefinition; interacti
 }
 
 /**
- * Dota-style description listing every level's value, with the current level highlighted, and the
- * category/group it applies to capitalized and highlighted:
- * "Gain 8% / 16% / **24%** / 32% more XP and 4% / 8% / **12%** / 16% more gold from _Cleaning_ quests."
+ * A skill's description with only the values that matter, and the category/group it applies to highlighted:
+ * level 1's value before it's learned, then the current value and the next ("**24%** → 32%"), or the final value:
+ * "Gain **24%** → 32% more XP and **12%** → 16% more gold from _Cleaning_ quests."
  */
 export function SkillDescription({
   skill,
@@ -63,6 +63,7 @@ export function SkillDescription({
   className = '',
   interactive = true,
   characterLevel,
+  exact = false,
 }: {
   skill: SkillDefinition;
   /** Current skill level (0 = not learned). */
@@ -72,6 +73,8 @@ export function SkillDescription({
   interactive?: boolean;
   /** The character's level, for bonuses that grow with it (Fast Learner's live total). */
   characterLevel?: number;
+  /** Show only this level's values, with no next step (what spending a point buys). */
+  exact?: boolean;
 }) {
   const { t } = useLanguage();
   const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target|levelBonus|mvp|normalTickets|goldenTickets)\}\})/);
@@ -89,18 +92,13 @@ export function SkillDescription({
         const field = part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : null;
         if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
         const values = skillLevelValues(skill, field);
+        const current = values[level - 1];
+        const next = exact ? undefined : values[level];
         return (
           <Fragment key={partIndex}>
-            {values.map((value, index) => (
-              <Fragment key={index}>
-                {index > 0 && ' / '}
-                {index + 1 === level ? (
-                  <strong className="font-extrabold text-brick-600 underline decoration-2 underline-offset-2">{value}</strong>
-                ) : (
-                  value
-                )}
-              </Fragment>
-            ))}
+            {current && <strong className="font-extrabold text-brick-600">{current}</strong>}
+            {current && next && ' → '}
+            {next}
           </Fragment>
         );
       })}

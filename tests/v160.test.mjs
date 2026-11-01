@@ -118,10 +118,8 @@ check('the language button names the language it switches to, in that language',
 });
 
 // --- Release ---------------------------------------------------------------
-check('version and What\'s New are 1.6.0', () => {
-  assert.equal(m.APP_VERSION, '1.6.0');
-  assert.equal(JSON.parse(source('package.json')).version, '1.6.0');
-  const { notes } = m.PATCH_NOTES[0];
+check('What\'s New has 1.6.0 notes in both languages', () => {
+  const { notes } = m.PATCH_NOTES.find((entry) => entry.version === '1.6.0');
   assert.ok(notes.features.en.length > 0);
   assert.equal(notes.features.en.length, notes.features.vi.length);
 });

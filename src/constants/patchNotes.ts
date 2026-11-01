@@ -17,6 +17,34 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.7.0',
+    date: '2026-11-01',
+    notes: {
+      features: {
+        en: [
+          'Finish a quest with one tap. Made a mistake? Tap Undo.',
+          'A shorter quest list: finished quests tuck away under “Done today”.',
+          'Home now shows what to do today, and helps new players get started.',
+          'Invite your partner with a link. No code to type.',
+          'Skills are easier to compare and easy to filter.',
+          'Find the Wardrobe in More and in Settings.',
+        ],
+        vi: [
+          'Hoàn thành nhiệm vụ chỉ với một chạm. Lỡ tay? Chạm Hoàn tác.',
+          'Danh sách nhiệm vụ gọn hơn: việc đã xong nằm gọn trong “Đã xong hôm nay”.',
+          'Trang Nhà cho biết hôm nay nên làm gì, và giúp người mới bắt đầu.',
+          'Mời người ấy bằng một đường dẫn, không cần gõ mã.',
+          'Kỹ năng dễ so sánh hơn và lọc được theo loại.',
+          'Tủ đồ giờ có trong Thêm và Cài đặt.',
+        ],
+      },
+      fixes: {
+        en: ['Numbers are easier to read: a 0 no longer looks like an 8.', 'Buttons are bigger and easier to tap.', 'The calendar’s month labels now fit.'],
+        vi: ['Chữ số dễ đọc hơn: số 0 không còn giống số 8.', 'Nút to hơn, dễ chạm hơn.', 'Tên tháng trên lịch không còn bị tràn.'],
+      },
+    },
+  },
+  {
     version: '1.6.0',
     date: '2026-11-01',
     notes: {
