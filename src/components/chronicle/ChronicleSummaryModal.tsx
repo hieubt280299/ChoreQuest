@@ -92,7 +92,7 @@ export function ChronicleSummaryModal({
 
           <div className="space-y-3">
             {hasRewards && (
-              <Button className="w-full" variant="brick" onClick={onOpenRewards}>
+              <Button className="w-full" onClick={onOpenRewards}>
                 <Icon as={Trophy} size={24} />
                 {t('summary.rewards')}
               </Button>

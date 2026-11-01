@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { CosmeticPicker } from './components/cosmetics/CosmeticPicker';
 import { RewardBanner } from './components/cosmetics/RewardBanner';
@@ -17,6 +17,7 @@ import { TasksView } from './components/tasks/TasksView';
 import { AudioToggle } from './components/ui/AudioToggle';
 import { LanguageToggle } from './components/ui/LanguageToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
+import { OfflineBadge } from './components/ui/OfflineBadge';
 import { SyncErrorToast } from './components/ui/SyncErrorToast';
 import { StartupNotices } from './components/chronicle/StartupNotices';
 import { useAuth } from './context/AuthContext';
@@ -26,10 +27,15 @@ import { useApplyTheme, useTheme } from './hooks/useTheme';
 import { isWheelBusy } from './hooks/useWheelBusy';
 import type { AppView, CharacterId } from './types';
 import { getLevelFromXp, skillPointsAvailable } from './utils/calculations';
+import { clearInvite } from './utils/invite';
 
 export default function App() {
   const { user, demoMode, loading: authLoading } = useAuth();
   const { status } = useHousehold();
+  // An invite link has done its job once the player is in a household.
+  useEffect(() => {
+    if (status === 'ready') clearInvite();
+  }, [status]);
   const { state, loading: gameLoading, activeCharacter, canActAs } = useGame();
   const [view, setViewState] = useState<AppView>('dashboard');
   // No leaving the Home tab while the wheel spins: its result card would never show.
@@ -63,19 +69,20 @@ export default function App() {
         </div>
       </header>
       <div className="mx-auto flex min-h-screen max-w-6xl gap-8 px-4 pb-32 pt-20 md:pb-10">
-        <SideNav view={view} onChange={setView} />
+        <SideNav view={view} onChange={setView} onOpenWardrobe={() => setWardrobeOpen(true)} />
         <main className="min-w-0 flex-1 space-y-6">
+          <OfflineBadge />
           <InviteBanner />
           <RewardBanner onOpen={() => setWardrobeOpen(true)} />
-          {view === 'dashboard' && <DashboardView />}
+          {view === 'dashboard' && <DashboardView onNavigate={setView} />}
           {view === 'tasks' && <TasksView />}
           {view === 'skills' && <SkillsView />}
           {view === 'history' && <HistoryView />}
           {view === 'calendar' && <CalendarView />}
-          {view === 'settings' && <SettingsView />}
+          {view === 'settings' && <SettingsView onOpenWardrobe={() => setWardrobeOpen(true)} />}
         </main>
       </div>
-      <BottomNav view={view} onChange={setView} />
+      <BottomNav view={view} onChange={setView} onOpenWardrobe={() => setWardrobeOpen(true)} />
       <RewardModal
         onAssignSkills={() => {
           const leveled = (['husband', 'wife'] as CharacterId[]).find((id) => {

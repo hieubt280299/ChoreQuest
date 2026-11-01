@@ -64,7 +64,7 @@ body {
 
 body {
   margin: 0;
-  font-family: Handjet, system-ui, sans-serif;
+  font-family: 'Jersey 20', Handjet, system-ui, sans-serif;
   font-size: 19px;
   color: rgb(var(--c-ink));
   -webkit-font-smoothing: none;
@@ -137,25 +137,11 @@ body,
     background-color: rgb(var(--c-moss-200));
   }
 
-  /* Completed quests, tinted by who did them (over the parchment colour, so every theme works). Quests
-     done together blend the two players' tints. */
-  .px-panel-knight,
-  .px-panel-mage,
-  .px-panel-coop {
-    --knight-tint: rgb(var(--c-brick-500) / 0.5);
-    --mage-tint: rgb(var(--c-plum-500) / 0.5);
-  }
-  .px-panel-knight {
-    background-image: linear-gradient(var(--knight-tint), var(--knight-tint));
-    --sh: rgb(var(--c-brick-500));
-  }
-  .px-panel-mage {
-    background-image: linear-gradient(var(--mage-tint), var(--mage-tint));
-    --sh: rgb(var(--c-plum-500));
-  }
-  .px-panel-coop {
-    background-image: linear-gradient(115deg, var(--knight-tint) 0%, var(--knight-tint) 35%, var(--mage-tint) 65%, var(--mage-tint) 100%);
-    --sh: rgb(var(--c-plum-500));
+  /* Completed quests: a quiet card, with a bar on the row in the colour of who did it. */
+  .px-panel-done {
+    --hl: rgb(var(--c-parchment-200));
+    --sh: rgb(var(--c-parchment-400));
+    background-color: rgb(var(--c-parchment-300));
   }
 
   /* Yesterday's unfinished quests: a duller, desaturated card (contents included) for a day that's over. */
@@ -167,9 +153,9 @@ body,
     filter: saturate(0.4);
   }
 
-  /* Text on tinted (completed) and faded (past) quest cards: the light secondary colours lose contrast on the
-     tint, so they become 82% ink, readable on every theme's tints. */
-  :is(.px-panel-knight, .px-panel-mage, .px-panel-coop, .px-panel-past) :is(.text-wood-500, .text-wood-600, .text-wood-700, .text-moss-700) {
+  /* Text on quiet (completed) and faded (past) quest cards: the light secondary colours lose contrast there, so
+     they become 82% ink, readable on every theme. */
+  :is(.px-panel-done, .px-panel-past) :is(.text-wood-500, .text-wood-600, .text-wood-700, .text-moss-700) {
     color: rgb(var(--c-ink) / 0.82);
   }
 
@@ -226,7 +212,7 @@ body,
     justify-content: center;
     gap: 0.4rem;
     padding: 0.35rem 0.9rem 0.45rem;
-    font-family: Handjet, system-ui, sans-serif;
+    font-family: 'Jersey 20', Handjet, system-ui, sans-serif;
     font-weight: 800;
     font-size: 20px;
     line-height: 1.1;
@@ -245,6 +231,24 @@ body,
       inset -3px -4px 0 0 var(--sh),
       inset 3px 3px 0 0 var(--hl);
     transition: transform 60ms steps(1), filter 60ms steps(1);
+  }
+  /* 44px tap targets. */
+  button.px-btn,
+  .px-input {
+    min-height: 44px;
+  }
+  /* Grows a small control's tap area to 44px without changing its look or the layout around it. */
+  .px-hit {
+    position: relative;
+  }
+  .px-hit::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
   .px-btn:hover:not(:disabled) {
     filter: brightness(1.07);
@@ -277,9 +281,9 @@ body,
     color: rgb(var(--c-parchment-50));
   }
   .px-btn-moss {
-    --hl: rgb(var(--c-moss-400));
+    --hl: rgb(var(--c-moss-500));
     --sh: rgb(var(--c-moss-700));
-    background-color: rgb(var(--c-moss-500));
+    background-color: rgb(var(--c-moss-600));
     color: rgb(var(--c-parchment-50));
   }
   .px-btn-ghost {
@@ -306,7 +310,7 @@ body,
   .px-input {
     width: 100%;
     padding: 0.35rem 0.6rem;
-    font-family: Handjet, system-ui, sans-serif;
+    font-family: 'Jersey 20', Handjet, system-ui, sans-serif;
     font-size: 20px;
     font-weight: 600;
     color: rgb(var(--c-ink));
@@ -390,7 +394,7 @@ body,
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: rgb(var(--c-parchment-300));
+    color: rgb(var(--c-parchment-100));
     background-color: rgb(var(--c-wood-700));
     box-shadow:
       0 -3px 0 0 rgb(var(--c-wood-950)),
@@ -574,6 +578,12 @@ body,
       0 0 0 3px rgb(var(--c-ink)),
       inset 3px 3px 0 0 rgb(var(--c-ink));
     transition: background-color 80ms steps(1);
+  }
+  /* A 44px tap area around the switch. */
+  .px-switch::after {
+    content: '';
+    position: absolute;
+    inset: -8px 0;
   }
   .px-switch:disabled {
     cursor: not-allowed;

@@ -7,6 +7,7 @@ import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character, CharacterId, SkillDefinition } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
+import { matchesSkillFilter, SKILL_FILTERS, type SkillFilter } from '../../utils/skillFilters';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -14,6 +15,7 @@ import { IconButton } from '../ui/IconButton';
 import { LevelBadge } from '../ui/LevelBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { SkillIcon } from '../ui/SkillIcon';
+import { SkillConfirm, type SkillChoice } from './SkillConfirm';
 import { SkillDescription } from './SkillDescription';
 
 /** Four chunky tier pips. */
@@ -85,7 +87,7 @@ function SkillCard({
 }) {
   const { t } = useLanguage();
   return (
-    <Card className="p-4">
+    <Card className="!py-3 !pl-3 !pr-3">
       <div className="flex items-center gap-3">
         <span
           className={`flex h-12 w-12 shrink-0 items-center justify-center ${level > 0 ? 'px-slot-dark text-flame-300' : 'px-slot text-wood-500'}`}
@@ -121,12 +123,14 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
   const { t } = useLanguage();
   const { state, unlockSkill, upgradeSkill, canActAs } = useGame();
   const [cooling, setCooling] = useState(false);
+  const [choice, setChoice] = useState<SkillChoice | null>(null);
+  const [filter, setFilter] = useState<SkillFilter>('all');
   const character = state.characters[characterId];
   const points = skillPointsAvailable(getLevelFromXp(character.xp), character.skills);
   const editable = canActAs(characterId);
   const levelOf = (skillId: string) => character.skills.find((item) => item.skillId === skillId)?.level ?? 0;
   const learned = SKILL_POOL.filter((skill) => levelOf(skill.id) > 0);
-  const unlearned = SKILL_POOL.filter((skill) => levelOf(skill.id) === 0);
+  const unlearned = SKILL_POOL.filter((skill) => levelOf(skill.id) === 0 && matchesSkillFilter(skill, filter));
   const slotsFull = character.skills.length >= MAX_SKILLS_PER_CHARACTER;
 
   const unlock = (skillId: string) => {
@@ -145,8 +149,8 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
         editable={editable}
         canUnlock={!cooling && level === 0 && points > 0 && !slotsFull}
         canUpgrade={level > 0 && level < MAX_SKILL_LEVEL && points > 0}
-        onUnlock={() => unlock(skill.id)}
-        onUpgrade={() => upgradeSkill(characterId, skill.id)}
+        onUnlock={() => setChoice({ skill, level })}
+        onUpgrade={() => setChoice({ skill, level })}
         characterLevel={getLevelFromXp(character.xp)}
         extra={
           skill.effect.kind === 'mvp_tickets' && level > 0 ? (
@@ -172,15 +176,40 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
         {learned.length === 0 ? (
           <Card className="p-4 text-base text-wood-600">{t('skills.noneLearned')}</Card>
         ) : (
-          <div className="grid grid-cols-1 gap-5">{learned.map(card)}</div>
+          <div className="grid grid-cols-1 gap-3">{learned.map(card)}</div>
         )}
       </section>
       {!slotsFull && (
         <section className="space-y-4" aria-label={t('skills.unlearned')}>
           <h2 className="px-title text-2xl">{t('skills.unlearned')}</h2>
-          <div className="grid grid-cols-1 gap-5">{unlearned.map(card)}</div>
+          <div className="px-scroll -mx-1 flex gap-2 overflow-x-auto px-1 py-1.5" role="group" aria-label={t('skills.unlearned')}>
+            {SKILL_FILTERS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={filter === item}
+                onClick={() => setFilter(item)}
+                className={`px-btn shrink-0 px-2.5 text-lg ${filter === item ? 'px-btn-primary' : ''}`}
+              >
+                {t(`skills.filter.${item}` as TranslationKey)}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-3">{unlearned.map(card)}</div>
         </section>
       )}
+      <SkillConfirm
+        choice={choice}
+        characterLevel={getLevelFromXp(character.xp)}
+        onCancel={() => setChoice(null)}
+        onConfirm={() => {
+          if (choice) {
+            if (choice.level > 0) upgradeSkill(characterId, choice.skill.id);
+            else unlock(choice.skill.id);
+          }
+          setChoice(null);
+        }}
+      />
     </div>
   );
 }

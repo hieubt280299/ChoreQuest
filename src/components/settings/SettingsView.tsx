@@ -1,4 +1,4 @@
-import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Sparkles } from 'pixelarticons/react';
+import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Shirt, Sparkles } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -89,8 +89,9 @@ function ChronicleCard() {
         <span className="ml-2 text-base font-bold text-wood-600">{formatDateRange(chronicle.startDate, chronicle.endDate, locale)}</span>
         <Tooltip
           label={<Icon as={CircleInfo} size={24} className="text-wood-600" />}
+          ariaLabel={t('common.info')}
           content={t('chronicle.endHint')}
-          triggerClassName="ml-2 align-middle"
+          triggerClassName="px-hit ml-2 align-middle"
           align="right"
         />
       </p>
@@ -139,7 +140,7 @@ function ChronicleCard() {
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void }) {
   const { t, language, setLanguage } = useLanguage();
   const [changingPassword, setChangingPassword] = useState(false);
   const [patchNotesOpen, setPatchNotesOpen] = useState(false);
@@ -174,6 +175,12 @@ export function SettingsView() {
                 </Button>
               ))}
             </div>
+          </div>
+          <div className="mt-5 border-t-[3px] border-ink/15 pt-5">
+            <Button variant="secondary" className="w-full" onClick={onOpenWardrobe}>
+              <Icon as={Shirt} size={24} />
+              {t('cosmetics.title')}
+            </Button>
           </div>
         </Card>
       </div>

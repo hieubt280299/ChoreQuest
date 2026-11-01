@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Calendar, Home, MoreHorizontal, Sliders, Sword, TreePine } from 'pixelarticons/react';
-import { useState } from 'react';
+import { BookOpen, Calendar, Home, MoreHorizontal, Shirt, Sliders, Sword, TreePine } from 'pixelarticons/react';
+import { useRef, useState } from 'react';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useWheelBusy } from '../../hooks/useWheelBusy';
 import { FIRE } from '../../assets/sprites';
 import { useGame } from '../../context/GameContext';
@@ -35,7 +36,7 @@ function TabBadge({ count, className = '' }: { count: number; className?: string
   if (count <= 0) return null;
   return (
     <span
-      className={`bg-brick-500 px-1 font-arcade text-[9px] leading-[16px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12] ${className}`}
+      className={`bg-brick-600 px-1 font-arcade text-[9px] leading-[16px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12] ${className}`}
       aria-label={t('character.skillPoints', { count })}
     >
       {count}
@@ -49,19 +50,23 @@ const MORE = items.filter((item) => !PRIMARY.includes(item.id));
 
 /**
  * Phone navigation, fixed to the bottom edge: Home, Quests, Skills and a "More" tab that opens a drawer
- * with History, Calendar and Settings.
+ * with History, Calendar, Settings and the Wardrobe.
  */
 export function BottomNav({
   view,
   onChange,
+  onOpenWardrobe,
 }: {
   view: AppView;
   onChange: (view: AppView) => void;
+  onOpenWardrobe: () => void;
 }) {
   const { t } = useLanguage();
   const points = useUnspentPoints();
   const locked = useWheelBusy();
   const [moreOpen, setMoreOpen] = useState(false);
+  const drawer = useRef<HTMLDivElement>(null);
+  useDialogA11y(moreOpen, drawer, () => setMoreOpen(false));
   const inMore = MORE.some((item) => item.id === view);
   const tabClass = (active: boolean) =>
     `px-tab relative flex-1 flex-col gap-0.5 px-1 py-1.5 text-[15px] leading-none ${active ? '-translate-y-1.5' : ''}`;
@@ -79,10 +84,12 @@ export function BottomNav({
             onClick={() => setMoreOpen(false)}
           >
             <motion.div
+              ref={drawer}
               id="more-drawer"
               role="menu"
               aria-label={t('nav.more')}
-              className="px-panel px-panel-wood absolute inset-x-0 bottom-0 space-y-3 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4"
+              tabIndex={-1}
+              className="px-panel px-panel-wood absolute inset-x-0 bottom-0 space-y-3 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 outline-none"
               initial={{ y: 40 }}
               animate={{ y: 0 }}
               exit={{ y: 40 }}
@@ -106,6 +113,19 @@ export function BottomNav({
                   {t(item.label)}
                 </button>
               ))}
+              <button
+                type="button"
+                role="menuitem"
+                disabled={locked}
+                onClick={() => {
+                  onOpenWardrobe();
+                  setMoreOpen(false);
+                }}
+                className="px-tab w-full px-4 py-3 text-lg"
+              >
+                <Icon as={Shirt} size={24} />
+                {t('cosmetics.title')}
+              </button>
             </motion.div>
           </motion.div>
         )}
@@ -156,9 +176,11 @@ export function BottomNav({
 export function SideNav({
   view,
   onChange,
+  onOpenWardrobe,
 }: {
   view: AppView;
   onChange: (view: AppView) => void;
+  onOpenWardrobe: () => void;
 }) {
   const { t } = useLanguage();
   const points = useUnspentPoints();
@@ -188,6 +210,10 @@ export function SideNav({
               </button>
             );
           })}
+          <button type="button" disabled={locked} onClick={onOpenWardrobe} className="px-tab w-full px-4 py-2.5 text-lg">
+            <Icon as={Shirt} size={24} />
+            {t('cosmetics.title')}
+          </button>
         </div>
       </div>
     </aside>

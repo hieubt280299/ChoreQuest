@@ -187,7 +187,7 @@ export function DayLog({
                   <p className="flex flex-wrap items-center gap-x-2 text-sm font-bold uppercase text-wood-600">
                     <span className="max-w-[10rem] truncate">{log.completedBy === 'both' ? t('tasks.both') : <CharacterName id={log.completedBy} />}</span>
                     {streak >= STREAK_MIN_DAYS && (
-                      <span className="inline-flex items-center gap-0.5 text-ember-600">
+                      <span className="inline-flex items-center gap-0.5 text-ember-700">
                         <Icon as={Fire} size={12} />
                         {t('calendar.streak', { days: streak })}
                       </span>

@@ -28,7 +28,7 @@ export function StreakBadge({ streak, showAvatar }: { streak: Streak; showAvatar
         </>
       }
       content={t('calendar.streak', { days: streak.days })}
-      triggerClassName={`inline-flex items-center gap-1 px-1 py-0.5 leading-none shadow-[0_0_0_2px_#2b1a12] ${
+      triggerClassName={`px-hit inline-flex items-center gap-1 px-1 py-0.5 leading-none shadow-[0_0_0_2px_#2b1a12] ${
         paying ? 'bg-ember-400 text-ink' : 'bg-parchment-200 text-wood-700'
       }`}
     />

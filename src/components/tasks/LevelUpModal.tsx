@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { motion } from 'framer-motion';
 import { Sparkles, Star } from 'pixelarticons/react';
 import type { ReactNode } from 'react';
@@ -41,6 +43,8 @@ export function LevelUpModal({
 }) {
   const { t } = useLanguage();
   const { name } = useCharacterName();
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panel, onContinue);
 
   return (
     <motion.div
@@ -49,11 +53,13 @@ export function LevelUpModal({
       onClick={onContinue}
     >
       <motion.div
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={`${t('tasks.levelUp')} ${name(levelUp.characterId)}`}
+        tabIndex={-1}
         {...celebrationMotion}
-        className="px-panel px-panel-ember w-full max-w-sm p-6 text-center"
+        className="px-panel px-panel-ember w-full max-w-sm p-6 text-center outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-center gap-2 text-brick-700">
@@ -113,7 +119,7 @@ export function LevelUpModal({
         </ul>
 
         {onAssignSkills && (
-          <Button className="mb-3 w-full" variant="brick" onClick={onAssignSkills}>
+          <Button className="mb-3 w-full" variant="moss" onClick={onAssignSkills}>
             {t('skills.assign')}
           </Button>
         )}

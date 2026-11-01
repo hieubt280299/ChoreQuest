@@ -59,8 +59,9 @@ export default {
       },
       fontFamily: {
         // Handjet covers Vietnamese; Press Start 2P is Latin-only, so it is reserved for digits and the wordmark.
-        sans: ['Handjet', 'system-ui', 'sans-serif'],
-        display: ['Handjet', 'system-ui', 'sans-serif'],
+        // Jersey 20 is loaded with digits only, so numbers use it (Handjet's zero reads as an 8) and the rest falls through.
+        sans: ['"Jersey 20"', 'Handjet', 'system-ui', 'sans-serif'],
+        display: ['"Jersey 20"', 'Handjet', 'system-ui', 'sans-serif'],
         arcade: ['"Press Start 2P"', 'Handjet', 'monospace'],
       },
       // Handjet is condensed, so the type scale runs larger than Tailwind's defaults.

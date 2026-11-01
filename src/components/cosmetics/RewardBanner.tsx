@@ -23,7 +23,7 @@ export function RewardBanner({ onOpen }: { onOpen: () => void }) {
         </p>
         <p className="text-base">{t(copy.hint)}</p>
       </div>
-      <Button variant="brick" className="w-full sm:w-auto" onClick={onOpen}>
+      <Button className="w-full sm:w-auto" onClick={onOpen}>
         {t('cosmetics.choose')}
       </Button>
     </Card>

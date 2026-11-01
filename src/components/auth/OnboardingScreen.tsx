@@ -6,6 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId } from '../../types';
 import { HOUSEHOLD_CODE_LENGTH, normalizeHouseholdCode } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
+import { readInvite } from '../../utils/invite';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -28,7 +29,10 @@ export function OnboardingScreen() {
   const { user, logout } = useAuth();
   const { createHousehold, joinHousehold } = useHousehold();
   const [character, setCharacter] = useState<CharacterId>('husband');
-  const [code, setCode] = useState('');
+  // An invite link fills in the code and opens on joining.
+  const [code, setCode] = useState(() => readInvite() ?? '');
+  // Phones show one card at a time, so an invited partner doesn't have to scroll past "Create".
+  const [choice, setChoice] = useState<'join' | 'create'>(() => (readInvite() ? 'join' : 'create'));
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
   const [createError, setCreateError] = useState<TranslationKey | null>(null);
   const [joinError, setJoinError] = useState<TranslationKey | null>(null);
@@ -61,8 +65,23 @@ export function OnboardingScreen() {
         {user?.email && <p className="px-subtitle mt-1 text-lg">{t('onboarding.subtitle', { email: user.email })}</p>}
       </div>
 
+      <div className="grid grid-cols-2 gap-3 md:hidden" role="tablist">
+        {(['join', 'create'] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            role="tab"
+            aria-selected={choice === item}
+            onClick={() => setChoice(item)}
+            className={`px-btn ${choice === item ? 'px-btn-primary' : ''}`}
+          >
+            {t(item === 'join' ? 'onboarding.haveCode' : 'onboarding.newHousehold')}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <Card className="flex flex-col gap-4">
+        <Card className={`${choice === 'create' ? 'flex' : 'hidden'} flex-col gap-4 md:flex`}>
           <h2 className="flex items-center gap-2 text-2xl font-extrabold uppercase text-brick-600">
             <Icon as={Castle} size={24} />
             {t('onboarding.createTitle')}
@@ -94,7 +113,7 @@ export function OnboardingScreen() {
           </Button>
         </Card>
 
-        <Card className="flex flex-col gap-4">
+        <Card className={`${choice === 'join' ? 'flex' : 'hidden'} flex-col gap-4 md:flex`}>
           <h2 className="flex items-center gap-2 text-2xl font-extrabold uppercase text-brick-600">
             <Icon as={Users} size={24} />
             {t('onboarding.joinTitle')}
@@ -117,7 +136,6 @@ export function OnboardingScreen() {
             <ErrorNote error={joinError} />
             <Button
               type="submit"
-              variant="brick"
               className="mt-auto w-full"
               disabled={busy !== null || code.length !== HOUSEHOLD_CODE_LENGTH}
             >

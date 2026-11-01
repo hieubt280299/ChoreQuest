@@ -185,7 +185,7 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
           </p>
         )}
         {reward && (
-          <Button className="w-full" variant="brick" disabled={!choice} onClick={claim}>
+          <Button className="w-full" disabled={!choice} onClick={claim}>
             <Icon as={Trophy} size={24} />
             {choice
               ? t('cosmetics.claim', { item: t(`${choice.kind === 'theme' ? 'theme' : 'avatar'}.${choice.item}` as TranslationKey) })

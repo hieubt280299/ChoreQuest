@@ -12,6 +12,10 @@ const fmt = (value: number) => Math.round(value);
 export function RewardBreakdownTable({ breakdown }: { breakdown: Record<CharacterId, RewardBreakdown | null> }) {
   const { t } = useLanguage();
   const recipients = (['husband', 'wife'] as CharacterId[]).filter((id) => breakdown[id]);
+  // Rows that would only say "+0" are left out; without bonuses, the total alone says it all.
+  const parts = recipients.map((id) => breakdown[id]!);
+  const hasSkills = parts.some((part) => part.skillXp > 0 || part.skillGold > 0);
+  const hasStreak = parts.some((part) => part.streakGold > 0);
 
   const row = (label: string, render: (part: RewardBreakdown) => string, highlight = false) => (
     <tr className={highlight ? 'border-t-2 border-ink font-extrabold' : ''}>
@@ -44,9 +48,9 @@ export function RewardBreakdownTable({ breakdown }: { breakdown: Record<Characte
           </tr>
         </thead>
         <tbody>
-          {row(t('reward.base'), (part) => `+${fmt(part.baseXp)}XP ${fmt(part.baseGold)}G`)}
-          {row(t('reward.skills'), (part) => `+${fmt(part.skillXp)}XP +${fmt(part.skillGold)}G`)}
-          <tr>
+          {(hasSkills || hasStreak) && row(t('reward.base'), (part) => `+${fmt(part.baseXp)}XP ${fmt(part.baseGold)}G`)}
+          {hasSkills && row(t('reward.skills'), (part) => `+${fmt(part.skillXp)}XP +${fmt(part.skillGold)}G`)}
+          {hasStreak && <tr>
             <th scope="row" className="py-1 pr-2 text-left text-sm font-extrabold uppercase text-wood-700">
               <span className="inline-flex items-center gap-1">
                 <Icon as={Fire} size={12} className="text-ember-600" />
@@ -62,7 +66,7 @@ export function RewardBreakdownTable({ breakdown }: { breakdown: Record<Characte
                 </td>
               );
             })}
-          </tr>
+          </tr>}
           {row(t('reward.total'), (part) => `+${fmt(part.xp)}XP ${fmt(part.gold)}G`, true)}
         </tbody>
       </table>

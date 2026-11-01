@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
+import { PasswordInput } from '../ui/PasswordInput';
 
 /**
  * Change-password form shown inside the Account card (current password, then the new one twice). Calls
@@ -29,15 +30,15 @@ export function ChangePasswordForm({ onDone, onCancel }: { onDone: () => void; o
   const field = (label: TranslationKey, value: string, onChange: (value: string) => void, autoComplete: string) => (
     <label className="block text-base font-extrabold uppercase text-wood-700">
       {t(label)}
-      <input
-        type="password"
+      <PasswordInput
+        wrapperClassName="mt-2"
         value={value}
         onChange={(event) => {
           onChange(event.target.value);
           setError(null);
         }}
         autoComplete={autoComplete}
-        className="px-input mt-2 normal-case tracking-normal"
+        className="normal-case tracking-normal"
       />
     </label>
   );

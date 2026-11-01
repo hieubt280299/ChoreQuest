@@ -34,7 +34,9 @@ export function CalendarView() {
     addDays(chronicle.startDate, index),
   );
   const firstWeekday = parseDateKey(chronicle.startDate).getDay();
-  const monthShort = new Intl.DateTimeFormat(locale, { month: 'short' });
+  // Vietnamese month names are too long for a day tile ("thg 11"), and "T11" would look like the weekday headers.
+  const monthShort = (date: string) =>
+    language === 'vi' ? `Th${parseDateKey(date).getMonth() + 1}` : new Intl.DateTimeFormat(locale, { month: 'short' }).format(parseDateKey(date));
   const [selected, setSelected] = useState(() =>
     today >= chronicle.startDate && today <= chronicle.endDate ? today : chronicle.startDate,
   );
@@ -70,8 +72,8 @@ export function CalendarView() {
         title={t('calendar.title')}
         subtitle={`${t('chronicle.label', { id: chronicle.id })} · ${formatDateRange(chronicle.startDate, chronicle.endDate, locale)}`}
       />
-      <Card className="p-3 sm:p-5">
-        <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-sm font-extrabold uppercase text-wood-500">
+      <Card className="!p-2 sm:!p-5">
+        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-sm font-extrabold uppercase text-wood-700 sm:gap-2.5">
           {(language === 'vi'
             ? ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
             : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -79,7 +81,7 @@ export function CalendarView() {
             <div key={label}>{label}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2.5">
           {Array.from({ length: firstWeekday }).map((_, index) => (
             <div key={`pad-${index}`} />
           ))}
@@ -100,7 +102,7 @@ export function CalendarView() {
                 type="button"
                 key={date}
                 onClick={() => setSelected(date)}
-                className={`px-focus relative flex min-h-14 flex-col justify-between p-1.5 text-left sm:min-h-16 ${
+                className={`px-focus relative flex min-h-14 flex-col justify-between p-1 text-left sm:min-h-16 sm:p-1.5 ${
                   isToday ? 'bg-ember-400 shadow-[inset_-3px_-3px_0_0_#c85f1f,inset_3px_3px_0_0_#f7b76a,0_0_0_3px_#2b1a12]' : 'px-slot'
                 } ${date > today && !isSelected ? 'opacity-70' : ''} ${
                   isSelected ? 'z-10 outline outline-[3px] outline-offset-2 outline-flame-300' : 'hover:brightness-105'
@@ -115,20 +117,16 @@ export function CalendarView() {
                 {date === chronicle.endDate && date !== bestDay && (
                   <Icon as={Flag} size={12} className="absolute -right-1 -top-1.5 text-brick-500 drop-shadow-[1px_1px_0_#2b1a12]" />
                 )}
-                <p className="font-arcade text-[9px] text-ink">
-                  {day}
-                  {showMonth && (
-                    <span className="ml-1 font-sans text-xs font-extrabold uppercase text-brick-600">{monthShort.format(parseDateKey(date))}</span>
-                  )}
-                </p>
+                <p className="font-arcade text-[10px] text-ink">{day}</p>
+                {showMonth && <p className={`text-xs font-extrabold leading-none ${isToday ? 'text-ink' : 'text-brick-600'}`}>{monthShort(date)}</p>}
                 {count > 0 && (
                   <span className="flex items-end justify-between gap-0.5">
                     <span className="flex gap-0.5">
                       {pips.map((id) => (
-                        <span key={id} className={`h-1.5 w-1.5 ${id === 'husband' ? 'bg-brick-500' : 'bg-plum-500'} shadow-[0_0_0_1px_#2b1a12]`} />
+                        <span key={id} className={`h-2 w-2 ${id === 'husband' ? 'bg-brick-500' : 'bg-plum-500'} shadow-[0_0_0_1px_#2b1a12]`} />
                       ))}
                     </span>
-                    <span className="bg-moss-500 px-1 font-arcade text-[8px] leading-[14px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12]">
+                    <span className="bg-moss-700 px-1 font-arcade text-[8px] leading-[14px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12]">
                       {count}
                     </span>
                   </span>
@@ -137,6 +135,27 @@ export function CalendarView() {
             );
           })}
         </div>
+        {/* What the marks on a day mean. */}
+        <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-sm font-bold text-wood-700">
+          {(['husband', 'wife'] as CharacterId[]).map((id) => (
+            <li key={id} className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 ${id === 'husband' ? 'bg-brick-500' : 'bg-plum-500'} shadow-[0_0_0_1px_#2b1a12]`} />
+              <CharacterName id={id} />
+            </li>
+          ))}
+          <li className="flex items-center gap-1.5">
+            <span className="bg-moss-700 px-1 font-arcade text-[8px] leading-[14px] text-parchment-50 shadow-[0_0_0_2px_#2b1a12]">3</span>
+            {t('calendar.legendQuests')}
+          </li>
+          <li className="flex items-center gap-1">
+            <Icon as={Crown} size={12} className="text-ember-600" />
+            {t('calendar.legendBest')}
+          </li>
+          <li className="flex items-center gap-1">
+            <Icon as={Flag} size={12} className="text-brick-500" />
+            {t('calendar.legendEnd')}
+          </li>
+        </ul>
       </Card>
       <DayLog
         date={selectedDay}
