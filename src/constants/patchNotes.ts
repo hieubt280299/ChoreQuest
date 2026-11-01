@@ -17,6 +17,24 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.6.0',
+    date: '2026-11-01',
+    notes: {
+      features: {
+        en: [
+          'Sign in with Google: one tap and you’re in.',
+          'Already playing? Google opens your same account, so you keep all your progress.',
+          'Change language in one tap with the new button at the top.',
+        ],
+        vi: [
+          'Đăng nhập bằng Google: chỉ một chạm là vào.',
+          'Đã chơi rồi? Google mở đúng tài khoản của bạn, nên mọi tiến trình vẫn còn nguyên.',
+          'Đổi ngôn ngữ chỉ với một chạm bằng nút mới ở trên cùng.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.5.1',
     date: '2026-10-27',
     notes: {

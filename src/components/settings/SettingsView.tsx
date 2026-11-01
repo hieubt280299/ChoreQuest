@@ -20,6 +20,7 @@ import { AudioSettingsCard } from './AudioSettingsCard';
 import { ChangePasswordForm } from './ChangePassword';
 import { SettingsQualityToggle } from './SettingsQualityToggle';
 import { DeleteAccountButton } from './DeleteAccountButton';
+import { SignInMethods } from './SignInMethods';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
 import { NewLegendCard } from './NewLegendCard';
@@ -286,7 +287,7 @@ export function SettingsView() {
             <Button variant="secondary" onClick={() => void logout()}>
               {t('auth.logout')}
             </Button>
-            {user.email && (
+            {user.hasPassword && (
               <Button
                 variant="secondary"
                 aria-expanded={changingPassword}
@@ -307,7 +308,7 @@ export function SettingsView() {
             {t('password.changed')}
           </p>
         )}
-        {user?.email && changingPassword && (
+        {user?.hasPassword && changingPassword && (
           <ChangePasswordForm
             onCancel={() => setChangingPassword(false)}
             onDone={() => {
@@ -321,6 +322,7 @@ export function SettingsView() {
             {t('auth.exitDemo')}
           </Button>
         )}
+        <SignInMethods />
         <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 border-t-[3px] border-ink/15 pt-2">
           <span className="flex flex-wrap items-center gap-x-3">
             <span className="font-arcade text-[10px] text-wood-600">{t('settings.version', { version: APP_VERSION })}</span>

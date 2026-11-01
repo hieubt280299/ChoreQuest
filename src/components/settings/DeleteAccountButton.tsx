@@ -1,17 +1,21 @@
 import { Trash } from 'pixelarticons/react';
 import { useState, type FormEvent } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useHousehold } from '../../context/HouseholdContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { TranslationKey } from '../../utils/i18n';
 import { Button } from '../ui/Button';
+import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 import { TEXT_ACTION } from '../ui/textAction';
 
-/** Permanently deletes the signed-in account and its data, after a password confirmation. */
+/** Permanently deletes the signed-in account and its data, after confirming with the password (or Google, if it has none). */
 export function DeleteAccountButton() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { user } = useAuth();
   const { household, deleteAccount } = useHousehold();
+  const googleOnly = !user?.hasPassword;
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -29,7 +33,7 @@ export function DeleteAccountButton() {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const result = await deleteAccount(password);
+    const result = await deleteAccount(googleOnly ? { google: language } : { password });
     // On success the auth listener signs us out and the app returns to the login screen.
     if (!result.ok) {
       setError(result.error);
@@ -50,17 +54,21 @@ export function DeleteAccountButton() {
           <p className="text-base font-extrabold text-brick-600">
             {household && isLastMember ? t('household.leaveLast') : household ? t('account.deletePartner') : null}
           </p>
-          <label className="block text-base font-extrabold uppercase text-wood-700">
-            {t('account.password')}
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="px-input mt-2"
-              required
-            />
-          </label>
+          {googleOnly ? (
+            <p className="text-base">{t('account.confirmGoogle')}</p>
+          ) : (
+            <label className="block text-base font-extrabold uppercase text-wood-700">
+              {t('account.password')}
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="px-input mt-2"
+                required
+              />
+            </label>
+          )}
           {error && (
             <p className="bg-brick-600 px-3 py-2 text-base font-bold text-parchment-50 shadow-[0_0_0_3px_#2b1a12]" role="alert">
               {t(error)}
@@ -70,8 +78,8 @@ export function DeleteAccountButton() {
             <Button variant="secondary" onClick={close} disabled={busy}>
               {t('tasks.cancel')}
             </Button>
-            <Button type="submit" variant="brick" disabled={busy || !password}>
-              <Icon as={Trash} size={24} />
+            <Button type="submit" variant="brick" disabled={busy || (!googleOnly && !password)}>
+              {googleOnly ? <GoogleLogo /> : <Icon as={Trash} size={24} />}
               {t('account.deleteConfirm')}
             </Button>
           </div>

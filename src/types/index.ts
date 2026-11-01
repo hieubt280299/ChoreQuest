@@ -360,6 +360,10 @@ export interface GameState {
 export interface HouseholdUser {
   uid: string;
   email: string | null;
+  /** The name on the sign-in profile (Google); password accounts have none. */
+  displayName: string | null;
+  hasPassword: boolean;
+  hasGoogle: boolean;
 }
 
 // ---------------------------------------------------------------------------

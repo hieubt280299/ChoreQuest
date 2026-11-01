@@ -52,6 +52,7 @@ src/
 ├── constants/
 │   └── gameRules.ts    # XP array, Skill tree rules, Default tasks, Default prize pool
 ├── services/
+│   ├── authService.ts  # Google sign-in (popup, redirect), account linking, auth error handling
 │   └── firestoreServices.ts # commitOp: saves one player action in a Firestore transaction
 ├── types/
 │   └── index.ts        # Fully typed TypeScript interfaces
@@ -164,7 +165,13 @@ src/
 
 - **Passwords:** sign-up needs a confirmation, and new passwords (sign-up or change) need 8+ characters with a letter and a number (`utils/password.ts`). The Settings **Account** card has a **Change password** button that opens the form inline; it re-authenticates with the current password (`reauthenticateWithCredential`) before `updatePassword`.
 - **Forgot password** (`ForgotPassword`, `AuthContext.sendPasswordReset`): Firebase `sendPasswordResetEmail` with `auth.languageCode` set to the app language and a return link to the app (retried without it if the domain isn't authorized). It always shows the same confirmation (no account enumeration; `auth/user-not-found` is treated as sent), and resending waits 60 s.
-- **Language:** Vietnamese is the default (`LanguageContext`); a choice made in Settings is saved per device. Vietnamese terms: Mùa (Chronicle, capitalised), Quản lý (moderator), Loại (category) vs Nhóm (group), Chơi thử (demo), cấp (level).
+- **Google sign-in** (`services/authService.ts`, `AuthContext`, `auth/LinkGoogle`, `settings/SignInMethods`): all data is keyed by `uid`, so linking methods needs no Firestore change; every path must end on the same `uid`.
+  - **Never use `fetchSignInMethodsForEmail`:** email enumeration protection makes it return an empty list. Use the sign-in result and `auth/account-exists-with-different-credential`, which `resolveGoogleError` turns into a `link-required` result carrying the pending credential; `LinkGoogle` asks for the password and `completeGoogleLink` links it. That error needs **One account per email address** on.
+  - **Gmail with an unverified email:** Firebase replaces the password with Google on a direct sign-in (same `uid`). Settings → Connect (`linkWithPopup`) keeps the password. Forgot password and Set a password both add one back through the reset email, because `linkWithCredential` with a password failed on the emulator with `auth/email-already-in-use`.
+  - **Popup or redirect:** popup by default; redirect on iOS standalone and when the popup is blocked. A sessionStorage flag (`chorequest.googleRedirect`) marks a redirect the app started: only then does `finishGoogleRedirect` run, and a return with no result shows an error.
+  - `onAuthStateChanged` doesn't fire on link or unlink, so `AuthContext` refreshes `user` itself. `HouseholdUser.hasPassword` / `hasGoogle` drive the Settings rows, Change password and Delete account (Google-only accounts confirm with `reauthenticateWithPopup`).
+  - **New characters** start with the Google profile's name (`nameFromProfile`, `seedCharacterName`); joining sets it in a second transaction, because the join write may only touch membership.
+- **Language:** Vietnamese is the default (`LanguageContext`); a choice made in Settings or with `ui/LanguageToggle` (top bar, sign-in and onboarding screens) is saved per device. Vietnamese terms: Mùa (Chronicle, capitalised), Quản lý (moderator), Loại (category) vs Nhóm (group), Chơi thử (demo), cấp (level).
 - **Yesterday's quests:** open while it's before noon, nothing has been logged today, and today isn't the chronicle's first day (`yesterdayOpen`). Yesterday's unfinished quests can then be completed **late**:
   - They're logged on yesterday's date with `late: true`, so streaks continue.
   - They pay 0 XP and floor(50% × (base + skill gold)), with no streak bonus (`lateRewardBreakdown`). Re-assigning keeps the late rules.
@@ -188,7 +195,7 @@ src/
 - **Dialog frame** (`ui/Modal.tsx`): the title plate hangs over the top-left border and the close X over the top-right corner, so neither takes space from the content or its scrollbar. Browsers and desktop keep their scrollbars.
 - **Dialogs** share `backdropMotion` / `dialogMotion` / `celebrationMotion` (`ui/Modal.tsx`): opacity + scale/translate only (GPU), smooth ease-out curves; celebrations use a soft spring.
 - **Render cost:** quest cards are a memoized `TaskCard` (stable handlers; streaks compared by value), the wheel face and slice labels are memoized, and components that only play sounds use `useSfx()` (stable) instead of `useAudio()`.
-- **Settings layout:** three groups with page-level headings: **Preferences** (Sound & music; Display = graphics quality + language), **Household** (members, Chronicle = end date + prize pool, Quest configuration in a dialog (`Modal wide`) with Reset inside it, New legend only once unlocked) and **Account** (email, Sign out, Change password; a footer with the version, What's New and Delete account). Rarely used or destructive actions (Delete account, Leave household) are quiet text links (`ui/textAction.ts`), never big buttons.
+- **Settings layout:** three groups with page-level headings: **Preferences** (Sound & music; Display = graphics quality + language), **Household** (members, Chronicle = end date + prize pool, Quest configuration in a dialog (`Modal wide`) with Reset inside it, New legend only once unlocked) and **Account** (email, Sign out, Change password, sign-in methods; a footer with the version, What's New and Delete account). Rarely used or destructive actions (Delete account, Leave household) are quiet text links (`ui/textAction.ts`), never big buttons.
 - No sideways scrolling from 320px up. The wheel spins on its own GPU layer (`will-change-transform`) and the bars sit on their own layers, so spins never repaint them.
 - Level-up cards only show for the player's own character, including level-ups caused by the spouse logging a quest (tracked per device against the last level celebrated).
 

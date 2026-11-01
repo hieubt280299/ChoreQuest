@@ -2,6 +2,28 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.6.0] - 2026-11-01
+
+Spec: [UPDATE_v1.6.0.md](UPDATE_v1.6.0.md)
+
+### Added
+
+- **Continue with Google:** a button on the sign-in screen signs you in or creates your account. New players go to the usual create-or-join screen, and their character starts with the name from their Google profile (they can rename it).
+- **Your account stays yours:** Google opens your existing account when the email matches, so progress is never split. If Firebase needs proof, a short screen asks for your password once to link the two.
+- **Sign-in methods in Settings:** the Account card shows Email and password and Google.
+  - **Connect** adds Google and keeps your password. This is the safest route for Gmail players (see Changed).
+  - **Disconnect** removes Google. It needs a password on the account and asks you to confirm.
+  - **Set a password** emails a link to a Google-only account.
+- **Language button:** a compact VI / EN button in the top bar, also on the sign-in and onboarding screens, switches language in one tap.
+- Google uses a popup, or a redirect on iPhone home-screen apps and when popups are blocked. `vercel.json` proxies `/__/auth/*` for the redirect, and the service worker leaves those pages to the network.
+
+### Changed
+
+- **Gmail accounts with an unverified email:** the first direct Google sign-in replaces the password with Google (Firebase's rule for trusted providers). The account and its data stay the same. "Forgot password?" or "Set a password" adds one again, and a wrong password on the sign-in screen now suggests Google.
+- **Google-only accounts:** Change password is hidden, and Delete account confirms with Google instead of a password.
+- Clearer messages: a wrong password in the Delete account dialog now says so, the "email in use" message says "account" rather than "household", and the "sign-in method is off" message covers every method.
+- `tests/run.mjs` keeps Firebase out of the test bundle, so suites can run `authService.ts` against the real SDK.
+
 ## [1.5.1] - 2026-10-27
 
 Spec: [UPDATE_v1.5.1.md](UPDATE_v1.5.1.md)

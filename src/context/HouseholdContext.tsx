@@ -17,9 +17,11 @@ import {
 } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getFirebase } from '../config/firebase';
-import type { CharacterId, HouseholdDoc, HouseholdMember, TaskLog } from '../types';
+import { reauthenticateWithGoogle } from '../services/authService';
+import type { CharacterId, HouseholdDoc, HouseholdMember, LanguageCode, TaskLog } from '../types';
 import { generateHouseholdCode, HOUSEHOLD_CODE_LENGTH, localDateKey, normalizeHouseholdCode } from '../utils/calculations';
-import { createInitialState, parseGameState, toHouseholdSections } from '../utils/gameState';
+import { nameFromProfile } from '../utils/characterName';
+import { createInitialState, parseGameState, seedCharacterName, toHouseholdSections } from '../utils/gameState';
 import type { TranslationKey } from '../utils/i18n';
 import { useAuth } from './AuthContext';
 
@@ -57,8 +59,11 @@ interface HouseholdContextValue {
   leaveHousehold: () => Promise<ActionResult>;
   grantModerator: (uid: string) => Promise<ActionResult>;
   revokeModerator: (uid: string) => Promise<ActionResult>;
-  /** Re-authenticates with the password, removes all of this account's data, then deletes the sign-in. */
-  deleteAccount: (password: string) => Promise<ActionResult>;
+  /**
+   * Re-authenticates, removes all of this account's data, then deletes the sign-in. Confirms with the password, or
+   * with Google for an account that has none.
+   */
+  deleteAccount: (confirm: { password: string } | { google: LanguageCode }) => Promise<ActionResult>;
 }
 
 const HouseholdContext = createContext<HouseholdContextValue | null>(null);
@@ -99,7 +104,7 @@ function reauthErrorKey(err: unknown): TranslationKey {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/missing-password':
-      return 'auth.error.invalidCredential';
+      return 'password.error.current';
     case 'auth/too-many-requests':
       return 'auth.error.tooMany';
     case 'auth/network-request-failed':
@@ -119,6 +124,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const { user, demoMode } = useAuth();
   const uid = user && !demoMode ? user.uid : null;
   const email = user?.email ?? null;
+  const displayName = user?.displayName ?? null;
 
   const [profile, setProfile] = useState<{ uid: string; householdId: string | null } | null>(null);
   const [household, setHousehold] = useState<HouseholdSnapshot | null>(null);
@@ -208,6 +214,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       } catch {
         // No legacy data (or not readable): start fresh.
       }
+      initial = seedCharacterName(initial, characterId, displayName);
 
       for (let attempt = 0; attempt < 6; attempt += 1) {
         const code = generateHouseholdCode();
@@ -239,7 +246,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       }
       return { ok: false, error: 'onboarding.error.generic' };
     },
-    [email, uid],
+    [displayName, email, uid],
   );
 
   const joinHousehold = useCallback(
@@ -273,6 +280,17 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
           }
           tx.set(doc(db, 'users', uid), { householdId: targetId, email, updatedAt: now }, { merge: true });
         });
+        // Name the character from the profile. Separate from joining, which may only touch membership (firestore.rules);
+        // the partner's device can be saving, so it's a transaction too. A failure only leaves the role showing.
+        const name = nameFromProfile(displayName);
+        if (name) {
+          await runTransaction(db, async (tx) => {
+            const data = (await tx.get(ref)).data() as HouseholdDoc | undefined;
+            const characterId = data?.members[uid]?.characterId;
+            if (!characterId || data.game.characters[characterId]?.customName) return;
+            tx.update(ref, { [`game.characters.${characterId}.customName`]: name });
+          }).catch((err) => console.warn('ChoreQuest: failed to name the new character', err));
+        }
         return { ok: true };
       } catch (err) {
         if (err instanceof JoinError) return { ok: false, error: err.key };
@@ -282,7 +300,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: firestoreCode(err) === 'unavailable' ? 'auth.error.network' : 'onboarding.error.generic' };
       }
     },
-    [email, uid],
+    [displayName, email, uid],
   );
 
   const leaveHousehold = useCallback(async (): Promise<ActionResult> => {
@@ -302,17 +320,23 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }, [household, uid]);
 
   const deleteAccount = useCallback(
-    async (password: string): Promise<ActionResult> => {
+    async (confirm: { password: string } | { google: LanguageCode }): Promise<ActionResult> => {
       const firebase = getFirebase();
       const current = firebase?.auth.currentUser;
       if (!firebase || !uid || !current || current.uid !== uid || !current.email) {
         return { ok: false, error: 'onboarding.error.generic' };
       }
-      // Firebase only deletes accounts with a recent sign-in, so confirm the password first.
-      try {
-        await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, password));
-      } catch (err) {
-        return { ok: false, error: reauthErrorKey(err) };
+      // Firebase only deletes accounts with a recent sign-in, so confirm who this is first.
+      if ('google' in confirm) {
+        const result = await reauthenticateWithGoogle(firebase.auth, current, confirm.google);
+        // Anything but a confirmed sign-in stops here: the data below is removed before the account is.
+        if (result.kind !== 'done') return { ok: false, error: result.kind === 'error' ? result.error : 'account.googleCancelled' };
+      } else {
+        try {
+          await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, confirm.password));
+        } catch (err) {
+          return { ok: false, error: reauthErrorKey(err) };
+        }
       }
 
       const { db } = firebase;

@@ -25,3 +25,16 @@ export function normalizeCharacterName(raw: string): string | null {
   if (Array.from(value).length > CHARACTER_NAME_MAX) return null;
   return value;
 }
+
+/**
+ * A character name from a sign-in profile (Google): the whole name when it's allowed, otherwise as many leading
+ * words as fit. Null when nothing usable remains, so the role is shown.
+ */
+export function nameFromProfile(displayName: string | null | undefined): string | null {
+  const words = (displayName ?? '').trim().split(/\s+/);
+  for (let count = words.length; count > 0; count -= 1) {
+    const name = normalizeCharacterName(words.slice(0, count).join(' '));
+    if (name) return name;
+  }
+  return null;
+}
