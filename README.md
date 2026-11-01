@@ -23,7 +23,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 | Area | Tools |
 | --- | --- |
 | UI | React 18, TypeScript, Vite, Tailwind CSS, framer-motion, [pixelarticons](https://pixelarticons.com) |
-| Data and auth | Firebase v10 (Firestore with an offline cache, Email/Password Auth, optional Analytics) |
+| Data and auth | Firebase v10 (Firestore with an offline cache, Email/Password and Google Auth, optional Analytics) |
 | App | `vite-plugin-pwa` (installable, works offline) |
 | Audio | Web Audio API chiptune engine (no audio files) |
 | Hosting | Vercel (single-page-app rewrites in `vercel.json`) |
@@ -42,7 +42,7 @@ Open the printed URL and choose **Play demo (offline)**. The demo needs no setup
 ### Connecting Firebase (for real households)
 
 1. Create a Firebase project and add a **Web app**.
-2. **Authentication:** enable the **Email/Password** sign-in method.
+2. **Authentication:** enable the **Email/Password** and **Google** sign-in methods. Under **Settings → User account linking**, keep **Link accounts that use the same email** selected (Firebase's docs also call it "One account per email address"): account linking depends on it.
 3. **Firestore:** create a database, then publish the security rules in [`firestore.rules`](firestore.rules), either in the console or with `firebase deploy --only firestore:rules`.
 4. Copy `.env.example` to `.env` and fill in the `VITE_FIREBASE_*` values from your web app's config. `VITE_FIREBASE_MEASUREMENT_ID` is optional and turns on Analytics.
 5. When you deploy, add every domain the app is served from under **Authentication → Settings → Authorized domains**. The live app uses `cqvn.vercel.app` (production) and `chore-quest-hieu-anh.vercel.app` (legacy), plus `localhost` for development.
@@ -68,7 +68,16 @@ Production runs at **https://cqvn.vercel.app**, with the older **https://chore-q
 1. In Vercel, add it under **Project → Settings → Domains**.
 2. In Firebase, add it under **Authentication → Settings → Authorized domains**, or sign-in fails there.
 
-No CORS setup is needed: the app talks to Firebase directly from the browser, and Firebase only checks the authorized domains. The code has no hard-coded domain, so `VITE_FIREBASE_AUTH_DOMAIN` stays your project's `<project>.firebaseapp.com`.
+No CORS setup is needed: the app talks to Firebase directly from the browser, and Firebase only checks the authorized domains. The code has no hard-coded domain. `VITE_FIREBASE_AUTH_DOMAIN` can stay your project's `<project>.firebaseapp.com`, except for Google sign-in on iPhone home-screen apps.
+
+### Google sign-in on iPhone home-screen apps
+
+Those apps use a redirect instead of a popup, and browsers block the redirect's cross-site storage unless the auth pages share the app's domain. `vercel.json` already proxies `/__/auth/*` to the Firebase project (change `chorequest-32a06` there if you deploy your own). To turn it on for a domain:
+
+1. In Vercel, set `VITE_FIREBASE_AUTH_DOMAIN` to that domain (for example `cqvn.vercel.app`) and redeploy.
+2. In Google Cloud → **APIs & Services → Credentials**, open the project's web OAuth client and add `https://<domain>/__/auth/handler` to **Authorized redirect URIs**.
+
+Everywhere else, Google sign-in uses a popup and needs neither step.
 
 If an update to the security rules ships with a release, republish `firestore.rules` too.
 

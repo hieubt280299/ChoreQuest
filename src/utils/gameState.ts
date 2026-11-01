@@ -12,7 +12,7 @@ import {
   skillLevel,
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
-import { normalizeCharacterName } from './characterName';
+import { nameFromProfile, normalizeCharacterName } from './characterName';
 import { snapshotChronicle } from './chronicleStats';
 import { dayMvp } from './mvp';
 import type {
@@ -392,6 +392,14 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
 // ---------------------------------------------------------------------------
 
 export type HouseholdSections = Pick<HouseholdDoc, 'settings' | 'chronicle' | 'game'>;
+
+/** Starts a new player's character with their sign-in profile's name, unless it already has one. */
+export function seedCharacterName(state: GameState, characterId: CharacterId, displayName: string | null): GameState {
+  const customName = nameFromProfile(displayName);
+  const character = state.characters[characterId];
+  if (!customName || character.customName) return state;
+  return { ...state, characters: { ...state.characters, [characterId]: { ...character, customName } } };
+}
 
 export function toHouseholdSections(state: GameState): HouseholdSections {
   return {

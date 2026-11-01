@@ -10,6 +10,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { Icon } from '../ui/Icon';
+import { LanguageToggle } from '../ui/LanguageToggle';
 
 function ErrorNote({ error }: { error: TranslationKey | null }) {
   const { t } = useLanguage();
@@ -50,7 +51,10 @@ export function OnboardingScreen() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-4 py-10">
+    <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-4 py-10">
+      <div className="absolute right-4 top-4">
+        <LanguageToggle />
+      </div>
       <div className="text-center">
         <p className="px-wordmark text-[18px] sm:text-[22px]">ChoreQuest</p>
         <h1 className="px-title mt-5 text-4xl">{t('onboarding.title')}</h1>

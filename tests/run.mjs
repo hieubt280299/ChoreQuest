@@ -15,6 +15,8 @@ await build({
   bundle: true,
   format: 'esm',
   platform: 'node',
+  // authService imports the real SDK; Node loads it from node_modules.
+  external: ['firebase/*'],
   logLevel: 'warning',
 });
 

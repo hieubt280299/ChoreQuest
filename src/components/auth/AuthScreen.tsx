@@ -5,20 +5,34 @@ import { useLanguage } from '../../context/LanguageContext';
 import { CabinScene } from '../dashboard/CabinScene';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
+import { LanguageToggle } from '../ui/LanguageToggle';
 import { TEXT_ACTION } from '../ui/textAction';
 import { ForgotPassword } from './ForgotPassword';
+import { LinkGoogle } from './LinkGoogle';
 
 export function AuthScreen() {
-  const { t } = useLanguage();
-  const { login, register, enterDemo, firebaseConfigured, missingKeys, error } = useAuth();
+  const { t, language } = useLanguage();
+  const { login, register, loginWithGoogle, pendingGoogleLink, enterDemo, firebaseConfigured, missingKeys, error } = useAuth();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const onGoogle = async () => {
+    setGoogleBusy(true);
+    await loginWithGoogle(language);
+    setGoogleBusy(false);
+  };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-4 py-10">
+    <div className="relative mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-4 py-10">
+      {/* Vietnamese is the default, so the language can be changed before signing in. */}
+      <div className="absolute right-4 top-4">
+        <LanguageToggle />
+      </div>
       {/* Arcade title screen */}
       <div className="text-center">
         <h1 className="px-wordmark text-[22px] sm:text-[28px]" style={{ textShadow: '3px 3px 0 #b04a34, 6px 6px 0 #1f130c' }}>
@@ -44,9 +58,26 @@ export function AuthScreen() {
               setMode('login');
             }}
           />
+        ) : pendingGoogleLink ? (
+          <LinkGoogle
+            link={pendingGoogleLink}
+            onForgot={(typed) => {
+              setEmail(typed);
+              setMode('forgot');
+            }}
+          />
         ) : (
         <>
         <h2 className="mb-5 text-3xl font-extrabold uppercase">{t('auth.welcome')}</h2>
+        <Button className="w-full" variant="secondary" disabled={!firebaseConfigured || googleBusy} onClick={() => void onGoogle()}>
+          <GoogleLogo />
+          {t('auth.google')}
+        </Button>
+        <div className="my-4 flex items-center gap-3" aria-hidden="true">
+          <span className="h-[3px] flex-1 bg-ink/15" />
+          <span className="text-base font-bold text-wood-700">{t('auth.or')}</span>
+          <span className="h-[3px] flex-1 bg-ink/15" />
+        </div>
         <form
           className="space-y-5"
           onSubmit={(event) => {
