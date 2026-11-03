@@ -118,4 +118,4 @@ Days that pass while the app is closed (interest, chronicle rollover) are settle
 3. Check that `npm run build` and `npm test` pass, and look at your change at phone width (about 375px). Rule changes get a check in `tests/` (one suite per version, e.g. `v140.test.mjs`).
 4. Open a pull request against `main`.
 
-For new versions, the feature spec goes in `UPDATE_vX.Y.Z.md`. When the work is done, add the matching section to `CHANGELOG.md`, bump the version in `package.json`, and add the player-facing notes for that version at the top of `src/constants/patchNotes.ts` (shown in "What's New").
+Ideas for future versions live in [ROADMAP.md](ROADMAP.md). For new versions, the feature spec goes in `UPDATE_vX.Y.Z.md`. When the work is done, add the matching section to `CHANGELOG.md`, bump the version in `package.json`, and add the player-facing notes for that version at the top of `src/constants/patchNotes.ts` (shown in "What's New").

@@ -116,10 +116,8 @@ check('"Group" is now "Task size" (Mức việc) everywhere it shows', () => {
 });
 
 // --- Release ------------------------------------------------------------------
-check('version and What\'s New are 1.7.1', () => {
-  assert.equal(m.APP_VERSION, '1.7.1');
-  assert.equal(JSON.parse(source('package.json')).version, '1.7.1');
-  const { notes } = m.PATCH_NOTES[0];
+check('What\'s New has 1.7.1', () => {
+  const { notes } = m.PATCH_NOTES.find((entry) => entry.version === '1.7.1');
   for (const section of Object.values(notes)) assert.equal(section.en.length, section.vi.length);
 });
 

@@ -13,6 +13,7 @@ export * from '../src/utils/today';
 export * from '../src/utils/skillFilters';
 export { needsReload } from '../src/utils/appUpdate';
 export * from '../src/utils/savesInFlight';
+export * from '../src/utils/placeBubble';
 export * from '../src/utils/chronicleStats';
 export * from '../src/utils/chiptune';
 export * from '../src/utils/transactionUtils';

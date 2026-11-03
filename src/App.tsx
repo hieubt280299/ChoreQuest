@@ -58,7 +58,7 @@ export default function App() {
   return (
     <div className="max-w-full overflow-x-clip">
       {/* Fixed top bar: sound and character controls stay in reach while the page scrolls. */}
-      <header className="px-panel-wood fixed inset-x-0 top-0 z-50 border-b-4 border-ink [transform:translateZ(0)]">
+      <header data-app-bar className="px-panel-wood fixed inset-x-0 top-0 z-50 border-b-4 border-ink [transform:translateZ(0)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 md:justify-end">
           <p className="px-wordmark hidden text-[11px] min-[400px]:block md:hidden">ChoreQuest</p>
           <div className="ml-auto flex items-center gap-3 md:ml-0">
