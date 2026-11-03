@@ -8,7 +8,8 @@ import { SkillIcon } from '../ui/SkillIcon';
 
 /**
  * A learned skill on the character card, as plain text ("Heavy Lifter 1", no box). Hover, focus or tap shows a
- * tooltip with the full description and the current level's value highlighted; Escape or tapping elsewhere closes it.
+ * tooltip with the description at its current level (upgrading happens on the Skills page, so no next level here);
+ * Escape or tapping elsewhere closes it.
  */
 export function SkillChip({ skill, level }: { skill: SkillDefinition; level: number }) {
   const { t } = useLanguage();
@@ -62,7 +63,7 @@ export function SkillChip({ skill, level }: { skill: SkillDefinition; level: num
           <span className="mb-1 block text-base font-extrabold leading-tight">
             {t(skill.nameKey as TranslationKey)} · {t('skills.levelShort', { level })}
           </span>
-          <SkillDescription skill={skill} level={level} interactive={false} className="text-sm leading-snug text-wood-700" />
+          <SkillDescription skill={skill} level={level} exact interactive={false} className="text-sm leading-snug text-wood-700" />
         </span>
       )}
     </span>

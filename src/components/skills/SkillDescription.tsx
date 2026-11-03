@@ -73,7 +73,7 @@ export function SkillDescription({
   interactive?: boolean;
   /** The character's level, for bonuses that grow with it (Fast Learner's live total). */
   characterLevel?: number;
-  /** Show only this level's values, with no next step (what spending a point buys). */
+  /** Show only this level's values, with no next step: what a point buys, or a skill that can't be upgraded here. */
   exact?: boolean;
 }) {
   const { t } = useLanguage();

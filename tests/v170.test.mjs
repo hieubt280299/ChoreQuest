@@ -84,7 +84,7 @@ check('skills land under the expected filters', () => {
   assert.deepEqual(pick('cooking'), ['master-chef']);
   assert.deepEqual(pick('laundry'), ['iron-will']);
   assert.deepEqual(pick('shopping'), ['shop-savvy']);
-  assert.deepEqual(pick('effort'), ['quick-hands', 'raid-master', 'steady-worker']);
+  assert.deepEqual(pick('size'), ['quick-hands', 'raid-master', 'steady-worker']);
   assert.equal(pick('general').length, m.SKILL_POOL.length - 7);
 });
 
@@ -134,10 +134,8 @@ check('every new string exists in English and Vietnamese', () => {
 });
 
 // --- Release ---------------------------------------------------------------
-check('version and What\'s New are 1.7.0', () => {
-  assert.equal(m.APP_VERSION, '1.7.0');
-  assert.equal(JSON.parse(source('package.json')).version, '1.7.0');
-  const { notes } = m.PATCH_NOTES[0];
+check('What\'s New has 1.7.0 notes in both languages', () => {
+  const { notes } = m.PATCH_NOTES.find((entry) => entry.version === '1.7.0');
   assert.ok(notes.features.en.length > 0);
   assert.equal(notes.features.en.length, notes.features.vi.length);
 });

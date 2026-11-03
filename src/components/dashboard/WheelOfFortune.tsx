@@ -39,11 +39,6 @@ const sliceAt = (angle: number) => {
 // At rest the pointer sits on the middle of the jackpot slice.
 const JACKPOT_SLICE = SLICES.find((slice) => slice.prize === 'jackpot')!;
 const REST_ROTATION = -(JACKPOT_SLICE.start + JACKPOT_SLICE.end) / 2;
-/** Whether a label at this angle of the face hangs upside down while the wheel rests. */
-const upsideDownAtRest = (angle: number) => {
-  const atRest = ((angle + REST_ROTATION) % 360 + 360) % 360;
-  return atRest > 90 && atRest < 270;
-};
 // Each spin lasts a random 5-10 seconds.
 const SPIN_MIN_SECONDS = 5;
 const SPIN_MAX_SECONDS = 10;
@@ -179,25 +174,20 @@ function GoldenBadge() {
 const SliceLabels = memo(function SliceLabels() {
   return (
     <>
-      {SLICES.map((slice, index) => {
-        const angle = (slice.start + slice.end) / 2;
-        return (
-          // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the wheel.
-          <div
-            key={index}
-            className="absolute left-1/2 top-0 h-full w-0"
-            style={{ transform: `rotate(${angle}deg)`, transformOrigin: '50% 50%' }}
-            aria-hidden
-          >
-            <span className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}>
-              {/* Labels on the lower half turn over, so 15 doesn't read "ST" on the wheel at rest. */}
-              <span className={`inline-block ${upsideDownAtRest(angle) ? 'rotate-180' : ''}`}>
-                <SliceLabel prize={slice.prize} />
-              </span>
-            </span>
-          </div>
-        );
-      })}
+      {SLICES.map((slice, index) => (
+        // A zero-width spoke from the top edge to the centre, rotated about the centre: its box never pokes out of the
+        // wheel. Every label turns with its spoke, top towards the rim and bottom towards the hub, like a real prize wheel.
+        <div
+          key={index}
+          className="absolute left-1/2 top-0 h-full w-0"
+          style={{ transform: `rotate(${(slice.start + slice.end) / 2}deg)`, transformOrigin: '50% 50%' }}
+          aria-hidden
+        >
+          <span className={`absolute left-1/2 -translate-x-1/2 top-[15%] ${SLICE_STYLE[slice.prize].text}`}>
+            <SliceLabel prize={slice.prize} />
+          </span>
+        </div>
+      ))}
     </>
   );
 });

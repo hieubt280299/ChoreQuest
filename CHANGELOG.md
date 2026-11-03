@@ -2,6 +2,29 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.7.1] - 2026-11-03
+
+Spec: [UPDATE_v1.7.1.md](UPDATE_v1.7.1.md)
+
+### Added
+
+- **Automatic updates:** an installed app now switches to a new version by itself, without being closed and reopened.
+  - **The cause:** a downloaded version waited for every window to close, because nothing told the service worker to take over.
+  - It looks for updates on launch, when brought back to the screen, when back online and every 30 minutes.
+  - Once nothing is in progress (no action still saving, no dialog open, no field being typed in, wheel not spinning), the app tells the new version to take over and reloads into it. In the background, only a save in progress holds it back. Other open tabs of the app wait for the same.
+  - The build publishes `version.json`, which the app fetches without caching. If its version differs and the service worker hasn't taken over within 20 seconds, the app reloads once for that version (`utils/appUpdate.ts`).
+- **About section in Settings:** the app version and What's New moved out of Account into their own section.
+
+### Changed
+
+- **"Group" is now "Task size"** (Vietnamese: "Mức việc") for Quick, Moderate and Heavy tasks, in the quest editor, the Filter dialog's "Group by" options, Quest configuration and the skill filter chips. "Complexity" was considered, but these sizes are about how much work a chore is, not how hard it is to work out. The skill filter that said "By effort" now says "Task size" too, so it no longer clashes with effort levels (Light / Normal / Heavy). Code names (`group`, `TaskGroup`) are unchanged.
+
+### Fixed
+
+- **Wheel labels** face their slice again, top towards the rim and bottom towards the hub, as before 1.7.0. 1.7.0 had flipped the lower half to read upright while resting, but labels then turned upside down as they passed the pointer.
+- **Skill filters** with nothing left to learn are hidden; one that empties falls back to All. With only All left, there are no chips.
+- **Skill descriptions** that can't be upgraded where they appear (the Home skill tips and your partner's skills) show only the current level, not "current → next".
+
 ## [1.7.0] - 2026-11-01
 
 Spec: [UPDATE_v1.7.0.md](UPDATE_v1.7.0.md)

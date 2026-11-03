@@ -7,7 +7,7 @@ import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character, CharacterId, SkillDefinition } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
-import { matchesSkillFilter, SKILL_FILTERS, type SkillFilter } from '../../utils/skillFilters';
+import { availableSkillFilters, matchesSkillFilter, type SkillFilter } from '../../utils/skillFilters';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
@@ -130,7 +130,11 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
   const editable = canActAs(characterId);
   const levelOf = (skillId: string) => character.skills.find((item) => item.skillId === skillId)?.level ?? 0;
   const learned = SKILL_POOL.filter((skill) => levelOf(skill.id) > 0);
-  const unlearned = SKILL_POOL.filter((skill) => levelOf(skill.id) === 0 && matchesSkillFilter(skill, filter));
+  const notLearned = SKILL_POOL.filter((skill) => levelOf(skill.id) === 0);
+  // Chips only for filters that still have something to learn; one that just emptied falls back to All.
+  const filters = availableSkillFilters(notLearned);
+  const activeFilter = filters.includes(filter) ? filter : 'all';
+  const unlearned = notLearned.filter((skill) => matchesSkillFilter(skill, activeFilter));
   const slotsFull = character.skills.length >= MAX_SKILLS_PER_CHARACTER;
 
   const unlock = (skillId: string) => {
@@ -182,19 +186,21 @@ function SkillTree({ characterId }: { characterId: CharacterId }) {
       {!slotsFull && (
         <section className="space-y-4" aria-label={t('skills.unlearned')}>
           <h2 className="px-title text-2xl">{t('skills.unlearned')}</h2>
-          <div className="px-scroll -mx-1 flex gap-2 overflow-x-auto px-1 py-1.5" role="group" aria-label={t('skills.unlearned')}>
-            {SKILL_FILTERS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={filter === item}
-                onClick={() => setFilter(item)}
-                className={`px-btn shrink-0 px-2.5 text-lg ${filter === item ? 'px-btn-primary' : ''}`}
-              >
-                {t(`skills.filter.${item}` as TranslationKey)}
-              </button>
-            ))}
-          </div>
+          {filters.length > 0 && (
+            <div className="px-scroll -mx-1 flex gap-2 overflow-x-auto px-1 py-1.5" role="group" aria-label={t('skills.unlearned')}>
+              {filters.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={activeFilter === item}
+                  onClick={() => setFilter(item)}
+                  className={`px-btn shrink-0 px-2.5 text-lg ${activeFilter === item ? 'px-btn-primary' : ''}`}
+                >
+                  {t(`skills.filter.${item}` as TranslationKey)}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-3">{unlearned.map(card)}</div>
         </section>
       )}
@@ -246,9 +252,11 @@ function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
                   <div className="my-1">
                     <TierPips level={owned.level} />
                   </div>
+                  {/* View only: just the current values, no next level. */}
                   <SkillDescription
                     skill={skill!}
                     level={owned.level}
+                    exact
                     characterLevel={getLevelFromXp(character.xp)}
                     className="text-sm leading-snug text-wood-600"
                   />

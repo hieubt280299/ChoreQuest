@@ -11,6 +11,8 @@ export * from '../src/services/authService';
 export * from '../src/utils/invite';
 export * from '../src/utils/today';
 export * from '../src/utils/skillFilters';
+export { needsReload } from '../src/utils/appUpdate';
+export * from '../src/utils/savesInFlight';
 export * from '../src/utils/chronicleStats';
 export * from '../src/utils/chiptune';
 export * from '../src/utils/transactionUtils';

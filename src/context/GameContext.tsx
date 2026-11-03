@@ -42,6 +42,7 @@ import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
 import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
+import { trackSave } from '../utils/savesInFlight';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
 import { rollWheelPrize, spinOnState } from '../utils/wheel';
 import { useAuth } from './AuthContext';
@@ -216,7 +217,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (op: GameOp, date: string): Promise<OpResult> => {
       if (!householdRef) return Promise.resolve({ ok: false, error: 'sync.error.saveFailed' });
       pendingRef.current = [...pendingRef.current, op];
-      const saved = queueRef.current
+      // Tracked so an app update waits for it before reloading (utils/appUpdate.ts).
+      const saved = trackSave(queueRef.current
         .then(() => commitOp(householdRef, op, date, () => serverRef.current))
         .catch((): OpResult => ({ ok: false, error: 'sync.error.saveFailed' }))
         .then((result) => {
@@ -227,7 +229,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             if (serverRef.current) replaceState(replayOps(serverRef.current, pendingRef.current, localDateKey()));
           }
           return result;
-        });
+        }));
       queueRef.current = saved;
       return saved;
     },
