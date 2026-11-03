@@ -10,9 +10,11 @@ import './index.css';
 import './hooks/useQuality';
 import './utils/installPrompt';
 import './utils/pwaMode';
+import { startAppUpdates } from './utils/appUpdate';
 import { captureInvite } from './utils/invite';
 
 captureInvite();
+startAppUpdates();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

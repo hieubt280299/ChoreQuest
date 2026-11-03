@@ -17,6 +17,36 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.7.1',
+    date: '2026-11-03',
+    notes: {
+      features: {
+        en: [
+          'The app now updates itself. No need to close and reopen it.',
+          'Settings has an About section with the app version and What’s New.',
+          'Quick, Moderate and Heavy are now called “Task size”.',
+        ],
+        vi: [
+          'Ứng dụng giờ tự cập nhật, không cần đóng rồi mở lại.',
+          'Cài đặt có mục Thông tin, gồm phiên bản và Có gì mới.',
+          'Việc nhanh, Việc vừa và Việc nặng giờ gọi là “Mức việc”.',
+        ],
+      },
+      fixes: {
+        en: [
+          'Wheel numbers face the way they used to again.',
+          'Skill filters only show when they have skills to learn.',
+          'Skill tips on Home and your partner’s skills show just the current level.',
+        ],
+        vi: [
+          'Số trên Vòng quay lại quay theo hướng như trước.',
+          'Bộ lọc kỹ năng chỉ hiện khi còn kỹ năng để học.',
+          'Lời giải thích kỹ năng ở Nhà và kỹ năng của người ấy chỉ hiện cấp hiện tại.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.7.0',
     date: '2026-11-01',
     notes: {

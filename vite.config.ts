@@ -1,13 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { version } from './package.json';
 
 export default defineConfig({
   plugins: [
     react(),
+    // The published version, fetched (never cached) by the running app to notice it's out of date (utils/appUpdate.ts).
+    {
+      name: 'chorequest-version-file',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version }) });
+      },
+    },
     // Installable PWA: web manifest + service worker that precaches the app shell for offline launch.
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered by utils/appUpdate.ts, which also checks for updates on resume and reloads into them.
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
       manifest: {
         id: '/',
@@ -30,6 +40,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // A new version waits until utils/appUpdate.ts tells it to take over (when nothing is in progress), then claims
+        // the open pages, which reload into it.
+        clientsClaim: true,
         // Firebase's sign-in pages (proxied in vercel.json) must reach the network, not the app shell.
         navigateFallbackDenylist: [/^\/__\//],
         runtimeCaching: [

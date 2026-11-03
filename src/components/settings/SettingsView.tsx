@@ -15,7 +15,6 @@ import { Modal } from '../ui/Modal';
 import { MoneyInput } from '../ui/MoneyInput';
 import { PageHeader } from '../ui/PageHeader';
 import { Tooltip } from '../ui/Tooltip';
-import { TEXT_ACTION } from '../ui/textAction';
 import { AudioSettingsCard } from './AudioSettingsCard';
 import { ChangePasswordForm } from './ChangePassword';
 import { SettingsQualityToggle } from './SettingsQualityToggle';
@@ -284,7 +283,7 @@ export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void })
       {/* Only once a player reaches the level cap (the mastery card points here). */}
       <NewLegendCard />
 
-      {/* Account, plus the app's version and rarely used actions in a quiet footer. */}
+      {/* Account, with its rarely used action in a quiet footer. */}
       <GroupTitle>{t('settings.group.account')}</GroupTitle>
       <Card>
         {user?.email && <p className="text-lg font-extrabold [overflow-wrap:anywhere]">{user.email}</p>}
@@ -330,20 +329,21 @@ export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void })
           </Button>
         )}
         <SignInMethods />
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 border-t-[3px] border-ink/15 pt-2">
-          <span className="flex flex-wrap items-center gap-x-3">
-            <span className="font-arcade text-[10px] text-wood-600">{t('settings.version', { version: APP_VERSION })}</span>
-            <button type="button" className={`${TEXT_ACTION} text-wood-700`} onClick={() => setPatchNotesOpen(true)}>
-              <Icon as={Sparkles} size={12} />
-              {t('patch.open')}
-            </button>
-          </span>
-          {user && (
-            <span className="ml-auto">
-              <DeleteAccountButton />
-            </span>
-          )}
-        </div>
+        {user && (
+          <div className="mt-5 flex justify-end border-t-[3px] border-ink/15 pt-2">
+            <DeleteAccountButton />
+          </div>
+        )}
+      </Card>
+
+      {/* The app itself: which version this is, and what changed. */}
+      <GroupTitle>{t('settings.group.about')}</GroupTitle>
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-arcade text-xs text-wood-700">{t('settings.version', { version: APP_VERSION })}</span>
+        <Button variant="secondary" onClick={() => setPatchNotesOpen(true)}>
+          <Icon as={Sparkles} size={24} />
+          {t('patch.open')}
+        </Button>
         <PatchNotesModal open={patchNotesOpen} onClose={() => setPatchNotesOpen(false)} />
       </Card>
     </section>

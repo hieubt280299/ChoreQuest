@@ -5,7 +5,7 @@
   ],
   "headers": [
     {
-      "source": "/(sw.js|registerSW.js|manifest.webmanifest)",
+      "source": "/(sw.js|manifest.webmanifest|version.json)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
