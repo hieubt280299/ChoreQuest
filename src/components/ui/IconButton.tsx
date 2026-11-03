@@ -1,5 +1,7 @@
-import type { ButtonHTMLAttributes, ComponentProps } from 'react';
+import { useRef, useState, type ButtonHTMLAttributes, type ComponentProps } from 'react';
+import { FloatingBubble } from './FloatingBubble';
 import { Icon } from './Icon';
+import { focusedByKeyboard } from './Tooltip';
 
 const variants = {
   primary: 'px-btn-primary',
@@ -9,15 +11,9 @@ const variants = {
   ghost: 'px-btn-ghost',
 };
 
-const tipAlign = {
-  center: 'left-1/2 -translate-x-1/2',
-  left: 'left-0',
-  right: 'right-0',
-};
-
 /**
  * Compact square icon button (44px touch target). The label is its accessible name and shows as a pixel
- * tooltip on hover (pointer devices only, so it never sticks after a tap) or keyboard focus.
+ * tooltip on mouse hover (never after a tap, so it can't stick) or keyboard focus, and hides once pressed.
  */
 export function IconButton({
   icon,
@@ -26,28 +22,62 @@ export function IconButton({
   align = 'center',
   className = '',
   type = 'button',
+  onPointerEnter,
+  onPointerLeave,
+  onPointerDown,
+  onFocus,
+  onBlur,
   ...props
 }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   icon: ComponentProps<typeof Icon>['as'];
   label: string;
   variant?: keyof typeof variants;
-  /** Where the tooltip sits relative to the button; use left/right near screen edges. */
-  align?: keyof typeof tipAlign;
+  /** Where the tooltip lines up with the button; use left/right near screen edges. */
+  align?: 'center' | 'left' | 'right';
 }) {
+  const [tip, setTip] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const bubble = useRef<HTMLSpanElement>(null);
   return (
     <button
+      ref={button}
       type={type}
       aria-label={label}
-      className={`px-btn group relative h-11 w-11 shrink-0 p-0 ${variants[variant]} ${className}`}
+      className={`px-btn relative h-11 w-11 shrink-0 p-0 ${variants[variant]} ${className}`}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') setTip(true);
+        onPointerEnter?.(event);
+      }}
+      onPointerLeave={(event) => {
+        setTip(false);
+        onPointerLeave?.(event);
+      }}
+      onPointerDown={(event) => {
+        setTip(false);
+        onPointerDown?.(event);
+      }}
+      onFocus={(event) => {
+        if (focusedByKeyboard(event.currentTarget)) setTip(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setTip(false);
+        onBlur?.(event);
+      }}
       {...props}
     >
       <Icon as={icon} size={24} />
-      <span
-        aria-hidden
-        className={`px-panel px-tooltip pointer-events-none absolute bottom-full z-30 mb-3 hidden whitespace-nowrap px-2 py-1 text-sm font-bold normal-case tracking-normal text-ink [@media(hover:hover)]:group-hover:block group-focus-visible:block ${tipAlign[align]}`}
-      >
-        {label}
-      </span>
+      {tip && (
+        <FloatingBubble
+          aria-hidden
+          anchor={button}
+          bubbleRef={bubble}
+          align={align}
+          className="pointer-events-none whitespace-nowrap px-2 py-1 text-sm font-bold normal-case tracking-normal text-ink"
+        >
+          {label}
+        </FloatingBubble>
+      )}
     </button>
   );
 }

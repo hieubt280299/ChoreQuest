@@ -2,6 +2,23 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.7.2] - 2026-11-03
+
+Spec: [UPDATE_v1.7.2.md](UPDATE_v1.7.2.md)
+
+### Added
+
+- **Roadmap:** [ROADMAP.md](ROADMAP.md) keeps ideas for future versions, to revise and pick from.
+
+### Fixed
+
+- **Tooltips are never covered or cut off.** Bubbles used to be drawn inside their card, so whether they showed on top depended on how the browser layered neighbouring cards. On a phone, the Calendar day's bonus gold tip (interest and wheel) could end up under the calendar. A bubble near the top of the screen also went under the top bar, and one in a dialog could be cut off by its scroll area.
+  - Every bubble is now drawn at the top level of the page, above everything (`ui/FloatingBubble`). It sits above its trigger, or below when there's no room above (clear of the top bar and the phone navigation), stays inside the screen and follows its trigger while scrolling (`utils/placeBubble`).
+  - This covers the `Tooltip` component, the skill tips on character cards (`SkillChip` now uses `Tooltip`) and icon-button labels (`IconButton`).
+  - The old layering workaround (`.tooltip-host`, raising a card with an open tooltip) and `hooks/useViewportClamp` are gone.
+- **Tooltips open on the first tap.** A phone reports hover and focus on a tap, which opened the bubble just before the tap's click closed it again, so it took two taps. Only a real mouse hover and keyboard focus open a bubble now. A tap toggles it, and a mouse click no longer closes a bubble you're hovering.
+- **Icon-button labels** hide once the button is pressed, so a label can't hang over the dialog the button opens.
+
 ## [1.7.1] - 2026-11-03
 
 Spec: [UPDATE_v1.7.1.md](UPDATE_v1.7.1.md)

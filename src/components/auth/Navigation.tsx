@@ -131,7 +131,7 @@ export function BottomNav({
         )}
       </AnimatePresence>
       {/* Own compositing layer, so the wheel's animation never repaints it. */}
-      <nav className="px-panel-wood fixed bottom-0 left-0 right-0 z-50 border-t-4 border-ink px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 [transform:translateZ(0)] md:hidden">
+      <nav data-app-bar className="px-panel-wood fixed bottom-0 left-0 right-0 z-50 border-t-4 border-ink px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 [transform:translateZ(0)] md:hidden">
         <div className="mx-auto flex max-w-lg justify-between gap-1.5">
           {items
             .filter((item) => PRIMARY.includes(item.id))

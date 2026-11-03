@@ -57,7 +57,7 @@ export function CharacterCard({ character, active }: { character: Character; act
     character.goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: character.goldenTickets });
 
   return (
-    <motion.div className="tooltip-host h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
+    <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
       <div className={`px-panel flex h-full flex-col gap-3 p-4 transition-transform ${active ? 'px-panel-ember -translate-y-1' : ''}`}>
         <div className="flex items-start gap-3">
           <CharacterAvatar id={id} scale={3} className="shrink-0" />

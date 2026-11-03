@@ -17,6 +17,16 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.7.2',
+    date: '2026-11-03',
+    notes: {
+      fixes: {
+        en: ['Tips always show on top now. The calendar and other boxes can’t hide them.', 'Tips open on the first tap.'],
+        vi: ['Lời giải thích giờ luôn hiện trên cùng, không còn bị lịch hay ô khác che mất.', 'Lời giải thích mở ngay từ lần chạm đầu.'],
+      },
+    },
+  },
+  {
     version: '1.7.1',
     date: '2026-11-03',
     notes: {
