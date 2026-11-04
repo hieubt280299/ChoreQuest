@@ -43,8 +43,11 @@ export default defineConfig({
         // A new version waits until utils/appUpdate.ts tells it to take over (when nothing is in progress), then claims
         // the open pages, which reload into it.
         clientsClaim: true,
-        // Firebase's sign-in pages (proxied in vercel.json) must reach the network, not the app shell.
-        navigateFallbackDenylist: [/^\/__\//],
+        // Shows push notifications (hearts and reminders) and opens the app when one is tapped.
+        importScripts: ['push-sw.js'],
+        // Firebase's sign-in pages (proxied in vercel.json) and the API functions must reach the network, not the app
+        // shell.
+        navigateFallbackDenylist: [/^\/__\//, /^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

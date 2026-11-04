@@ -28,14 +28,14 @@ check('saved quests on v1.0 values move to v1.5; edited ones are kept', () => {
   assert.equal(parsed.tasks[0].gold, 42, 'migrated on load');
 });
 
-check('skills: Master Chef / Laundry Pro +4..16% XP, Golden Touch 6..24% gold, Gold Interest 2/3/4/5%', () => {
-  assert.deepEqual(skill('master-chef').xp, [0.04, 0.08, 0.12, 0.16]);
-  assert.deepEqual(skill('master-chef').gold, [0.1, 0.18, 0.26, 0.34], 'gold unchanged');
-  assert.deepEqual(skill('iron-will').xp, [0.04, 0.08, 0.12, 0.16]);
-  assert.deepEqual(skill('iron-will').gold, [0.1, 0.2, 0.3, 0.4], 'gold unchanged');
+check('skills (v1.8.0): Master Chef 9..36%, Laundry Pro 20..50%, Golden Touch 6..24% gold, Gold Interest 2/3/4/5%', () => {
+  assert.deepEqual(skill('master-chef').xp, [0.09, 0.18, 0.27, 0.36]);
+  assert.deepEqual(skill('master-chef').gold, [0.09, 0.18, 0.27, 0.36]);
+  assert.deepEqual(skill('iron-will').xp, [0.2, 0.3, 0.4, 0.5]);
+  assert.deepEqual(skill('iron-will').gold, [0.2, 0.3, 0.4, 0.5]);
   assert.deepEqual(skill('gold-doubler').gold, [0.06, 0.12, 0.18, 0.24]);
   assert.deepEqual(skill('gold-interest').values, [0.02, 0.03, 0.04, 0.05]);
-  assert.equal(m.DAILY_INTEREST_CAP, 100);
+  assert.deepEqual([1, 2, 3, 4].map(m.dailyInterestCap), [20, 40, 60, 80]);
 });
 
 // --- Intensity --------------------------------------------------------------
@@ -63,8 +63,8 @@ check('skill bonuses build on the scaled base', () => {
   const cooking = { xp: 40, gold: 42, category: 'cooking', group: 'main', intensityEnabled: true };
   const heavy = m.computeRewardBreakdown(m.intensityBase(cooking, 'heavy'), 'wife', s.characters, m.SKILL_POOL);
   close(heavy.wife.baseXp, 60);
-  close(heavy.wife.xp, 60 * 1.16);
-  close(heavy.wife.gold, 63 * 1.34);
+  close(heavy.wife.xp, 60 * 1.36);
+  close(heavy.wife.gold, 63 * 1.36);
   const both = m.computeRewardBreakdown(m.intensityBase(cooking, 'light'), 'both', s.characters, m.SKILL_POOL);
   close(both.wife.baseGold, 21 / 2);
   close(both.husband.gold, 21 / 2, 'no skills');
@@ -107,8 +107,9 @@ check('summary: winner, gold, MVP days and prize split by gold share', () => {
   const s = finished(300, 100, { stats: { players: { husband: { quests: 20, bestStreak: 4, mvpDays: 18 }, wife: { quests: 9, bestStreak: 2, mvpDays: 12 } }, awards: [] } });
   const summary = m.chronicleSummary(s.prizeHistory[0], []);
   assert.equal(summary.winner, 'husband');
-  assert.deepEqual(summary.players.husband, { gold: 300, mvpDays: 18, payout: 750000, share: 0.75 });
-  assert.deepEqual(summary.players.wife, { gold: 100, mvpDays: 12, payout: 250000, share: 0.25 });
+  assert.deepEqual(summary.players.husband, { gold: 300, mvpDays: 18, hearts: 0, payout: 750000, share: 0.75 });
+  assert.deepEqual(summary.players.wife, { gold: 100, mvpDays: 12, hearts: 0, payout: 250000, share: 0.25 });
+  assert.equal(summary.mostHearts, null, 'no hearts before v1.8.0');
   assert.equal(m.chronicleSummary(finished(200, 200).prizeHistory[0], []).winner, null, 'tie');
 });
 

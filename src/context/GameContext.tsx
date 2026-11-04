@@ -1,5 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { intensityApplies, intensityBase, MAX_LEVEL, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../constants/gameRules';
+import {
+  intensityApplies,
+  intensityBase,
+  MAX_LEVEL,
+  MAX_SKILL_LEVEL,
+  MAX_SKILLS_PER_CHARACTER,
+  SKILL_POOL,
+  STREAK_FREEZES_PER_CHRONICLE,
+} from '../constants/gameRules';
 import type {
   AvatarId,
   CharacterId,
@@ -33,11 +41,14 @@ import { commitOp } from '../services/firestoreServices';
 import {
   advanceDays,
   createInitialState,
+  freezesUsed,
   fromHouseholdDoc,
   parseGameState,
   resetLevelsAndSkills,
   resetQuestList,
 } from '../utils/gameState';
+import { heartSentOn, sendHeartOnState } from '../utils/hearts';
+import { notifyPartnerOfHeart } from '../utils/push';
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
@@ -125,6 +136,14 @@ interface GameContextValue {
    * latest household data, so the prize and jackpot are the server's), so the wheel can stay locked till then.
    */
   spinWheel: (characterId: CharacterId) => Promise<SpinResult>;
+  /** Send the partner a heart from this character (once per local day); it gives them a Normal Ticket. */
+  sendHeart: (from: CharacterId) => ActionResult;
+  /** Whether this character has sent their heart today. */
+  heartSentToday: (from: CharacterId) => boolean;
+  /** Streak Freezes this character has left in the running chronicle. */
+  freezesLeft: (characterId: CharacterId) => number;
+  /** The player has read the notice that a rebalance refunded their skill points. */
+  dismissRefundNotice: (characterId: CharacterId) => void;
   undoLog: (logId: string) => ActionResult;
   reassignLog: (logId: string, completer: Completer) => ActionResult;
   upsertTask: (task: Task) => ActionResult;
@@ -159,8 +178,7 @@ interface GameContextValue {
 
 const GameContext = createContext<GameContextValue | null>(null);
 
-/** Streak day each recipient would reach by completing `taskId` on `date`. */
-/** Each recipient's spouse's current streak on `taskId` as of `date` (Synergistic Streak). */
+/** Each recipient's spouse's current streak on `taskId` as of `date` (Tag Team). */
 function partnerStreaks(index: StreakIndex, taskId: string, completer: Completer, date: string) {
   const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
   const days: Partial<Record<CharacterId, number>> = {};
@@ -168,6 +186,7 @@ function partnerStreaks(index: StreakIndex, taskId: string, completer: Completer
   return days;
 }
 
+/** Streak day each recipient would reach by completing `taskId` on `date`. */
 function recipientStreaks(index: StreakIndex, taskId: string, completer: Completer, date: string) {
   const recipients: CharacterId[] = completer === 'both' ? ['husband', 'wife'] : [completer];
   const days: Partial<Record<CharacterId, number>> = {};
@@ -187,6 +206,12 @@ function streakFields(breakdown: Record<CharacterId, RewardBreakdown | null>) {
     }
   }
   return { streakDays, streakGold };
+}
+
+/** The spouse whose streak a solo completion keeps going (Tag Team), as stored on its log. */
+function coverField(breakdown: Record<CharacterId, RewardBreakdown | null>, completer: Completer) {
+  const coveredFor = completer === 'both' ? undefined : breakdown[completer]?.coveredFor;
+  return coveredFor ? { coveredFor } : {};
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -429,7 +454,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           // Effort (intensity-enabled Moderate quests) scales the base first; skills and streaks build on it.
           const intensity = intensityApplies(task) ? (options?.intensity ?? 'normal') : 'normal';
           const base = intensityBase(task, intensity);
-          const index = buildStreakIndex(current.logs);
+          const index = buildStreakIndex(current.logs, undefined, current.freezes);
           const full = computeRewardBreakdown(
             base,
             completer,
@@ -455,6 +480,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             category: task.category,
             group: task.group,
             ...streakFields(breakdown),
+            ...coverField(breakdown, completer),
             ...(late ? { late: true } : {}),
             ...(intensity !== 'normal' ? { intensity } : {}),
           };
@@ -532,6 +558,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [canActAs, commit],
   );
 
+  const sendHeart = useCallback(
+    (from: CharacterId): ActionResult => {
+      if (!canPlay) return fail('household.error.inactive');
+      if (!canActAs(from)) return fail('household.error.ownCharacter');
+      const date = localDateKey();
+      const now = Date.now();
+      const { result, saved } = commit({ id: newOpId(), update: (current) => sendHeartOnState(current, from, date, now) });
+      if (!result.ok) return fail(result.error);
+      // A push notification reaches the partner even with the app closed (households only, once it's saved).
+      if (!demo) {
+        void saved.then((final) => {
+          if (final.ok) void notifyPartnerOfHeart();
+        });
+      }
+      return OK;
+    },
+    [canActAs, canPlay, commit, demo],
+  );
+
+  const dismissRefundNotice = useCallback(
+    (characterId: CharacterId) => {
+      if (!canActAs(characterId) || !stateRef.current.characters[characterId].refundNotice) return;
+      commit({
+        id: newOpId(),
+        update: (current) => {
+          const { refundNotice: _seen, ...character } = current.characters[characterId];
+          return { ...current, characters: { ...current.characters, [characterId]: character } };
+        },
+      });
+    },
+    [canActAs, commit],
+  );
+
   const undoLog = useCallback(
     (logId: string): ActionResult => {
       const log = stateRef.current.logs.find((item) => item.id === logId);
@@ -576,7 +635,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           const revoked = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
           if (!revoked.ok) return 'tasks.error.skillsSpent';
           // Streaks as of that entry's day, not counting the entry itself. Later entries keep the bonus they earned.
-          const index = buildStreakIndex(current.logs, entry.id);
+          const index = buildStreakIndex(current.logs, entry.id, current.freezes);
           const full = computeRewardBreakdown(
             { xp, gold, category, group },
             completer,
@@ -589,12 +648,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           const breakdown = entry.late ? lateRewardBreakdown(full) : full;
           const split = splitFromBreakdown(breakdown);
           const { characters, levelUps } = grantRewards(revoked.characters, split);
+          const { coveredFor: _coveredFor, ...unchanged } = entry;
           const updated: TaskLog = {
-            ...entry,
+            ...unchanged,
             completedBy: completer,
             xpAwarded: { husband: split.husband.xp, wife: split.wife.xp },
             goldAwarded: { husband: split.husband.gold, wife: split.wife.gold },
             ...streakFields(breakdown),
+            ...coverField(breakdown, completer),
           };
           Object.assign(outcome, { task, updated, levelUps });
           return { ...current, characters, logs: current.logs.map((item) => (item.id === logId ? updated : item)) };
@@ -647,7 +708,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const clearSyncError = useCallback(() => setSyncError(null), []);
 
-  const streakIndex = useMemo(() => buildStreakIndex(state.logs), [state.logs]);
+  const streakIndex = useMemo(() => buildStreakIndex(state.logs, undefined, state.freezes), [state.logs, state.freezes]);
   const levelResetUnlocked = (['husband', 'wife'] as CharacterId[]).some(
     (id) => getLevelFromXp(state.characters[id].xp) >= MAX_LEVEL,
   );
@@ -678,6 +739,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       completeTask,
       claimDailyTicket,
       spinWheel,
+      sendHeart,
+      heartSentToday: (from) => heartSentOn(state, from, today),
+      freezesLeft: (characterId) => Math.max(0, STREAK_FREEZES_PER_CHRONICLE - freezesUsed(state, characterId)),
+      dismissRefundNotice,
       undoLog,
       reassignLog,
       upsertTask: (task) =>
@@ -784,6 +849,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       completeTask,
       claimDailyTicket,
       spinWheel,
+      sendHeart,
+      dismissRefundNotice,
       undoLog,
       reassignLog,
       withSettings,

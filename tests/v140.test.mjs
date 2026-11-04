@@ -28,12 +28,12 @@ check('Golden Ticket doubles every gold prize, jackpot included; Fortune\'s Favo
   for (const [prize, gold] of [['small', 5], ['normal', 10], ['big', 15], ['jackpot', 530]]) {
     assert.equal(m.wheelGoldFor(prize, wheel, plain, 'golden'), gold * 2, prize);
     assert.equal(m.wheelGoldFor(prize, wheel, favor4, 'golden'), gold * 2, `${prize}: favor ignored on golden`);
-    assert.equal(m.wheelGoldFor(prize, wheel, favor4, 'normal'), gold * 2, `${prize}: favor lv4 = +100% on normal`);
+    assert.equal(m.wheelGoldFor(prize, wheel, favor4, 'normal'), Math.round(gold * 1.8), `${prize}: favor lv4 = +80% on normal`);
     assert.equal(m.wheelGoldFor(prize, wheel, plain, 'normal'), gold);
   }
   assert.equal(m.wheelGoldFor('none', wheel, favor4, 'golden'), 0);
   const favor1 = { skills: [{ skillId: 'fortunes-favor', level: 1 }] };
-  assert.equal(m.wheelGoldFor('normal', wheel, favor1, 'normal'), 13, '10 x 1.25 rounded');
+  assert.equal(m.wheelGoldFor('normal', wheel, favor1, 'normal'), 12, '10 x 1.2');
 });
 
 check('spin with a Golden Ticket: spends it first, pays double', () => {
@@ -96,7 +96,7 @@ check("Fortune's Favor: 1 / 2 / 3 / 4 Normal Tickets each new Chronicle", () => 
   }
 });
 
-check('Hall of Fame: 1 / 2 / 3 / 4 Golden Tickets at every 5th MVP day', () => {
+check('Hall of Fame: 1 / 2 / 3 / 4 Golden Tickets at every 3rd MVP day', () => {
   const log = (date, gold) => ({ id: date, taskId: 'trash', date, completedBy: 'wife', xpAwarded: { husband: 0, wife: 0 }, goldAwarded: { husband: 0, wife: gold }, timestamp: 1 });
   for (const level of [1, 2, 3, 4]) {
     let s = m.createInitialState(day(-10));
@@ -105,16 +105,16 @@ check('Hall of Fame: 1 / 2 / 3 / 4 Golden Tickets at every 5th MVP day', () => {
     s = { ...s, logs: [-5, -4, -3, -2, -1].map((d) => log(day(d), 10)) };
     const next = m.advanceDays(s, today);
     assert.equal(next.characters.wife.mvpDays, 5);
-    assert.equal(next.characters.wife.goldenTickets, level);
+    assert.equal(next.characters.wife.goldenTickets, level, 'the 3rd MVP day paid; the 6th is still to come');
     assert.equal(next.characters.wife.tickets, 0);
   }
 });
 
-check('Team Player: +12/24/36/48% XP and +10/20/30/40% gold on quests done together', () => {
+check('Team Player: +15/30/45/60% XP and gold on quests done together', () => {
   const s = withChar(m.createInitialState(today), 'husband', { skills: [{ skillId: 'team-player', level: 4 }] });
   const both = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'both', s.characters, m.SKILL_POOL);
-  assert.ok(Math.abs(both.husband.xp - 50 * 1.48) < 1e-9);
-  assert.ok(Math.abs(both.husband.gold - 50 * 1.4) < 1e-9);
+  assert.ok(Math.abs(both.husband.xp - 50 * 1.6) < 1e-9);
+  assert.ok(Math.abs(both.husband.gold - 50 * 1.6) < 1e-9);
   const solo = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'husband', s.characters, m.SKILL_POOL);
   assert.equal(solo.husband.xp, 100, 'not alone');
 });

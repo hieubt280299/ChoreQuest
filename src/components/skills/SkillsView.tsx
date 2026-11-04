@@ -1,5 +1,5 @@
 import { ChevronUp, Plus } from 'pixelarticons/react';
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { HALL_OF_FAME_EVERY, MAX_SKILL_LEVEL, MAX_SKILLS_PER_CHARACTER, SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,20 +15,54 @@ import { IconButton } from '../ui/IconButton';
 import { LevelBadge } from '../ui/LevelBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { SkillIcon } from '../ui/SkillIcon';
+import { Tooltip } from '../ui/Tooltip';
 import { SkillConfirm, type SkillChoice } from './SkillConfirm';
-import { SkillDescription } from './SkillDescription';
+import { SkillDescription, skillLevelTable, skillLevelValues } from './SkillDescription';
 
-/** Four chunky tier pips. */
-export function TierPips({ level }: { level: number }) {
-  return (
-    <div className="flex gap-1.5" aria-label={`${level}/4`}>
+/**
+ * Four chunky tier pips. Given the skill, hovering or tapping them shows its values at all 4 levels, the current
+ * one highlighted ("XP gain: 10% / 20% / 30% / 40%").
+ */
+export function TierPips({ level, skill }: { level: number; skill?: SkillDefinition }) {
+  const { t } = useLanguage();
+  const pips = (
+    <span className="flex gap-1.5" aria-hidden>
       {[1, 2, 3, 4].map((tier) => (
         <span
           key={tier}
           className={`h-3 w-6 ${level >= tier ? 'bg-ember-500 shadow-[inset_0_-3px_0_0_#a44a14,0_0_0_2px_#2b1a12]' : 'bg-parchment-300 shadow-[0_0_0_2px_#2b1a12]'}`}
         />
       ))}
-    </div>
+    </span>
+  );
+  if (!skill) return <span className="flex" aria-label={`${level}/4`}>{pips}</span>;
+  return (
+    <Tooltip
+      label={pips}
+      ariaLabel={t('skills.table.label', { level })}
+      triggerClassName="px-hit inline-flex items-center py-1"
+      content={
+        <span className="block space-y-0.5">
+          <span className="block font-extrabold">{t('skills.table.title')}</span>
+          {skillLevelTable(skill).map((row) => (
+            <span key={row.label} className="block">
+              <span className="text-wood-700">{t(row.label)}: </span>
+              {skillLevelValues(skill, row.field).map((value, index) => (
+                <Fragment key={index}>
+                  {index > 0 && ' / '}
+                  {index + 1 === level ? <strong className="font-extrabold text-brick-600">{value}</strong> : value}
+                </Fragment>
+              ))}
+            </span>
+          ))}
+          {skill.effect.xpPerCharacterLevel ? (
+            <span className="block text-wood-700">
+              {t('skills.perCharacterLevel', { value: Math.round(skill.effect.xpPerCharacterLevel * 100) })}
+            </span>
+          ) : null}
+        </span>
+      }
+    />
   );
 }
 
@@ -98,7 +132,7 @@ function SkillCard({
           <p className="text-xl font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
           <SkillDescription skill={skill} level={level} characterLevel={characterLevel} className="text-base leading-snug text-wood-600" />
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <TierPips level={level} />
+            <TierPips level={level} skill={skill} />
             {extra}
           </div>
         </div>
@@ -250,7 +284,7 @@ function PartnerLoadout({ characterId }: { characterId: CharacterId }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-lg font-extrabold leading-tight">{t(skill!.nameKey as TranslationKey)}</p>
                   <div className="my-1">
-                    <TierPips level={owned.level} />
+                    <TierPips level={owned.level} skill={skill!} />
                   </div>
                   {/* View only: just the current values, no next level. */}
                   <SkillDescription

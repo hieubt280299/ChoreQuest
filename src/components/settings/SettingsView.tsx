@@ -23,6 +23,7 @@ import { SignInMethods } from './SignInMethods';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
 import { NewLegendCard } from './NewLegendCard';
+import { NotificationsCard } from './NotificationsCard';
 import { ResetQuestsButton } from './ResetQuestsButton';
 import { PatchNotesModal } from './PatchNotesModal';
 import { APP_VERSION } from '../../constants/patchNotes';
@@ -157,6 +158,7 @@ export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void })
       <GroupTitle>{t('settings.group.preferences')}</GroupTitle>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <AudioSettingsCard />
+        <NotificationsCard />
         <Card>
           <SectionTitle icon={Monitor}>{t('settings.display')}</SectionTitle>
           <SettingsQualityToggle />

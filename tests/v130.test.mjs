@@ -22,16 +22,16 @@ check('Steady Worker: 10/15/20/25% XP and gold on Moderate quests', () => {
   assert.equal(Math.round(quick.wife.gold), 100, 'not on Quick quests');
 });
 
-check('Gold Interest: capped at 100 gold a day, never on day 1', () => {
+check('Gold Interest: capped per level (80 gold a day at level 4), never on day 1', () => {
   let s = m.createInitialState(day(-3));
   s = { ...s, chronicle: { ...s.chronicle, startDate: day(-3), endDate: day(20) } };
-  // 5% (level 4, v1.5) of 5000 = 250, capped to 100 per day; days -2, -1 and today pay (day -3 is the chronicle's day 1).
+  // 5% (level 4) of 5000 = 250, capped to 80 per day (v1.8); days -2, -1 and today pay (day -3 is the chronicle's day 1).
   s = withSkills(s, 'husband', [{ skillId: 'gold-interest', level: 4 }], { gold: 5000, interestOn: day(-4) });
   const next = m.applyDailyInterest(s, today);
   const paid = next.events.filter((e) => e.type === 'interest' && e.characterId === 'husband');
   assert.deepEqual(paid.map((e) => e.date).sort(), [day(-2), day(-1), day(0)]);
-  assert.ok(paid.every((e) => e.gold === 100));
-  assert.equal(next.characters.husband.gold, 5300);
+  assert.ok(paid.every((e) => e.gold === 80));
+  assert.equal(next.characters.husband.gold, 5240);
   // Below the cap the percentage applies as before: level 4 = 5% (v1.5) of 500 = 25.
   const small = m.applyDailyInterest(withSkills(s, 'husband', [{ skillId: 'gold-interest', level: 4 }], { gold: 500, interestOn: day(-1) }), today);
   assert.equal(small.characters.husband.gold, 525);

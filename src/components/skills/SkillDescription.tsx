@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { skillCoversQuest } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { SkillDefinition } from '../../types';
@@ -7,28 +8,42 @@ import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
 import { FastLearnerTooltip, MvpTooltip, TicketTooltip } from './FastLearnerTooltip';
 
-type ValueField = 'xp' | 'gold' | 'values';
+type ValueField = 'xp' | 'gold' | 'values' | 'caps';
 
 /**
  * A skill's value at each level as display text: XP and gold bonuses and interest as percentages
- * (["8%", "16%", "24%", "32%"]), ticket counts as plain numbers.
+ * (["8%", "16%", "24%", "32%"]), ticket counts and gold caps as plain numbers.
  */
 export function skillLevelValues(skill: SkillDefinition, field: ValueField = 'values'): string[] {
   const list = skill.effect[field] ?? [];
-  const asCount = field === 'values' && (skill.effect.kind === 'chronicle_tickets' || skill.effect.kind === 'mvp_tickets');
+  const asCount =
+    field === 'caps' || (field === 'values' && (skill.effect.kind === 'chronicle_tickets' || skill.effect.kind === 'mvp_tickets'));
   return list.map((value) => (asCount ? String(value) : `${Math.round(value * 100)}%`));
+}
+
+/** The stats a skill's tier pips explain, each with its value at all 4 levels (the tier pip tooltip). */
+export function skillLevelTable(skill: SkillDefinition): { label: TranslationKey; field: ValueField }[] {
+  const { kind } = skill.effect;
+  const rows: { label: TranslationKey; field: ValueField }[] = [];
+  if (kind === 'chronicle_tickets') rows.push({ label: 'skills.table.tickets', field: 'values' });
+  if (kind === 'daily_interest') rows.push({ label: 'skills.table.interest', field: 'values' }, { label: 'skills.table.cap', field: 'caps' });
+  if (kind === 'mvp_tickets') rows.push({ label: 'skills.table.goldenTickets', field: 'values' });
+  if (skill.effect.xp) rows.push({ label: 'skills.table.xp', field: 'xp' });
+  if (skill.effect.gold) rows.push({ label: kind === 'chronicle_tickets' ? 'skills.table.spinGold' : 'skills.table.gold', field: 'gold' });
+  return rows;
 }
 
 /** Highlighted category/group name with a tooltip listing the active quests it covers. */
 function SkillTarget({ skill, interactive }: { skill: SkillDefinition; interactive: boolean }) {
   const { t, language } = useLanguage();
   const { state } = useGame();
-  const { category, group } = skill.effect;
-  const label = category ? t(`category.${category}` as TranslationKey) : group ? t(`group.${group}` as TranslationKey) : '';
+  const { categories, group } = skill.effect;
+  const names = categories?.map((category) => t(`category.${category}` as TranslationKey)) ?? (group ? [t(`group.${group}` as TranslationKey)] : []);
+  const label = names.length > 1 ? t('skills.targetBoth', { first: names[0], second: names[1] }) : (names[0] ?? '');
   const highlight = 'font-extrabold text-moss-700 underline decoration-dotted decoration-2 underline-offset-2';
   if (!interactive) return <span className={highlight}>{label}</span>;
 
-  const quests = state.tasks.filter((task) => task.enabled && (category ? task.category === category : task.group === group));
+  const quests = state.tasks.filter((task) => task.enabled && skillCoversQuest(skill, task));
   const summary =
     quests.length === 0
       ? t('skills.targetNone', { target: label })
@@ -77,7 +92,9 @@ export function SkillDescription({
   exact?: boolean;
 }) {
   const { t } = useLanguage();
-  const parts = t(skill.descriptionKey as TranslationKey).split(/(\{\{(?:values|xp|gold|target|levelBonus|mvp|normalTickets|goldenTickets)\}\})/);
+  const parts = t(skill.descriptionKey as TranslationKey).split(
+    /(\{\{(?:values|xp|gold|cap|target|levelBonus|mvp|normalTickets|goldenTickets)\}\})/,
+  );
 
   return (
     <p className={className}>
@@ -89,7 +106,8 @@ export function SkillDescription({
         if (part === '{{mvp}}') return <MvpTooltip key={partIndex} interactive={interactive} />;
         if (part === '{{normalTickets}}') return <TicketTooltip key={partIndex} kind="normal" interactive={interactive} />;
         if (part === '{{goldenTickets}}') return <TicketTooltip key={partIndex} kind="golden" interactive={interactive} />;
-        const field = part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : null;
+        const field =
+          part === '{{xp}}' ? 'xp' : part === '{{gold}}' ? 'gold' : part === '{{values}}' ? 'values' : part === '{{cap}}' ? 'caps' : null;
         if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
         const values = skillLevelValues(skill, field);
         const current = values[level - 1];

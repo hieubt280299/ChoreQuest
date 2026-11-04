@@ -99,7 +99,7 @@ check('the auth proxy comes before the catch-all rewrite', () => {
 });
 
 check('the service worker leaves the auth pages to the network', () => {
-  assert.match(source('vite.config.ts'), /navigateFallbackDenylist: \[\/\^\\\/__\\\/\/\]/);
+  assert.match(source('vite.config.ts'), /navigateFallbackDenylist: \[\/\^\\\/__\\\/\/[,\]]/);
 });
 
 // --- Language --------------------------------------------------------------

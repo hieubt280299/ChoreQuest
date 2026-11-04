@@ -5,17 +5,16 @@ Ideas for future versions, to revise and pick from. Nothing here is promised. On
 **Size:** S = a few days · M = about a week · L = bigger, or needs a server.
 **Status:** Idea · Planned · Done · Parked.
 
-_Last revised: 2026-11-03 (after v1.7.2)._
+_Last revised: 2026-11-04 (after v1.8.0)._
 
 ---
 
-## ⭐ Suggested next: v1.8.0
+## ⭐ Suggested next: v1.9.0
 
-Together these make the game warmer between partners, give tickets and gold real-world meaning, and add daily variety. All three are S–M and need no server.
+v1.8.0 shipped hearts, Streak Freezes, reminders and the skill rebalance. Next, these give tickets and gold real-world meaning and add daily variety. Both are S–M.
 
-1. **Thank-you hearts** (S)
-2. **Reward shop** (M)
-3. **Lucky Quest of the Day** (S)
+1. **Reward shop** (M)
+2. **Lucky Quest of the Day** (S)
 
 Then the **Weekly Boss Raid** as the headline of the version after.
 
@@ -26,12 +25,11 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
 | **Weekly Boss Raid** | M | Idea | A pixel monster (Dust Dragon, Mold Slime…) appears each Monday with HP. Every quest either player does hits it. Beat it by Sunday to open a shared chest of tickets and gold. A weekly rhythm, and a reason to cheer each other on instead of only competing. |
-| **Thank-you hearts** | S | Idea | Tap a heart on your partner's finished quest to say "Cảm ơn". They get a little bonus gold, and the Chronicle summary shows who was thanked most. |
+| **Hearts** | S | Done (v1.8.0) | Send heart on your partner's Home card, once a day: they get 1 Normal Ticket and a notification, and the Chronicle summary shows who got the most. |
 | **Bounties** | M | Idea | Put some of your own gold on a chore ("+20 vàng nếu ai đổ rác tối nay"); whoever does it collects. Playful bargaining without real money. |
 | **Nudge** | S | Idea | A gentle "poke" shown on your partner's Today card ("Anh nhắc em tưới cây nè"). Lighter than nagging. |
 
 **To decide:**
-- **Hearts:** a daily limit, so they stay meaningful?
 - **Boss:** does the HP scale with how much the couple usually does?
 - **Bounties:** what if nobody claims one? (The gold could go back to its owner at midnight.)
 
@@ -75,13 +73,30 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
-| **Streak freeze and rest days** | S | Idea | Spend a ticket to protect a streak, or pause everything during illness or travel. Losing a 20-day streak to a fever makes people quit. |
+| **Streak Freezes** | S | Done (v1.8.0) | 3 per Chronicle each, used by themselves on a day with nothing done if a 3+ day streak would break. |
+| **Rest days** | S | Idea | Pause everything during illness or travel, for longer than freezes cover. Losing a 20-day streak to a fever makes people quit. |
 | **Balance meter** | S | Idea | A gentle weekly view of who did what ("Tuần này anh nấu nhiều hơn"), so an imbalance can be talked about without blame. |
-| **Reminders** | L | Idea | An optional daily reminder notification. Needs push notifications and a small server; iPhones only support it for home-screen apps. |
+| **Reminders** | L | Done (v1.8.0) | Notifications at 9 PM on a day with no quests, on Day 1 of a Chronicle and for hearts, sent by free Vercel functions. iPhones need the Home Screen app. |
 
 **To decide:**
 - **Rest days:** how many per Chronicle, and do they also pause the other player's streaks?
-- **Reminders:** worth adding a server for (cost, upkeep), or keep the app serverless?
+
+## 🧠 Skills
+
+| Idea | Size | Status | What it is |
+| --- | --- | --- | --- |
+| **Skill rebalance** | M | Done (v1.8.0) | Gold Interest capped per level, weak skills raised, Errand Runner and Tag Team redesigned, all points refunded once. |
+| **"Your skills earned you…"** | S | Idea | The Chronicle summary says how much gold each skill earned ("Your skills earned 1,240 gold this Mùa"). Makes skills feel real. |
+| **Level-4 bonuses** | M | Idea | Maxing a skill unlocks something new: Speed Cleaner streaks pay from day 2, every heavy quest gives Heavy Lifter a Normal Ticket, a meal from Master Chef gives the partner +5 XP, Fortune's Favor re-spins a miss once per Mùa. |
+| **Underdog** | S | Idea | +10/20/30/40% gold while you're behind your partner this Mùa: a catch-up skill so the player who's behind stays motivated. |
+| **Active skills** | M | Idea | Tap to use: "Double Down" (next quest pays double, once a week), "Second Wind" (rescue a broken streak, once per Mùa). |
+| **Combos** | M | Idea | Two related skills unlock a bonus together, e.g. Master Chef + Errand Runner: cooking on a day you went shopping pays +20%. |
+| **A choice at level 4** | M | Idea | Pick one of two upgrades (Golden Touch L4: +24% gold, or +12% gold and +12% XP), so the partners' builds differ. |
+| **Respec** | S | Idea | Reset your skills once per Mùa, or anytime for a Golden Ticket. Pairs with seasonal events. |
+| **Skill of the Month** | S | Idea | Each Mùa one skill gets a free +1 level for everyone who owns it, so the best picks shift. |
+
+**To decide:**
+- **Underdog:** does it fight the payout split, which is meant to reward whoever does more?
 
 ---
 

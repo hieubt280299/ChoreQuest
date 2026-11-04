@@ -5,10 +5,14 @@ export type SkillFilter = 'all' | Exclude<TaskCategory, 'general'> | 'size' | 'g
 
 export const SKILL_FILTERS: SkillFilter[] = ['all', 'cleaning', 'cooking', 'laundry', 'shopping', 'size', 'general'];
 
+/**
+ * Every skill sits under All and exactly one other filter. A category skill goes under its first category, so Errand
+ * Runner (Shopping and General quests) is under Shopping; General holds the skills that aren't about one kind of quest.
+ */
 export function matchesSkillFilter(skill: SkillDefinition, filter: SkillFilter): boolean {
   if (filter === 'all') return true;
-  const { kind, category } = skill.effect;
-  if (kind === 'category') return category === filter;
+  const { kind, categories } = skill.effect;
+  if (kind === 'category') return categories?.[0] === filter;
   return filter === (kind === 'group' ? 'size' : 'general');
 }
 

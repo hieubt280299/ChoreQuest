@@ -81,9 +81,29 @@ Everywhere else, Google sign-in uses a popup and needs neither step.
 
 If an update to the security rules ships with a release, republish `firestore.rules` too.
 
+### Notifications (hearts and reminders)
+
+Push notifications come from two small Vercel functions in [`api/`](api), so they reach players even with the app closed:
+
+- **`/api/heart`:** the app calls it right after a player sends a heart, and the partner's devices get "… sent you a heart".
+- **`/api/reminders`:** Vercel Cron calls it at the top of every hour (`crons` in `vercel.json`: one daily job per hour, which the free Hobby plan allows). Each device gets a reminder at its own local time: at 9 PM if that player has done no quest today, and at 8 AM on Day 1 of a new Chronicle. On the Hobby plan a job runs within its hour, so 9 PM means 9:00 to 9:59.
+
+Players turn notifications on per device in **Settings → Notifications**. iPhones and iPads (iOS 16.4+) only allow them in the app added to the Home Screen. A device's subscription is saved on the player's own `users/{uid}` document.
+
+One-time setup:
+
+1. **VAPID keys** (they sign the notifications): run `npx web-push generate-vapid-keys`. In Vercel, add **`VITE_VAPID_PUBLIC_KEY`** = the public key (type *Config*: it's built into the app) and **`VAPID_PRIVATE_KEY`** = the private key (type *Secret*). For local builds, put `VITE_VAPID_PUBLIC_KEY` in `.env`.
+2. **Firebase service account** (lets the functions read households): in the Firebase console, open **Project settings → Service accounts → Generate new private key**, and add the downloaded JSON's contents to Vercel as **`FIREBASE_SERVICE_ACCOUNT`** (type *Secret*). Base64 of the file also works.
+3. **Cron secret:** add **`CRON_SECRET`** (type *Secret*) with any long random value, e.g. from `openssl rand -hex 32`. Vercel sends it with every cron call, and `/api/reminders` refuses calls without it.
+4. Optionally set **`VAPID_SUBJECT`** to a `mailto:` address or your site's URL (push services use it to reach you). It defaults to the production URL.
+5. Redeploy. The settings card only appears once `VITE_VAPID_PUBLIC_KEY` is in the build.
+
+Without these variables, everything else works; hearts still give their ticket, just without a notification.
+
 ## Project structure
 
 ```
+api/            Vercel functions for push notifications (hearts, hourly reminders); shared code in api/_lib
 src/
   components/   UI by screen: auth, dashboard (Home), tasks (Quests), skills, history, calendar, settings, ui
   context/      Auth, household, game state, language and audio providers
@@ -105,11 +125,11 @@ All game rules live in `src/constants/gameRules.ts` and `src/utils/` as pure fun
 - **`households/{id}`:** members and roles, plus three sections:
   - `settings` (quests, prize pool), which only moderators can change.
   - `chronicle`, the current season.
-  - `game` (characters, quest logs, wheel and events, past chronicles), shared by both players.
+  - `game` (characters, quest logs, wheel and events, hearts, Streak Freezes, past chronicles), shared by both players.
 - **`householdCodes/{code}`:** looks up a household from its join code.
-- **`users/{uid}`:** links an account to its household.
+- **`users/{uid}`:** links an account to its household, and holds the account's notification subscriptions (`push.devices`).
 
-Days that pass while the app is closed (interest, chronicle rollover) are settled from stored dates, so both partners' devices always agree.
+Days that pass while the app is closed (interest, Streak Freezes, chronicle rollover) are settled from stored dates, so both partners' devices always agree.
 
 ## Contributing
 

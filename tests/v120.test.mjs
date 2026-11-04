@@ -12,24 +12,24 @@ const withSkills = (state, id, skills, extra = {}) => ({
 // Total XP that puts a character at `level`.
 const xpForLevel = (level) => m.XP_CURVE.slice(0, level - 1).reduce((sum, value) => sum + value, 0);
 
-check('skill tables', () => {
-  assert.deepEqual(skill('speed-cleaner').xp, [0.1, 0.15, 0.2, 0.25]);
-  assert.deepEqual(skill('speed-cleaner').gold, [0.1, 0.15, 0.2, 0.25]);
-  assert.deepEqual(skill('shop-savvy').xp, [0.1, 0.2, 0.3, 0.4]);
-  assert.deepEqual(skill('shop-savvy').gold, [0.05, 0.1, 0.15, 0.2]);
-  assert.deepEqual(skill('zen-housekeeper').xp, [0.4, 0.6, 0.8, 1]);
+check('skill tables (v1.8.0)', () => {
+  assert.deepEqual(skill('speed-cleaner').xp, [0.08, 0.16, 0.24, 0.32]);
+  assert.deepEqual(skill('speed-cleaner').gold, [0.08, 0.16, 0.24, 0.32]);
+  assert.deepEqual(skill('shop-savvy').xp, [0.15, 0.3, 0.45, 0.6]);
+  assert.deepEqual(skill('shop-savvy').gold, [0.15, 0.3, 0.45, 0.6]);
+  assert.deepEqual(skill('zen-housekeeper').xp, [0.3, 0.45, 0.6, 0.75]);
   assert.equal(skill('zen-housekeeper').gold, undefined, 'Fast Learner is XP only');
   assert.equal(skill('zen-housekeeper').xpPerCharacterLevel, 0.01);
   assert.deepEqual(skill('fortunes-favor').values, [1, 2, 3, 4]); // v1.4.0
-  assert.deepEqual(skill('fortunes-favor').gold, [0.25, 0.5, 0.75, 1]);
+  assert.deepEqual(skill('fortunes-favor').gold, [0.2, 0.4, 0.6, 0.8]);
   assert.deepEqual(skill('hall-of-fame').values, [1, 2, 3, 4]); // v1.4.0: Golden Tickets
 });
 
-check('Fast Learner: character lv5 + skill lv2 = 65% more XP, no gold', () => {
+check('Fast Learner: character lv5 + skill lv2 = 50% more XP, no gold', () => {
   const s = withSkills(m.createInitialState(today), 'wife', [{ skillId: 'zen-housekeeper', level: 2 }], { xp: xpForLevel(5) });
   assert.equal(m.getLevelFromXp(s.characters.wife.xp), 5);
   const r = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'wife', s.characters, m.SKILL_POOL);
-  close(r.wife.xp, 165);
+  close(r.wife.xp, 150);
   close(r.wife.gold, 100);
 });
 
@@ -39,11 +39,11 @@ check("Fortune's Favor gold isn't applied to quests", () => {
   close(r.wife.gold, 100);
 });
 
-check("Fortune's Favor: +25/50/75/100% wheel gold, jackpot included", () => {
+check("Fortune's Favor: +20/40/60/80% wheel gold, jackpot included", () => {
   const wheel = { jackpotBonus: 10 };
   const prize = m.WHEEL_PRIZES.find((entry) => entry.prize !== 'none' && entry.prize !== 'jackpot');
   assert.equal(m.wheelGoldFor(prize.prize, wheel, { skills: [] }), prize.gold);
-  [1.25, 1.5, 1.75, 2].forEach((factor, index) => {
+  [1.2, 1.4, 1.6, 1.8].forEach((factor, index) => {
     const character = { skills: [{ skillId: 'fortunes-favor', level: index + 1 }] };
     assert.equal(m.wheelGoldFor(prize.prize, wheel, character), Math.round(prize.gold * factor));
     assert.equal(m.wheelGoldFor('jackpot', wheel, character), Math.round((m.JACKPOT_BASE_GOLD + 10) * factor));

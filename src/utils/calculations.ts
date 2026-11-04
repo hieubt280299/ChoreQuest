@@ -4,6 +4,7 @@ import {
   MASTERY_LEVEL_GOLD,
   MAX_LEVEL,
   MAX_SKILL_POINTS,
+  skillCoversQuest,
   STANDARD_LEVEL_GOLD,
   XP_CURVE,
 } from '../constants/gameRules';
@@ -153,8 +154,8 @@ export function formatCountdown(ms: number): { days: number; hours: number; minu
   return { days, hours, minutes };
 }
 
-/** Days a spouse's streak must reach before Synergistic Streak kicks in (matches when streaks start counting). */
-const SPOUSE_STREAK_MIN_DAYS = 3;
+/** Days a spouse's streak must reach before Tag Team kicks in (matches when streaks start paying). */
+export const SPOUSE_STREAK_MIN_DAYS = 3;
 
 /**
  * Multiplies a reward by the character's skill bonuses for this task (category, group, co-op, the spouse's
@@ -182,10 +183,8 @@ export function applySkillBonuses(
         applies = true;
         break;
       case 'category':
-        applies = task.category === effect.category;
-        break;
       case 'group':
-        applies = task.group === effect.group;
+        applies = skillCoversQuest(def, task);
         break;
       case 'together':
         applies = completer === 'both';
@@ -304,9 +303,20 @@ export function normalizeHouseholdCode(input: string): string {
 export type RewardSplit = Record<CharacterId, { xp: number; gold: number }>;
 export type QuestBase = Pick<Task, 'xp' | 'gold' | 'category' | 'group'>;
 
+const spouseOf = (id: CharacterId): CharacterId => (id === 'husband' ? 'wife' : 'husband');
+
+/** Whether the character has learned a skill of this kind. */
+function hasSkillKind(character: Character, skillPool: SkillDefinition[], kind: SkillDefinition['effect']['kind']): boolean {
+  return character.skills.some((owned) => owned.level > 0 && skillPool.find((skill) => skill.id === owned.skillId)?.effect.kind === kind);
+}
+
 /**
  * Exactly what each character earns for a quest: base share (50/50 for "both"), plus skill bonuses on
  * that share, plus the character's own streak bonus gold (never split). `null` for non-recipients.
+ *
+ * Tag Team: a player with the skill who does alone a quest their spouse has a 3+ day streak on also earns the
+ * bonus gold that streak pays (`coverGold`, counted with the skill gold), and the log keeps the spouse's
+ * streak going (`coveredFor`).
  */
 export function computeRewardBreakdown(
   base: QuestBase,
@@ -326,32 +336,39 @@ export function computeRewardBreakdown(
     const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0);
     const days = streakDays[id] ?? 0;
     const streakGold = streakBonusGold(days);
+    const partnerDays = partnerStreaks[id] ?? 0;
+    const covering =
+      completer === id && partnerDays >= SPOUSE_STREAK_MIN_DAYS && hasSkillKind(characters[id], skillPool, 'spouse_streak');
+    const coverGold = covering ? streakBonusGold(partnerDays) : 0;
     result[id] = {
       baseXp,
       baseGold,
       skillXp: withSkills.xp - baseXp,
-      skillGold: withSkills.gold - baseGold,
+      skillGold: withSkills.gold - baseGold + coverGold,
       streakDays: days,
       streakGold,
       xp: withSkills.xp,
-      gold: withSkills.gold + streakGold,
+      gold: withSkills.gold + streakGold + coverGold,
+      ...(covering ? { coverGold, coveredFor: spouseOf(id) } : {}),
     };
   }
   return result;
 }
 
 /**
- * A late ("Yesterday's quests") completion: 0 XP, half of base + skill gold rounded down, no streak bonus.
- * The parts are kept consistent so the breakdown table still adds up.
+ * A late ("Yesterday's quests") completion: 0 XP, half of base + skill gold rounded down, no streak bonus (nor
+ * Tag Team's streak gold, though it still keeps the spouse's streak). The parts are kept consistent so the
+ * breakdown table still adds up.
  */
 export function lateRewardBreakdown(
   breakdown: Record<CharacterId, RewardBreakdown | null>,
 ): Record<CharacterId, RewardBreakdown | null> {
   const late = (part: RewardBreakdown | null): RewardBreakdown | null => {
     if (!part) return null;
-    const gold = Math.floor((part.baseGold + part.skillGold) / 2);
+    const gold = Math.floor((part.baseGold + part.skillGold - (part.coverGold ?? 0)) / 2);
     const baseGold = Math.min(gold, part.baseGold / 2);
-    return { ...part, baseXp: 0, skillXp: 0, xp: 0, baseGold, skillGold: gold - baseGold, streakGold: 0, gold };
+    const { coverGold: _coverGold, ...rest } = part;
+    return { ...rest, baseXp: 0, skillXp: 0, xp: 0, baseGold, skillGold: gold - baseGold, streakGold: 0, gold };
   };
   return { husband: late(breakdown.husband), wife: late(breakdown.wife) };
 }

@@ -7,6 +7,7 @@ import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { ProfileSwitcher } from './components/auth/ProfileSwitcher';
 import { CalendarView } from './components/calendar/CalendarView';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { HeartToast } from './components/dashboard/HeartToast';
 import { InviteBanner } from './components/dashboard/InviteBanner';
 import { HistoryView } from './components/history/HistoryView';
 import { SettingsView } from './components/settings/SettingsView';
@@ -24,6 +25,7 @@ import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
 import { useHousehold } from './context/HouseholdContext';
 import { useApplyTheme, useTheme } from './hooks/useTheme';
+import { usePushRefresh } from './hooks/usePushRefresh';
 import { isWheelBusy } from './hooks/useWheelBusy';
 import type { AppView, CharacterId } from './types';
 import { getLevelFromXp, skillPointsAvailable } from './utils/calculations';
@@ -47,6 +49,8 @@ export default function App() {
   // This player's theme (per device), applied to the whole page.
   const { theme } = useTheme();
   useApplyTheme(status === 'ready' || status === 'demo' ? theme : 'hearth');
+  // Keeps this device's notification subscription current.
+  usePushRefresh();
 
   if (authLoading) return <LoadingScreen />;
   if (!user && !demoMode) return <AuthScreen />;
@@ -96,7 +100,8 @@ export default function App() {
       <SkillPickerModal open={!!skillCharacter} characterId={skillCharacter} onClose={() => setSkillCharacter(null)} />
       <CosmeticPicker open={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
       <SyncErrorToast />
-      <StartupNotices onOpenWardrobe={() => setWardrobeOpen(true)} />
+      <HeartToast />
+      <StartupNotices onOpenWardrobe={() => setWardrobeOpen(true)} onOpenSkills={() => setView('skills')} />
     </div>
   );
 }

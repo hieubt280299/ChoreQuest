@@ -1,4 +1,4 @@
-import { Crown, Trophy } from 'pixelarticons/react';
+import { Crown, Heart, Trophy } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CharacterId, ChronicleResult } from '../../types';
@@ -29,7 +29,7 @@ export function ChronicleSummaryModal({
 }) {
   const { t, locale } = useLanguage();
   const { state, activeCharacter, canRename, pendingReward } = useGame();
-  const summary = result ? chronicleSummary(result, state.logs) : null;
+  const summary = result ? chronicleSummary(result, state.logs, state.hearts, state.freezes) : null;
   const hasRewards = canRename(activeCharacter) && !!pendingReward(activeCharacter);
 
   return (
@@ -75,6 +75,13 @@ export function ChronicleSummaryModal({
                       <dt className="font-bold uppercase text-wood-600">{t('summary.mvp')}</dt>
                       <dd className="font-arcade text-[10px]">{player.mvpDays}</dd>
                     </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="font-bold uppercase text-wood-600">{t('summary.hearts')}</dt>
+                      <dd className="inline-flex items-center gap-1 font-arcade text-[10px]">
+                        <Icon as={Heart} size={12} className={summary.mostHearts === id ? 'text-brick-600' : 'text-wood-500'} />
+                        {player.hearts}
+                      </dd>
+                    </div>
                     <div className="flex flex-col items-end gap-0.5 border-t-2 border-ink/15 pt-1.5">
                       <dt className="self-start font-bold uppercase text-wood-600">{t('summary.prize')}</dt>
                       <dd className="text-[11px]">
@@ -87,6 +94,19 @@ export function ChronicleSummaryModal({
               );
             })}
           </div>
+
+          {/* Who was sent the most hearts. */}
+          {summary.mostHearts && (
+            <p className="flex items-center gap-2 text-base font-extrabold">
+              <Icon as={Heart} size={24} className="shrink-0 text-brick-600" />
+              <span className="min-w-0">
+                {spliceName(
+                  t('summary.mostHearts', { who: NAME_SLOT, count: summary.players[summary.mostHearts].hearts }),
+                  <CharacterName id={summary.mostHearts} />,
+                )}
+              </span>
+            </p>
+          )}
 
           <p className="text-sm text-wood-600">{t('summary.split', { pool: formatVnd(summary.prizePool) })}</p>
 

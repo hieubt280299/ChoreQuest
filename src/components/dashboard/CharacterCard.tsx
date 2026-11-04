@@ -15,9 +15,11 @@ import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { LevelBadge } from '../ui/LevelBadge';
 import { pixelEase } from '../ui/Modal';
+import { Snowflake } from '../ui/pixel/SnowflakeIcon';
 import { Ticket } from '../ui/pixel/TicketIcon';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Tooltip } from '../ui/Tooltip';
+import { HeartButton } from './HeartButton';
 import { RenameCharacterModal } from './RenameCharacterModal';
 import { SkillChip } from './SkillChip';
 
@@ -45,7 +47,7 @@ function InventoryItem({ label, children }: { label: string; children: ReactNode
  */
 export function CharacterCard({ character, active }: { character: Character; active?: boolean }) {
   const { t } = useLanguage();
-  const { today, canRename, canActAs, claimDailyTicket } = useGame();
+  const { today, activeCharacter, canRename, canActAs, claimDailyTicket, freezesLeft } = useGame();
   const { role, hasCustomName } = useCharacterName();
   const [renaming, setRenaming] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
@@ -55,6 +57,8 @@ export function CharacterCard({ character, active }: { character: Character; act
   const ticketLabel = character.tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: character.tickets });
   const goldenLabel =
     character.goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: character.goldenTickets });
+  const freezes = freezesLeft(id);
+  const freezeLabel = freezes === 1 ? t('freeze.tooltipOne') : t('freeze.tooltip', { count: freezes });
 
   return (
     <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
@@ -123,6 +127,13 @@ export function CharacterCard({ character, active }: { character: Character; act
               <span className="font-arcade text-[10px]">{character.tickets}</span>
             </span>
           </InventoryItem>
+          {/* Streak Freezes left this chronicle. */}
+          <InventoryItem label={freezeLabel}>
+            <span className="inline-flex items-center gap-1.5 text-wood-700">
+              <Icon as={Snowflake} size={24} />
+              <span className="font-arcade text-[10px]">{freezes}</span>
+            </span>
+          </InventoryItem>
         </div>
 
         {/* Skills as a plain line ("Master Chef 1 · Fast Learner 1"); tap a name for its description. */}
@@ -146,7 +157,7 @@ export function CharacterCard({ character, active }: { character: Character; act
         )}
 
         {/* Daily ticket, pinned to the bottom so both cards align. */}
-        <div className="mt-auto pt-1">
+        <div className="mt-auto space-y-3 pt-1">
           {canActAs(id) ? (
             <>
               <Button
@@ -173,6 +184,8 @@ export function CharacterCard({ character, active }: { character: Character; act
               {claimed ? t('wheel.partnerClaimed') : t('wheel.partnerWaiting')}
             </p>
           )}
+          {/* On the partner's card (the one that isn't the active player's): a heart to send them. */}
+          {id !== activeCharacter && <HeartButton to={id} />}
         </div>
       </div>
       {renaming && <RenameCharacterModal characterId={id} open onClose={() => setRenaming(false)} />}

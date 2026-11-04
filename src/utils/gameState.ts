@@ -1,6 +1,6 @@
 import {
   createDefaultCharacter,
-  DAILY_INTEREST_CAP,
+  dailyInterestCap,
   DEFAULT_PRIZE_POOL,
   DEFAULT_TASKS,
   HALL_OF_FAME_EVERY,
@@ -8,8 +8,10 @@ import {
   rebalanceTask,
   SKILL_MIGRATIONS,
   SKILL_POOL,
+  SKILL_REFUND_VERSION,
   skillEffectValue,
   skillLevel,
+  STREAK_FREEZES_PER_CHRONICLE,
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { nameFromProfile, normalizeCharacterName } from './characterName';
@@ -26,7 +28,9 @@ import type {
   Cosmetics,
   GameEvent,
   GameState,
+  Heart,
   HouseholdDoc,
+  StreakFreeze,
   Task,
   TaskLog,
   WheelPrize,
@@ -42,6 +46,7 @@ import {
   localDateKey,
   parseDateKey,
 } from './calculations';
+import { buildStreakIndex, involves, streakWouldBreak } from './streaks';
 
 // Firestore documents are capped at 1 MiB, so keep only recent logs (the UI reads the current chronicle).
 const LOG_RETENTION_DAYS = 120;
@@ -65,6 +70,32 @@ function parseEvents(raw: unknown): GameEvent[] {
   });
 }
 
+const isCharacterId = (value: unknown): value is CharacterId => value === 'husband' || value === 'wife';
+
+function parseHearts(raw: unknown): Heart[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is Heart => {
+    const heart = item as Partial<Heart> | null;
+    return (
+      !!heart &&
+      typeof heart.id === 'string' &&
+      isCharacterId(heart.from) &&
+      isCharacterId(heart.to) &&
+      heart.from !== heart.to &&
+      isDateKey(heart.date) &&
+      typeof heart.timestamp === 'number'
+    );
+  });
+}
+
+function parseFreezes(raw: unknown): StreakFreeze[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is StreakFreeze => {
+    const freeze = item as Partial<StreakFreeze> | null;
+    return !!freeze && isCharacterId(freeze.characterId) && isDateKey(freeze.date);
+  });
+}
+
 const count = (value: unknown, fallback = 0) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
 
@@ -82,8 +113,13 @@ export function createInitialState(today = localDateKey()): GameState {
     wheel: { jackpotBonus: 0 },
     events: [],
     cosmetics: defaultCosmetics(),
-    // Day-end MVPs count from the first full day.
+    // Day-end MVPs and Streak Freezes count from the first full day.
     mvpSettledOn: addDays(today, -1),
+    hearts: [],
+    freezes: [],
+    freezesSettledOn: addDays(today, -1),
+    // A new game has nothing to refund.
+    skillsRefundedIn: SKILL_REFUND_VERSION,
   };
 }
 
@@ -189,7 +225,8 @@ function backfillStats(history: ChronicleResult[], logs: TaskLog[], today: strin
   let changed = false;
   const next = history.map((result) => {
     if (result.stats || result.startDate < cutoff) return result;
-    const stats = snapshotChronicle(result, logs);
+    // Those chronicles predate hearts and Streak Freezes.
+    const stats = snapshotChronicle(result, logs, [], []);
     if (!stats) return result;
     changed = true;
     return { ...result, stats };
@@ -219,7 +256,8 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
     // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
-    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, ...rest } = data.characters![id] as Character & {
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, ...rest } = data
+      .characters![id] as Character & {
       interestGold?: unknown;
     };
     // Keep only valid, non-blank custom names.
@@ -240,6 +278,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       ...(cleanName ? { customName: cleanName } : {}),
       ...(isDateKey(ticketClaimedOn) ? { ticketClaimedOn } : {}),
       ...(isDateKey(interestOn) ? { interestOn } : {}),
+      ...(refundNotice === true ? { refundNotice } : {}),
     };
   };
   const state: GameState = {
@@ -258,6 +297,10 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     ...(isDateKey(data.mvpSettledOn) ? { mvpSettledOn: data.mvpSettledOn } : {}),
     ...(typeof data.levelResetAt === 'number' ? { levelResetAt: data.levelResetAt } : {}),
     ...(Array.isArray(data.appliedOps) ? { appliedOps: data.appliedOps.filter((id): id is string => typeof id === 'string') } : {}),
+    hearts: parseHearts(data.hearts),
+    freezes: parseFreezes(data.freezes),
+    ...(isDateKey(data.freezesSettledOn) ? { freezesSettledOn: data.freezesSettledOn } : {}),
+    ...(typeof data.skillsRefundedIn === 'string' ? { skillsRefundedIn: data.skillsRefundedIn } : {}),
   };
   return advance ? advanceDays(state, today) : state;
 }
@@ -289,11 +332,12 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
     }
     if (character.interestOn >= upTo) continue;
     const rate = skillEffectValue(GOLD_INTEREST, level);
+    const cap = dailyInterestCap(level);
     let gold = character.gold;
     for (let day = addDays(character.interestOn, 1); day <= upTo; day = addDays(day, 1)) {
-      // Day 1 of a chronicle never pays (gold has just reset); every later day pays at most the daily cap.
+      // Day 1 of a chronicle never pays (gold has just reset); every later day pays at most the level's daily cap.
       if (day <= state.chronicle.startDate) continue;
-      const interest = Math.min(DAILY_INTEREST_CAP, Math.round(gold * rate));
+      const interest = Math.min(cap, Math.round(gold * rate));
       if (interest <= 0) continue;
       gold += interest;
       events.unshift({
@@ -312,20 +356,71 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
 }
 
 /**
- * Settles every day up to `today`: interest for days still inside the chronicle, then the rollover
- * (gold resets), then interest for the new chronicle's days (on zero gold, so it only moves the marker).
- * Returns the same object when nothing was due.
+ * The one-time skill point refund of a rebalance (`SKILL_REFUND_VERSION`): every learned skill is unlearned, so its
+ * points can be spent again, and the players who had skills get a notice. Gold Interest's start marker goes too,
+ * so a re-learned Interest starts the next day like any new one. Marked done, so it happens once per household.
+ */
+export function refundSkills(state: GameState): GameState {
+  if (state.skillsRefundedIn === SKILL_REFUND_VERSION) return state;
+  const refund = (character: Character): Character => {
+    if (character.skills.length === 0) return character;
+    const { interestOn: _interestOn, ...rest } = character;
+    return { ...rest, skills: [], refundNotice: true };
+  };
+  return {
+    ...state,
+    characters: { husband: refund(state.characters.husband), wife: refund(state.characters.wife) },
+    skillsRefundedIn: SKILL_REFUND_VERSION,
+  };
+}
+
+/** Streak Freezes a character has used in the running chronicle. */
+export function freezesUsed(state: Pick<GameState, 'freezes' | 'chronicle'>, characterId: CharacterId): number {
+  const { startDate, endDate } = state.chronicle;
+  return state.freezes.filter((freeze) => freeze.characterId === characterId && freeze.date >= startDate && freeze.date <= endDate)
+    .length;
+}
+
+/**
+ * Streak Freezes: at each day's end, a player who completed nothing that day uses one of their 3 per chronicle, if
+ * that keeps a streak (3+ days) from breaking; the frozen day then bridges their streaks without adding to them.
+ * Quests logged late the next morning don't count as doing something that day (they keep their own streak either
+ * way). Each day is settled once (`freezesSettledOn`), only inside the running chronicle; without a marker (older
+ * saves) counting starts now. Derived only from stored data, so every device reaches the same result.
+ */
+export function settleStreakFreezes(state: GameState, upTo: string): GameState {
+  if (!state.freezesSettledOn) return { ...state, freezesSettledOn: upTo };
+  if (state.freezesSettledOn >= upTo) return state;
+  const { startDate, endDate } = state.chronicle;
+  let freezes = state.freezes;
+  for (let day = addDays(state.freezesSettledOn, 1); day <= upTo; day = addDays(day, 1)) {
+    if (day < startDate || day > endDate) continue;
+    for (const id of ['husband', 'wife'] as CharacterId[]) {
+      if (state.logs.some((log) => log.date === day && !log.late && involves(log, id))) continue;
+      if (freezesUsed({ freezes, chronicle: state.chronicle }, id) >= STREAK_FREEZES_PER_CHRONICLE) continue;
+      if (!streakWouldBreak(buildStreakIndex(state.logs, undefined, freezes), id, day)) continue;
+      freezes = [...freezes, { characterId: id, date: day }];
+    }
+  }
+  return { ...state, freezes, freezesSettledOn: upTo };
+}
+
+/**
+ * Settles every day up to `today`: the one-time skill refund, then MVPs, interest and Streak Freezes for days still
+ * inside the chronicle, then the rollover (gold resets), then the same for the new chronicle's days (interest on zero
+ * gold only moves the marker). Returns the same object when nothing was due.
  */
 export function advanceDays(state: GameState, today = localDateKey()): GameState {
   const yesterday = addDays(today, -1);
   const minDay = (a: string, b: string) => (a < b ? a : b);
-  // Finished days of the running chronicle: their MVPs, then interest up to today (or its last day).
-  let settled = settleMvpDays(state, minDay(yesterday, state.chronicle.endDate));
+  // Finished days of the running chronicle: their MVPs and freezes, then interest up to today (or its last day).
+  let settled = settleMvpDays(refundSkills(state), minDay(yesterday, state.chronicle.endDate));
   settled = applyDailyInterest(settled, minDay(today, state.chronicle.endDate));
+  settled = settleStreakFreezes(settled, minDay(yesterday, state.chronicle.endDate));
   const rolled = applyChronicleRollover(settled, today);
   if (rolled === settled) return settled;
   // A new chronicle began: count its finished days, then its interest.
-  return applyDailyInterest(settleMvpDays(rolled, yesterday), today);
+  return settleStreakFreezes(applyDailyInterest(settleMvpDays(rolled, yesterday), today), yesterday);
 }
 
 /**
@@ -369,7 +464,7 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
     goldSnapshot,
   };
   // Save the archive stats now, while this chronicle's quest log is all still there.
-  const stats = snapshotChronicle(result, state.logs);
+  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes);
   if (stats) result.stats = stats;
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
@@ -415,6 +510,10 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       ...(state.mvpSettledOn ? { mvpSettledOn: state.mvpSettledOn } : {}),
       ...(state.levelResetAt !== undefined ? { levelResetAt: state.levelResetAt } : {}),
       ...(state.appliedOps ? { appliedOps: state.appliedOps } : {}),
+      hearts: state.hearts,
+      freezes: state.freezes,
+      ...(state.freezesSettledOn ? { freezesSettledOn: state.freezesSettledOn } : {}),
+      ...(state.skillsRefundedIn ? { skillsRefundedIn: state.skillsRefundedIn } : {}),
     },
   };
 }

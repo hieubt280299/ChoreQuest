@@ -1,4 +1,4 @@
-import { ChevronDown, Crown, Fire, Script, Trophy } from 'pixelarticons/react';
+import { ChevronDown, Crown, Fire, Heart, Script, Trophy } from 'pixelarticons/react';
 import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -26,6 +26,9 @@ function Award({ award }: { award: ChronicleAward }) {
   } else if (award.kind === 'streak') {
     title = t('archive.streakMaster', { days: award.days });
     icon = Fire;
+  } else if (award.kind === 'hearts') {
+    title = award.count === 1 ? t('archive.mostLovedOne') : t('archive.mostLoved', { count: award.count });
+    icon = Heart;
   } else {
     title = t('archive.mvpKing', { days: award.days });
     icon = Crown;
@@ -50,8 +53,8 @@ export function PastChronicles() {
   const { state } = useGame();
   const [open, setOpen] = useState<number | null>(null);
   const entries = useMemo(
-    () => state.prizeHistory.map((result) => ({ result, stats: chronicleStats(result, state.logs) })),
-    [state.prizeHistory, state.logs],
+    () => state.prizeHistory.map((result) => ({ result, stats: chronicleStats(result, state.logs, state.hearts, state.freezes) })),
+    [state.prizeHistory, state.logs, state.hearts, state.freezes],
   );
   if (entries.length === 0) return null;
 
@@ -62,6 +65,7 @@ export function PastChronicles() {
     { key: 'archive.avgGold', value: (id, index) => formatGold(entries[index].stats.players[id].avgGold) },
     { key: 'archive.bestStreak', value: (id, index) => String(entries[index].stats.players[id].bestStreak) },
     { key: 'archive.mvpDays', value: (id, index) => String(entries[index].stats.players[id].mvpDays) },
+    { key: 'archive.hearts', value: (id, index) => String(entries[index].stats.players[id].hearts) },
   ];
 
   return (
