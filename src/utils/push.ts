@@ -90,11 +90,17 @@ async function saveDevice(uid: string, device: PushDevice) {
   }
 }
 
+/** This device's push subscription, if it has one (without waiting for the service worker to start). */
+async function currentSubscription(): Promise<PushSubscription | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return (await reg?.pushManager?.getSubscription()) ?? null;
+}
+
 /** Whether this device currently has notifications on (permission granted and subscribed). */
 export async function pushEnabledHere(): Promise<boolean> {
   if (pushSupport() !== 'ready' || Notification.permission !== 'granted') return false;
-  const reg = await registration();
-  return !!(await reg?.pushManager.getSubscription());
+  return !!(await currentSubscription());
 }
 
 /**
@@ -116,10 +122,14 @@ export async function enablePush(uid: string, language: LanguageCode): Promise<b
   return true;
 }
 
-/** Turns notifications off for this device and forgets its subscription. */
-export async function disablePush(uid: string): Promise<void> {
-  const reg = await registration();
-  await (await reg?.pushManager.getSubscription())?.unsubscribe().catch(() => undefined);
+/**
+ * Signing out: this device stops getting the account's notifications, so a phone that changes hands never shows
+ * the previous player's hearts and reminders. Quick when the device was never subscribed.
+ */
+export async function forgetPushDevice(uid: string): Promise<void> {
+  const subscription = await currentSubscription().catch(() => null);
+  if (!subscription) return;
+  await subscription.unsubscribe().catch(() => undefined);
   const firebase = getFirebase();
   if (!firebase) return;
   const ref = doc(firebase.db, 'users', uid);

@@ -11,17 +11,19 @@ Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 - **Hearts:**
   - A Send heart button on the partner's Home card, once a day per player, with no dialog: just a burst of pixel hearts.
   - The partner gets **1 Normal Ticket**, a toast and a Today card note (the toast waits while a dialog is open). The Calendar day log lists hearts.
+  - All day, the card of a player who got a heart shows a beating heart with two small ones floating up on the avatar, for both players. Tap it to see who sent it.
   - The Chronicle summary shows each player's hearts and who got the most. The archive has a Hearts received row and a "Most hearts" award.
 - **Streak Freezes:**
   - Each player gets 3 per Chronicle, not carried over.
   - At the end of a day with nothing done, one is used, but only if a streak of 3+ days would otherwise break. The frozen day keeps the streaks without adding to them. Quests done late the next morning don't count as doing something that day, though they keep their own streak.
   - Shown as a snowflake count on each character card, a Today card note the day after, and a tag on the Calendar day. Longest streaks in the archive count frozen days as bridges.
-- **Notifications** (Settings → Notifications, households only):
+- **Notifications** (one row of Settings → Display, households only):
   - **Hearts:** your partner is notified when you send one (`api/heart`).
   - **Evening reminder:** at 9 PM local time, if you've done no quest today.
   - **New Chronicle:** at 8 AM on Day 1.
   - The reminders run hourly from Vercel Cron (`api/reminders`: one daily job per hour, within the free plan), and each device gets them at its own local time.
   - Web Push with VAPID. Subscriptions are kept on the player's `users/{uid}` document. iPhones need the Home Screen app.
+  - The row only shows until notifications are on; the device's own settings turn them off. Signing out unsubscribes the device, and a device saved twice is notified once.
   - Setup steps are in the README under "Notifications".
 - **Tier pip tooltips:** hovering or tapping a skill's level bars lists its values at all 4 levels, with the current one highlighted ("XP gain: 10% / 20% / 30% / 40%").
 - **One-time skill point refund:** every learned skill is unlearned once per household, so players can choose again with the new values. A dialog after What's New tells each player who had skills, with a Pick skills button.
@@ -44,6 +46,8 @@ Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
   | Hall of Fame | pays at every **3rd** MVP day (was every 5th) |
 
   Golden Touch and Steady Worker are unchanged.
+- **Skill descriptions** name exactly what each skill boosts: Heavy Lifter now mentions its XP, and equal XP and gold bonuses are written once ("Gain 8% more XP and gold…"). Fortune's Favor, Gold Interest and Tag Team read shorter.
+- **The Wardrobe button left Settings.** It's still in the top bar, the More drawer and the desktop menu.
 - **Shop Savvy is now Errand Runner** (_Việc vặt_): 15/30/45/60% XP and gold on Shopping **and General** quests. Its filter chip stays Shopping.
 - **Synergistic Streak is now Tag Team** (_Tiếp sức_): +15/30/45/60% gold, no XP, on quests the spouse has a 3+ day streak on. Done alone, it also pays the spouse's current streak bonus gold and keeps the spouse's streak going that day. A late completion keeps the streak but pays no streak gold. It no longer rewards breaking the spouse's streak.
 - **Mop House:** 42 XP / 45 gold (was 45 / 50). Saved quests still on the old values move; edited ones are kept.

@@ -29,6 +29,7 @@ import {
 import type { HouseholdUser, LanguageCode } from '../types';
 import type { TranslationKey } from '../utils/i18n';
 import { newPasswordProblem } from '../utils/password';
+import { forgetPushDevice } from '../utils/push';
 
 interface AuthContextValue {
   user: HouseholdUser | null;
@@ -265,6 +266,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       logout: async () => {
         const firebase = getFirebase();
+        // While still signed in (the account's own document is written): no more notifications on this device.
+        const uid = firebase?.auth.currentUser?.uid;
+        if (uid) await forgetPushDevice(uid).catch(() => undefined);
         if (firebase) await signOut(firebase.auth);
         setUser(null);
         setDemoMode(false);

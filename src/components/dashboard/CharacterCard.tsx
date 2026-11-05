@@ -20,6 +20,7 @@ import { Ticket } from '../ui/pixel/TicketIcon';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Tooltip } from '../ui/Tooltip';
 import { HeartButton } from './HeartButton';
+import { ReceivedHearts } from './ReceivedHearts';
 import { RenameCharacterModal } from './RenameCharacterModal';
 import { SkillChip } from './SkillChip';
 
@@ -47,7 +48,7 @@ function InventoryItem({ label, children }: { label: string; children: ReactNode
  */
 export function CharacterCard({ character, active }: { character: Character; active?: boolean }) {
   const { t } = useLanguage();
-  const { today, activeCharacter, canRename, canActAs, claimDailyTicket, freezesLeft } = useGame();
+  const { state, today, activeCharacter, canRename, canActAs, claimDailyTicket, freezesLeft } = useGame();
   const { role, hasCustomName } = useCharacterName();
   const [renaming, setRenaming] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
@@ -58,13 +59,18 @@ export function CharacterCard({ character, active }: { character: Character; act
   const goldenLabel =
     character.goldenTickets === 1 ? t('wheel.goldenTooltipOne') : t('wheel.goldenTooltip', { count: character.goldenTickets });
   const freezes = freezesLeft(id);
+  // Got a heart from the partner today: shown on this card to both players.
+  const heart = state.hearts.find((item) => item.to === id && item.date === today);
   const freezeLabel = freezes === 1 ? t('freeze.tooltipOne') : t('freeze.tooltip', { count: freezes });
 
   return (
     <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
       <div className={`px-panel flex h-full flex-col gap-3 p-4 transition-transform ${active ? 'px-panel-ember -translate-y-1' : ''}`}>
         <div className="flex items-start gap-3">
-          <CharacterAvatar id={id} scale={3} className="shrink-0" />
+          <span className="relative shrink-0">
+            <CharacterAvatar id={id} scale={3} />
+            {heart && <ReceivedHearts from={heart.from} />}
+          </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               {/* Long names wrap onto a second line instead of being cut off. */}

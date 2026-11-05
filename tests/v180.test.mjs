@@ -307,6 +307,53 @@ check('tier pips explain every level; hearts sit on the partner\'s card', () => 
   assert.equal((i18n.match(/\{\{cap\}\}/g) ?? []).length, 2, 'Gold Interest shows its level cap in both languages');
 });
 
+// --- Follow-ups after review ------------------------------------------------------------------
+check('every skill description names exactly what the skill boosts, in both languages', () => {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const { id, descriptionKey, effect } of m.SKILL_POOL) {
+    for (const language of ['en', 'vi']) {
+      const text = m.translations[language][descriptionKey];
+      const where = `${id} (${language})`;
+      assert.equal(text.includes('{{xp}}'), !!effect.xp, `${where}: XP`);
+      if (effect.xp && effect.gold && same(effect.xp, effect.gold)) {
+        // Equal XP and gold bonuses are written once: "Gain 8% more XP and gold…".
+        assert.ok(!text.includes('{{gold}}'), `${where}: one value for both`);
+        assert.match(text, language === 'en' ? /\{\{xp\}\} more XP and gold/ : /\{\{xp\}\} kinh nghiệm và vàng/, where);
+      } else {
+        assert.equal(text.includes('{{gold}}'), !!effect.gold, `${where}: gold`);
+      }
+      assert.equal(text.includes('{{values}}'), !!effect.values, `${where}: values`);
+      assert.equal(text.includes('{{cap}}'), !!effect.caps, `${where}: cap`);
+    }
+  }
+});
+
+check('the Wardrobe isn\'t in Settings any more; notifications are one row of the Display card, gone once on', () => {
+  const settings = source('src/components/settings/SettingsView.tsx');
+  assert.doesNotMatch(settings, /onOpenWardrobe|cosmetics\.title/);
+  assert.match(settings, /<NotificationsSetting \/>/);
+  assert.ok(!existsSync(new URL('../src/components/settings/NotificationsCard.tsx', import.meta.url)));
+  const row = source('src/components/settings/NotificationsSetting.tsx');
+  assert.match(row, /enabled && !justEnabled\)\) return null/);
+  const i18n = source('src/utils/i18n.ts');
+  assert.doesNotMatch(i18n, /'notify\.(hint|off|unsupported)'/);
+});
+
+check('signing out unsubscribes the device; a device saved twice is notified once', () => {
+  assert.match(source('src/context/AuthContext.tsx'), /forgetPushDevice\(uid\)[\s\S]*signOut\(firebase\.auth\)/);
+  const device = (endpoint) => ({ endpoint, keys: { p256dh: 'p', auth: 'a' }, timeZone: 'Asia/Ho_Chi_Minh', language: 'vi' });
+  const devices = m.reminders.distinctDevices({ a: device('https://push/1'), b: device('https://push/1'), c: device('https://push/2') });
+  assert.deepEqual(Object.keys(devices), ['a', 'c']);
+});
+
+check('a card shows hearts on the day its player got one, to both players', () => {
+  const card = source('src/components/dashboard/CharacterCard.tsx');
+  assert.match(card, /state\.hearts\.find\(\(item\) => item\.to === id && item\.date === today\)/);
+  assert.match(card, /<ReceivedHearts from=\{heart\.from\} \/>/);
+  const css = source('src/index.css');
+  assert.match(css, /\.heart-beat,\s*\.heart-rise \{\s*animation: none;/, 'still under reduced motion');
+});
+
 // --- Release --------------------------------------------------------------------------------
 check('version and What\'s New are 1.8.0', () => {
   assert.equal(m.APP_VERSION, '1.8.0');

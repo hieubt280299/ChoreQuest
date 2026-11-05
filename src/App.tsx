@@ -83,7 +83,7 @@ export default function App() {
           {view === 'skills' && <SkillsView />}
           {view === 'history' && <HistoryView />}
           {view === 'calendar' && <CalendarView />}
-          {view === 'settings' && <SettingsView onOpenWardrobe={() => setWardrobeOpen(true)} />}
+          {view === 'settings' && <SettingsView />}
         </main>
       </div>
       <BottomNav view={view} onChange={setView} onOpenWardrobe={() => setWardrobeOpen(true)} />

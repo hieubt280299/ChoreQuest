@@ -132,3 +132,26 @@
     - Each player who had skills sees a dialog once, after What's New, with a Pick skills button.
 - **Mop House:** 42 XP / 45 gold. Saved quests still on 45 / 50 move to it; edited ones are kept.
 - **Tier pips:** hovering or tapping a skill's level bars shows every stat at all 4 levels, with the current level highlighted. This works on the Skills page, the partner's skills and the skill picker. For Gold Interest the rows are rate and daily cap; for Fortune's Favor, tickets and spin gold.
+
+---
+
+### 🔁 Follow-up Changes (after review)
+
+- **Skill descriptions** now say exactly what each skill gives, shorter:
+    - Heavy Lifter mentions its new XP bonus.
+    - Skills with equal XP and gold bonuses say it once ("Gain 8% more XP and gold from Cleaning quests"): Speed Cleaner, Master Chef, Laundry Pro, Errand Runner, Quick Hands, Steady Worker and Team Player.
+    - Fortune's Favor, Gold Interest and Tag Team are shorter.
+    - A test checks that every description, in both languages, names each bonus the skill has and nothing else.
+- **Wardrobe:** the button in Settings is gone. It stays in the top bar (your character button), the More drawer and the desktop menu.
+- **Notifications in Settings:**
+    - No description text; it's one row at the bottom of the Display card, where the Wardrobe button was.
+    - The row only shows until notifications are on for the device. After turning them on it confirms once, then stays hidden.
+    - To turn them off, use the phone's or browser's notification settings; if they're turned off there, the row comes back.
+    - On an iPhone outside the Home Screen app, the row says to add the app to the Home Screen first.
+- **Review fixes:**
+    - Signing out now unsubscribes the device first, so a phone that changes hands never shows the previous player's notifications.
+    - A device saved twice (after its app data was cleared) gets each notification once, not twice (`distinctDevices`).
+- **Hearts on the card:**
+    - On the day a player gets a heart, their character card shows a beating pixel heart at the corner of the avatar, with two small hearts floating up.
+    - Both players see it; tapping it says who sent it.
+    - It stays still under reduced motion, and the floating hearts are hidden on low graphics.

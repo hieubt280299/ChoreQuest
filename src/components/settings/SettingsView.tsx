@@ -1,4 +1,4 @@
-import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Shirt, Sparkles } from 'pixelarticons/react';
+import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Sparkles } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -23,7 +23,7 @@ import { SignInMethods } from './SignInMethods';
 import { HouseholdCard } from './HouseholdCard';
 import { InstallAppCard } from './InstallAppCard';
 import { NewLegendCard } from './NewLegendCard';
-import { NotificationsCard } from './NotificationsCard';
+import { NotificationsSetting } from './NotificationsSetting';
 import { ResetQuestsButton } from './ResetQuestsButton';
 import { PatchNotesModal } from './PatchNotesModal';
 import { APP_VERSION } from '../../constants/patchNotes';
@@ -140,7 +140,7 @@ function ChronicleCard() {
   );
 }
 
-export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void }) {
+export function SettingsView() {
   const { t, language, setLanguage } = useLanguage();
   const [changingPassword, setChangingPassword] = useState(false);
   const [patchNotesOpen, setPatchNotesOpen] = useState(false);
@@ -154,11 +154,10 @@ export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void })
       <PageHeader title={t('settings.title')} />
       <InstallAppCard />
 
-      {/* This device only: sound, graphics and language. */}
+      {/* This device only: sound, graphics, language and notifications. */}
       <GroupTitle>{t('settings.group.preferences')}</GroupTitle>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <AudioSettingsCard />
-        <NotificationsCard />
         <Card>
           <SectionTitle icon={Monitor}>{t('settings.display')}</SectionTitle>
           <SettingsQualityToggle />
@@ -177,12 +176,7 @@ export function SettingsView({ onOpenWardrobe }: { onOpenWardrobe: () => void })
               ))}
             </div>
           </div>
-          <div className="mt-5 border-t-[3px] border-ink/15 pt-5">
-            <Button variant="secondary" className="w-full" onClick={onOpenWardrobe}>
-              <Icon as={Shirt} size={24} />
-              {t('cosmetics.title')}
-            </Button>
-          </div>
+          <NotificationsSetting />
         </Card>
       </div>
 

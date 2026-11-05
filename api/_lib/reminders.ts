@@ -25,6 +25,21 @@ export interface PushDevice {
   sent?: { evening?: string; newChronicle?: string };
 }
 
+/**
+ * A player's devices with each push subscription once: if the app's data was cleared, the same browser can be saved
+ * again under a new device id, and it should still get one notification, not two.
+ */
+export function distinctDevices(devices: Record<string, PushDevice>): Record<string, PushDevice> {
+  const seen = new Set<string>();
+  return Object.fromEntries(
+    Object.entries(devices).filter(([, device]) => {
+      if (!device?.endpoint || seen.has(device.endpoint)) return false;
+      seen.add(device.endpoint);
+      return true;
+    }),
+  );
+}
+
 export type ReminderKind = 'evening' | 'newChronicle';
 
 /** Local hours the reminders go out: the new Chronicle in the morning, quests at 9 PM. */

@@ -2,7 +2,7 @@ import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import webpush from 'web-push';
-import type { PushDevice, PushMessage } from './reminders.js';
+import { distinctDevices, type PushDevice, type PushMessage } from './reminders.js';
 
 // Server-side helpers for the Vercel functions: Firebase Admin (reads households, bypassing security rules) and Web
 // Push. Configured with environment variables on Vercel; see README "Notifications".
@@ -66,10 +66,10 @@ export async function sendToDevice(
   }
 }
 
-/** A player's subscribed devices (`users/{uid}.push.devices`), keyed by device id. */
+/** A player's subscribed devices (`users/{uid}.push.devices`), keyed by device id, each subscription once. */
 export function devicesOf(data: DocumentData | undefined): Record<string, PushDevice> {
   const devices = data?.push?.devices;
-  return devices && typeof devices === 'object' ? (devices as Record<string, PushDevice>) : {};
+  return devices && typeof devices === 'object' ? distinctDevices(devices as Record<string, PushDevice>) : {};
 }
 
 export const json = (body: unknown, status = 200) => Response.json(body, { status });

@@ -22,13 +22,13 @@ export const PATCH_NOTES: VersionConfig[] = [
     notes: {
       features: {
         en: [
-          'Send your partner a heart once a day. It gives them a free ticket.',
+          'Send your partner a heart once a day. They get a free ticket, and hearts show on their card.',
           'Streak Freezes: on a day you do nothing, one keeps your streaks safe. You get 3 each Chronicle.',
           'Turn on notifications in Settings to hear about hearts, get a 9 PM reminder and know when a new Chronicle starts.',
           'Tap the level bars on a skill to see every level.',
         ],
         vi: [
-          'Gửi tim cho người ấy mỗi ngày một lần. Người ấy được tặng một vé.',
+          'Gửi tim cho người ấy mỗi ngày một lần. Người ấy được tặng một vé, và thẻ nhân vật có tim.',
           'Đóng băng chuỗi: hôm nào bận không làm nhiệm vụ nào, chuỗi của bạn vẫn được giữ. Mỗi Mùa được 3 lần.',
           'Bật thông báo trong Cài đặt để biết khi có tim, được nhắc lúc 9 giờ tối và khi Mùa mới bắt đầu.',
           'Chạm vào thanh cấp của kỹ năng để xem chỉ số mọi cấp.',

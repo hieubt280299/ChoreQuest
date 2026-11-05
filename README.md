@@ -88,7 +88,7 @@ Push notifications come from two small Vercel functions in [`api/`](api), so the
 - **`/api/heart`:** the app calls it right after a player sends a heart, and the partner's devices get "… sent you a heart".
 - **`/api/reminders`:** Vercel Cron calls it at the top of every hour (`crons` in `vercel.json`: one daily job per hour, which the free Hobby plan allows). Each device gets a reminder at its own local time: at 9 PM if that player has done no quest today, and at 8 AM on Day 1 of a new Chronicle. On the Hobby plan a job runs within its hour, so 9 PM means 9:00 to 9:59.
 
-Players turn notifications on per device in **Settings → Notifications**. iPhones and iPads (iOS 16.4+) only allow them in the app added to the Home Screen. A device's subscription is saved on the player's own `users/{uid}` document.
+Players turn notifications on per device in **Settings → Display → Notifications**. The row disappears once they're on; the device's own notification settings turn them off (and bring the row back). Signing out stops them on that device. iPhones and iPads (iOS 16.4+) only allow them in the app added to the Home Screen. A device's subscription is saved on the player's own `users/{uid}` document.
 
 One-time setup:
 
