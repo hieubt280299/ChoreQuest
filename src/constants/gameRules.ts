@@ -214,7 +214,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.ironWill.desc',
     icon: 'shirt',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.2, 0.3, 0.4, 0.5), gold: levels(0.2, 0.3, 0.4, 0.5) },
+    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.2, 0.3, 0.4, 0.5), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
     // Errand Runner (was Shop Savvy, which covered shopping only); the id is kept so learned levels carry over.
@@ -266,11 +266,11 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldInterest.desc',
     icon: 'trending',
     maxLevel: 4,
-    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05), caps: levels(20, 40, 60, 80) },
+    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05), caps: levels(15, 30, 45, 60) },
   },
   {
-    // Tag Team (was Synergistic Streak). Done alone, the quest also keeps the spouse's streak going and pays its
-    // bonus gold (see `computeRewardBreakdown`). No XP bonus.
+    // Tag Team (was Synergistic Streak). Done alone, the quest also pays the spouse's streak bonus gold and keeps their
+    // streak going, one day shorter (see `computeRewardBreakdown`, `streakEndingOn`). No XP bonus.
     id: 'synergistic-streak',
     nameKey: 'skill.synergy.name',
     descriptionKey: 'skill.synergy.desc',

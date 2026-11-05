@@ -25,15 +25,16 @@ const emptyByCharacter = (): ByCharacter => ({ husband: new Set(), wife: new Set
 
 /**
  * Everything a streak is made of: the dates each character completed each quest, and the days that keep a streak
- * going without counting as a day of it. Those are a player's Streak Freezes (all their quests) and the days their
- * spouse covered one quest for them (Tag Team).
+ * going without being a day of it. A player's Streak Freezes keep all their streaks as they were; a day their spouse
+ * did one of their streak quests alone (Tag Team) keeps that streak but takes a day off it, so covering can't be
+ * farmed for long.
  */
 export interface StreakIndex {
   /** taskId -> characterId -> dates completed. */
   done: Map<string, ByCharacter>;
   /** characterId -> days a Streak Freeze kept all their streaks. */
   frozen: ByCharacter;
-  /** taskId -> characterId -> days the spouse did that quest and kept the streak going. */
+  /** taskId -> characterId -> days the spouse covered that quest: the streak goes on, one day shorter. */
   covered: Map<string, ByCharacter>;
 }
 
@@ -59,21 +60,30 @@ export function buildStreakIndex(logs: TaskLog[], excludeLogId?: string, freezes
   return index;
 }
 
-/** A day that keeps the character's streak on the quest going without adding to it (a freeze or a cover). */
+const frozen = (index: StreakIndex, characterId: CharacterId, date: string) => index.frozen[characterId].has(date);
+const covered = (index: StreakIndex, taskId: string, characterId: CharacterId, date: string) =>
+  index.covered.get(taskId)?.[characterId].has(date) ?? false;
+
+/** A day that keeps the character's streak on the quest going (a freeze, or a cover that takes a day off it). */
 function kept(index: StreakIndex, taskId: string, characterId: CharacterId, date: string): boolean {
-  return index.frozen[characterId].has(date) || (index.covered.get(taskId)?.[characterId].has(date) ?? false);
+  return frozen(index, characterId, date) || covered(index, taskId, characterId, date);
 }
 
-/** Consecutive days ending on `endDate` (inclusive) that the character completed the quest, kept days bridging gaps. */
+/**
+ * Consecutive days ending on `endDate` (inclusive) that the character completed the quest. Frozen days bridge a gap;
+ * covered days bridge it too but take a day off the streak each.
+ */
 export function streakEndingOn(index: StreakIndex, taskId: string, characterId: CharacterId, endDate: string): number {
   const dates = index.done.get(taskId)?.[characterId];
   if (!dates) return 0;
   let count = 0;
+  let covers = 0;
   for (let date = endDate; ; date = addDays(date, -1)) {
     if (dates.has(date)) count += 1;
-    else if (!kept(index, taskId, characterId, date)) break;
+    else if (covered(index, taskId, characterId, date)) covers += 1;
+    else if (!frozen(index, characterId, date)) break;
   }
-  return count;
+  return Math.max(0, count - covers);
 }
 
 /** Streak length a completion on `date` would give the character (yesterday's run + today). */
@@ -94,7 +104,7 @@ export function currentStreak(index: StreakIndex, taskId: string, characterId: C
   };
 }
 
-/** The character's longest streak on any quest in the index (kept days bridge gaps but don't count). */
+/** The character's longest streak on any quest in the index (kept days bridge gaps; covered ones take a day off). */
 export function longestStreak(index: StreakIndex, characterId: CharacterId): number {
   let best = 0;
   for (const [taskId, byCharacter] of index.done) {
@@ -102,15 +112,17 @@ export function longestStreak(index: StreakIndex, characterId: CharacterId): num
     let run = 0;
     for (let i = 0; i < dates.length; i += 1) {
       let bridged = i > 0;
+      let covers = 0;
       if (bridged) {
         for (let day = addDays(dates[i - 1], 1); day < dates[i]; day = addDays(day, 1)) {
-          if (!kept(index, taskId, characterId, day)) {
+          if (covered(index, taskId, characterId, day)) covers += 1;
+          else if (!frozen(index, characterId, day)) {
             bridged = false;
             break;
           }
         }
       }
-      run = bridged ? run + 1 : 1;
+      run = bridged ? Math.max(1, run + 1 - covers) : 1;
       best = Math.max(best, run);
     }
   }

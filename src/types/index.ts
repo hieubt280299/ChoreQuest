@@ -148,8 +148,8 @@ export interface TaskLog {
   /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
   intensity?: TaskIntensity;
   /**
-   * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going
-   * (the day neither breaks nor adds to it).
+   * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going, one day
+   * shorter (covering every day runs the streak down instead of farming it).
    */
   coveredFor?: CharacterId;
 }
@@ -179,7 +179,7 @@ export interface RewardBreakdown {
   gold: number;
   /** Tag Team: the spouse's streak gold this solo completion earned (already in `skillGold` and `gold`). */
   coverGold?: number;
-  /** Tag Team: the spouse whose streak this solo completion keeps going. */
+  /** Tag Team: the spouse whose streak this solo completion keeps going (one day shorter). */
   coveredFor?: CharacterId;
 }
 

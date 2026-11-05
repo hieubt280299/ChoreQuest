@@ -16,7 +16,7 @@ Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 - **Streak Freezes:**
   - Each player gets 3 per Chronicle, not carried over.
   - At the end of a day with nothing done, one is used, but only if a streak of 3+ days would otherwise break. The frozen day keeps the streaks without adding to them. Quests done late the next morning don't count as doing something that day, though they keep their own streak.
-  - Shown as a snowflake count on each character card, a Today card note the day after, and a tag on the Calendar day. Longest streaks in the archive count frozen days as bridges.
+  - Shown as a snowflake count on each character card, a Today card note the day after, and a tag on the Calendar day. Longest streaks in the archive bridge frozen days.
 - **Notifications** (one row of Settings → Display, households only):
   - **Hearts:** your partner is notified when you send one (`api/heart`).
   - **Evening reminder:** at 9 PM local time, if you've done no quest today.
@@ -34,11 +34,11 @@ Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 
   | Skill | Now |
   | --- | --- |
-  | Gold Interest | 2/3/4/5%, capped at 20/40/60/80 gold a day (was 100 at every level) |
+  | Gold Interest | 2/3/4/5%, capped at 15/30/45/60 gold a day (was 100 at every level) |
   | Fortune's Favor | +20/40/60/80% spin gold |
   | Speed Cleaner | 8/16/24/32% XP and gold |
   | Master Chef | 9/18/27/36% XP and gold |
-  | Laundry Pro | 20/30/40/50% XP and gold |
+  | Laundry Pro | 20/30/40/50% XP and 20/40/60/80% gold |
   | Quick Hands | 10/20/30/40% gold (XP unchanged) |
   | Heavy Lifter | 20/30/40/50% gold, now with 10/20/30/40% XP |
   | Team Player | 15/30/45/60% XP and gold |
@@ -49,7 +49,7 @@ Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 - **Skill descriptions** name exactly what each skill boosts: Heavy Lifter now mentions its XP, and equal XP and gold bonuses are written once ("Gain 8% more XP and gold…"). Fortune's Favor, Gold Interest and Tag Team read shorter.
 - **The Wardrobe button left Settings.** It's still in the top bar, the More drawer and the desktop menu.
 - **Shop Savvy is now Errand Runner** (_Việc vặt_): 15/30/45/60% XP and gold on Shopping **and General** quests. Its filter chip stays Shopping.
-- **Synergistic Streak is now Tag Team** (_Tiếp sức_): +15/30/45/60% gold, no XP, on quests the spouse has a 3+ day streak on. Done alone, it also pays the spouse's current streak bonus gold and keeps the spouse's streak going that day. A late completion keeps the streak but pays no streak gold. It no longer rewards breaking the spouse's streak.
+- **Synergistic Streak is now Tag Team** (_Tiếp sức_): +15/30/45/60% gold, no XP, on quests the spouse has a 3+ day streak on. Done alone, it also pays the spouse's current streak bonus gold and keeps the spouse's streak going, one day shorter, so covering the same quest every day runs the streak down (21, 13, 8… gold) instead of farming it. A late completion keeps the streak but pays no streak gold. It no longer rewards breaking the spouse's streak.
 - **Mop House:** 42 XP / 45 gold (was 45 / 50). Saved quests still on the old values move; edited ones are kept.
 - `vercel.json`: the app fallback no longer catches `/api/*`, and the reminder crons were added. The service worker leaves `/api/*` to the network and loads `push-sw.js`, which shows notifications and opens the app when one is tapped.
 

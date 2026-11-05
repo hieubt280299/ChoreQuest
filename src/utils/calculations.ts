@@ -316,7 +316,7 @@ function hasSkillKind(character: Character, skillPool: SkillDefinition[], kind: 
  *
  * Tag Team: a player with the skill who does alone a quest their spouse has a 3+ day streak on also earns the
  * bonus gold that streak pays (`coverGold`, counted with the skill gold), and the log keeps the spouse's
- * streak going (`coveredFor`).
+ * streak going, one day shorter (`coveredFor`), so covering the same quest day after day runs it down.
  */
 export function computeRewardBreakdown(
   base: QuestBase,

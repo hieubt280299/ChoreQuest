@@ -155,3 +155,10 @@
     - On the day a player gets a heart, their character card shows a beating pixel heart at the corner of the avatar, with two small hearts floating up.
     - Both players see it; tapping it says who sent it.
     - It stays still under reduced motion, and the floating hearts are hidden on low graphics.
+- **Skill updates after the balance review:**
+    - **Tag Team:** done alone, the spouse's streak no longer stays unchanged; it goes on one day shorter.
+        - Before, covering the same quest every day kept the spouse's streak frozen forever. The coverer got their full streak gold daily on top of their own streak: 90 gold a day on Dinner Dishwashing instead of 51.
+        - Now a 10-day streak pays 21, 13, 8, 5, 3, 2, 1, 1 gold over successive covers. Then it's under 3 days, Tag Team stops, and the streak breaks.
+        - A single cover on a busy day still costs the spouse just one day. The day log now says "Covered for …" ("Làm thay …").
+    - **Gold Interest:** daily caps are 15 / 30 / 45 / 60 gold (were 20 / 40 / 60 / 80).
+    - **Laundry Pro:** gold is 20 / 40 / 60 / 80% (XP unchanged at 20 / 30 / 40 / 50%). Its description shows both values again.

@@ -28,14 +28,14 @@ check('saved quests on v1.0 values move to v1.5; edited ones are kept', () => {
   assert.equal(parsed.tasks[0].gold, 42, 'migrated on load');
 });
 
-check('skills (v1.8.0): Master Chef 9..36%, Laundry Pro 20..50%, Golden Touch 6..24% gold, Gold Interest 2/3/4/5%', () => {
+check('skills (v1.8.0): Master Chef 9..36%, Laundry Pro 20..50% XP / 20..80% gold, Golden Touch 6..24% gold, Gold Interest 2/3/4/5%', () => {
   assert.deepEqual(skill('master-chef').xp, [0.09, 0.18, 0.27, 0.36]);
   assert.deepEqual(skill('master-chef').gold, [0.09, 0.18, 0.27, 0.36]);
   assert.deepEqual(skill('iron-will').xp, [0.2, 0.3, 0.4, 0.5]);
-  assert.deepEqual(skill('iron-will').gold, [0.2, 0.3, 0.4, 0.5]);
+  assert.deepEqual(skill('iron-will').gold, [0.2, 0.4, 0.6, 0.8]);
   assert.deepEqual(skill('gold-doubler').gold, [0.06, 0.12, 0.18, 0.24]);
   assert.deepEqual(skill('gold-interest').values, [0.02, 0.03, 0.04, 0.05]);
-  assert.deepEqual([1, 2, 3, 4].map(m.dailyInterestCap), [20, 40, 60, 80]);
+  assert.deepEqual([1, 2, 3, 4].map(m.dailyInterestCap), [15, 30, 45, 60]);
 });
 
 // --- Intensity --------------------------------------------------------------

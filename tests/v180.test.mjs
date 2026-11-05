@@ -29,7 +29,7 @@ check('skill values (v1.8.0)', () => {
   const both = (id) => [skill(id).effect.xp, skill(id).effect.gold];
   assert.deepEqual(both('speed-cleaner'), [[0.08, 0.16, 0.24, 0.32], [0.08, 0.16, 0.24, 0.32]]);
   assert.deepEqual(both('master-chef'), [[0.09, 0.18, 0.27, 0.36], [0.09, 0.18, 0.27, 0.36]]);
-  assert.deepEqual(both('iron-will'), [[0.2, 0.3, 0.4, 0.5], [0.2, 0.3, 0.4, 0.5]]);
+  assert.deepEqual(both('iron-will'), [[0.2, 0.3, 0.4, 0.5], [0.2, 0.4, 0.6, 0.8]]);
   assert.deepEqual(both('shop-savvy'), [[0.15, 0.3, 0.45, 0.6], [0.15, 0.3, 0.45, 0.6]]);
   assert.deepEqual(both('quick-hands'), [[0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4]]);
   assert.deepEqual(both('raid-master'), [[0.1, 0.2, 0.3, 0.4], [0.2, 0.3, 0.4, 0.5]]);
@@ -40,7 +40,7 @@ check('skill values (v1.8.0)', () => {
   assert.equal(skill('zen-housekeeper').effect.xpPerCharacterLevel, 0.01);
   assert.deepEqual(skill('fortunes-favor').effect.gold, [0.2, 0.4, 0.6, 0.8]);
   assert.deepEqual(skill('gold-interest').effect.values, [0.02, 0.03, 0.04, 0.05]);
-  assert.deepEqual(skill('gold-interest').effect.caps, [20, 40, 60, 80]);
+  assert.deepEqual(skill('gold-interest').effect.caps, [15, 30, 45, 60]);
   assert.equal(m.HALL_OF_FAME_EVERY, 3);
   assert.deepEqual(skill('synergistic-streak').effect, { kind: 'spouse_streak', gold: [0.15, 0.3, 0.45, 0.6] }, 'Tag Team: no XP');
 });
@@ -56,7 +56,7 @@ check('Errand Runner covers Shopping and General quests', () => {
 });
 
 check('Gold Interest stops at the level\'s daily cap', () => {
-  for (const [level, cap] of [[1, 20], [2, 40], [3, 60], [4, 80]]) {
+  for (const [level, cap] of [[1, 15], [2, 30], [3, 45], [4, 60]]) {
     let s = m.createInitialState(day(-3));
     s = { ...s, chronicle: { ...s.chronicle, startDate: day(-3), endDate: day(20) } };
     s = withChar(s, 'husband', { skills: [{ skillId: 'gold-interest', level }], gold: 10000, interestOn: day(-1) });
@@ -134,12 +134,32 @@ check('Tag Team: done alone on the spouse\'s 3+ day streak quest, +% gold plus t
   assert.equal(without.coveredFor, undefined, 'only with the skill');
 });
 
-check('a covered day keeps the spouse\'s streak going without adding to it', () => {
-  const logs = [log(day(-4), 'wife', 'mop'), log(day(-3), 'wife', 'mop'), log(day(-2), 'wife', 'mop'), log(day(-1), 'husband', 'mop', { coveredFor: 'wife' })];
+check('a covered day keeps the spouse\'s streak going, one day shorter', () => {
+  const logs = [-5, -4, -3, -2].map((d) => log(day(d), 'wife', 'mop'));
+  logs.push(log(day(-1), 'husband', 'mop', { coveredFor: 'wife' }));
   const index = m.buildStreakIndex(logs);
-  assert.equal(m.currentStreak(index, 'mop', 'wife', today).days, 3);
+  assert.equal(m.currentStreak(index, 'mop', 'wife', today).days, 3, '4 days, minus 1 for the cover');
   assert.equal(m.streakIfCompletedOn(index, 'mop', 'wife', today), 4);
-  assert.equal(m.currentStreak(m.buildStreakIndex(logs.slice(0, 3)), 'mop', 'wife', today).days, 0, 'without the cover it broke');
+  assert.equal(m.currentStreak(m.buildStreakIndex(logs.slice(0, 4)), 'mop', 'wife', today).days, 0, 'without the cover it broke');
+});
+
+check('Tag Team can\'t be farmed: covering every day runs the spouse\'s streak down, then stops', () => {
+  let s = m.createInitialState(day(-40));
+  s = withChar(s, 'husband', { skills: [{ skillId: 'synergistic-streak', level: 4 }] });
+  const task = s.tasks.find((t) => t.id === 'dishesDinner');
+  const logs = [];
+  for (let d = -30; d <= -21; d += 1) logs.push(log(day(d), 'wife', task.id));
+  const coverGold = [];
+  for (let d = -20; d <= -10; d += 1) {
+    const index = m.buildStreakIndex(logs);
+    const partner = m.currentStreak(index, task.id, 'wife', day(d)).days;
+    const part = m.computeRewardBreakdown(task, 'husband', s.characters, m.SKILL_POOL, {}, { husband: partner }).husband;
+    coverGold.push(part.coverGold ?? 0);
+    logs.push(log(day(d), 'husband', task.id, part.coveredFor ? { coveredFor: part.coveredFor } : {}));
+  }
+  // The wife's 10-day streak pays 21, then 13, 8, 5… as each cover takes a day off; below 3 days it stops.
+  assert.deepEqual(coverGold, [21, 13, 8, 5, 3, 2, 1, 1, 0, 0, 0]);
+  assert.equal(m.currentStreak(m.buildStreakIndex(logs), task.id, 'wife', day(-9)).days, 0, 'and then it breaks');
 });
 
 // --- Streak Freezes ---------------------------------------------------------------
@@ -184,10 +204,11 @@ check('3 freezes per chronicle, none carried over; no marker means counting star
   assert.ok(ended);
 });
 
-check('the longest streak counts frozen and covered days as bridges', () => {
+check('the longest streak bridges frozen days, and covered days one day shorter', () => {
   const logs = [log(day(-6), 'wife'), log(day(-5), 'wife'), log(day(-3), 'wife'), log(day(-2), 'husband', 'trash', { coveredFor: 'wife' }), log(day(-1), 'wife')];
   assert.equal(m.longestStreak(m.buildStreakIndex(logs), 'wife'), 2, 'the gap on day -4 breaks it');
-  assert.equal(m.longestStreak(m.buildStreakIndex(logs, undefined, [{ characterId: 'wife', date: day(-4) }]), 'wife'), 4);
+  // -6, -5, (frozen -4), -3 = 3; the cover on -2 takes one off, so -1 brings it back to 3.
+  assert.equal(m.longestStreak(m.buildStreakIndex(logs, undefined, [{ characterId: 'wife', date: day(-4) }]), 'wife'), 3);
 });
 
 // --- Hearts -----------------------------------------------------------------------
