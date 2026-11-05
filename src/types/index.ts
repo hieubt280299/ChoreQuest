@@ -34,6 +34,8 @@ export interface Character {
   interestOn?: string;
   /** Days this chronicle on which this character was the day's MVP (most quest gold), settled at day end. */
   mvpDays: number;
+  /** Skill points were refunded by a rebalance and this player hasn't read the notice yet. */
+  refundNotice?: boolean;
 }
 
 export interface SkillDefinition {
@@ -69,13 +71,13 @@ export type SkillEffectKind =
   | 'group'
   /** Quests done together ("Both"). */
   | 'together'
-  /** Quests the spouse currently has an active streak (3+ days) on. */
+  /** Quests the spouse currently has an active streak (3+ days) on (Tag Team). */
   | 'spouse_streak'
   /** Extra wheel tickets at the start of each chronicle (`values`). */
   | 'chronicle_tickets'
-  /** Daily interest on current gold (`values`, fractions). */
+  /** Daily interest on current gold (`values`, fractions), up to `caps` gold a day. */
   | 'daily_interest'
-  /** Extra wheel tickets at every 5th MVP day of a chronicle (`values`). */
+  /** Extra wheel tickets at every 3rd MVP day of a chronicle (`values`). */
   | 'mvp_tickets';
 
 export interface SkillEffect {
@@ -86,9 +88,12 @@ export interface SkillEffect {
   gold?: number[];
   /** Other per-level values: ticket counts or interest rates. */
   values?: number[];
+  /** Most gold a day at levels 1-4 (Gold Interest). */
+  caps?: number[];
   /** Extra XP bonus per character level on top of `xp` (Fast Learner: +1% per level). */
   xpPerCharacterLevel?: number;
-  category?: TaskCategory;
+  /** Quest categories a `category` skill covers (Errand Runner covers two). */
+  categories?: TaskCategory[];
   group?: TaskGroup;
 }
 
@@ -142,6 +147,11 @@ export interface TaskLog {
   late?: boolean;
   /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
   intensity?: TaskIntensity;
+  /**
+   * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going, one day
+   * shorter (covering every day runs the streak down instead of farming it).
+   */
+  coveredFor?: CharacterId;
 }
 
 /**
@@ -167,6 +177,10 @@ export interface RewardBreakdown {
   streakGold: number;
   xp: number;
   gold: number;
+  /** Tag Team: the spouse's streak gold this solo completion earned (already in `skillGold` and `gold`). */
+  coverGold?: number;
+  /** Tag Team: the spouse whose streak this solo completion keeps going (one day shorter). */
+  coveredFor?: CharacterId;
 }
 
 /** A season of play. Gold resets when it ends; XP, levels and skills persist. */
@@ -200,11 +214,13 @@ export interface ChronicleResult {
 export type ChronicleAward =
   | { kind: 'champion'; characterId: CharacterId; taskId: string; count: number }
   | { kind: 'streak'; characterId: CharacterId; days: number }
-  | { kind: 'mvp'; characterId: CharacterId; days: number };
+  | { kind: 'mvp'; characterId: CharacterId; days: number }
+  | { kind: 'hearts'; characterId: CharacterId; count: number };
 
 /** The parts of a chronicle's stats that need the quest log (gold and averages come from the record itself). */
 export interface ChronicleStatsSnapshot {
-  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number }>;
+  /** `hearts`: hearts received (absent for chronicles from before hearts). */
+  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number; hearts?: number }>;
   awards: ChronicleAward[];
 }
 
@@ -274,6 +290,21 @@ export interface InterestEvent {
 }
 
 export type GameEvent = WheelSpinEvent | InterestEvent;
+
+/** A heart one player sent the other (one a day each); the recipient got a Normal Ticket. */
+export interface Heart {
+  id: string;
+  from: CharacterId;
+  to: CharacterId;
+  date: string;
+  timestamp: number;
+}
+
+/** A Streak Freeze used at the end of `date`: the player did nothing that day and it kept their streaks. */
+export interface StreakFreeze {
+  characterId: CharacterId;
+  date: string;
+}
 
 // ---------------------------------------------------------------------------
 // Cosmetics
@@ -355,6 +386,14 @@ export interface GameState {
   levelResetAt?: number;
   /** Ids of the latest applied player actions (newest first), so a retried or replayed action applies once. */
   appliedOps?: string[];
+  /** Hearts sent, kept as long as quest logs. */
+  hearts: Heart[];
+  /** Streak Freezes used (3 per player per chronicle), kept as long as quest logs. */
+  freezes: StreakFreeze[];
+  /** Last finished local day checked for Streak Freezes, so each day is settled once. */
+  freezesSettledOn?: string;
+  /** Version whose one-time skill point refund has been applied (`SKILL_REFUND_VERSION`). */
+  skillsRefundedIn?: string;
 }
 
 export interface HouseholdUser {
@@ -409,6 +448,10 @@ export interface HouseholdDoc {
     mvpSettledOn?: string;
     levelResetAt?: number;
     appliedOps?: string[];
+    hearts?: Heart[];
+    freezes?: StreakFreeze[];
+    freezesSettledOn?: string;
+    skillsRefundedIn?: string;
   };
 }
 

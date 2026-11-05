@@ -1,7 +1,7 @@
 {
   "name": "chorequest",
   "private": true,
-  "version": "1.7.2",
+  "version": "1.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,14 +12,17 @@
   },
   "dependencies": {
     "firebase": "^10.14.1",
+    "firebase-admin": "^13.10.0",
     "framer-motion": "^11.18.0",
     "pixelarticons": "^2.4.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/web-push": "^3.6.4",
     "@vite-pwa/assets-generator": "^1.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",

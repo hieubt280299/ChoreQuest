@@ -18,8 +18,8 @@ check('rollover saves the archive snapshot', () => {
   const next = m.advanceDays(s, today);
   const stats = next.prizeHistory[0].stats;
   assert.ok(stats, 'snapshot saved');
-  assert.deepEqual(stats.players.husband, { quests: 3, bestStreak: 3, mvpDays: 3 });
-  assert.deepEqual(stats.players.wife, { quests: 1, bestStreak: 1, mvpDays: 1 });
+  assert.deepEqual(stats.players.husband, { quests: 3, bestStreak: 3, mvpDays: 3, hearts: 0 });
+  assert.deepEqual(stats.players.wife, { quests: 1, bestStreak: 1, mvpDays: 1, hearts: 0 });
   assert.ok(stats.awards.some((a) => a.kind === 'streak' && a.characterId === 'husband' && a.days === 3));
 });
 

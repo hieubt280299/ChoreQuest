@@ -1,5 +1,5 @@
 import { AVATARS, DEFAULT_AVATAR, DEFAULT_THEME, THEMES } from '../constants/cosmetics';
-import type { CharacterId, ChronicleResult, GameState, TaskLog } from '../types';
+import type { CharacterId, ChronicleResult, GameState, Heart, StreakFreeze, TaskLog } from '../types';
 import { chronicleStats } from './chronicleStats';
 
 const IDS: CharacterId[] = ['husband', 'wife'];
@@ -46,11 +46,21 @@ export interface ChronicleSummary {
   prizePool: number;
   /** Most gold; `null` on a tie (including nobody earning anything). */
   winner: CharacterId | null;
-  players: Record<CharacterId, { gold: number; mvpDays: number; payout: number; /** Share of the prize pool, 0-1. */ share: number }>;
+  /** Received the most hearts; `null` on a tie (including no hearts at all). */
+  mostHearts: CharacterId | null;
+  players: Record<
+    CharacterId,
+    { gold: number; mvpDays: number; hearts: number; payout: number; /** Share of the prize pool, 0-1. */ share: number }
+  >;
 }
 
-export function chronicleSummary(result: ChronicleResult, logs: TaskLog[]): ChronicleSummary {
-  const stats = chronicleStats(result, logs);
+export function chronicleSummary(
+  result: ChronicleResult,
+  logs: TaskLog[],
+  hearts: Heart[] = [],
+  freezes: StreakFreeze[] = [],
+): ChronicleSummary {
+  const stats = chronicleStats(result, logs, hearts, freezes);
   const { husband, wife } = result.goldSnapshot;
   const total = result.payout.husband + result.payout.wife;
   const players = Object.fromEntries(
@@ -59,6 +69,7 @@ export function chronicleSummary(result: ChronicleResult, logs: TaskLog[]): Chro
       {
         gold: result.goldSnapshot[id],
         mvpDays: stats.players[id].mvpDays,
+        hearts: stats.players[id].hearts,
         payout: result.payout[id],
         share: total > 0 ? result.payout[id] / total : 0,
       },
@@ -70,6 +81,7 @@ export function chronicleSummary(result: ChronicleResult, logs: TaskLog[]): Chro
     endDate: result.endDate,
     prizePool: result.prizePool,
     winner: husband === wife ? null : husband > wife ? 'husband' : 'wife',
+    mostHearts: players.husband.hearts === players.wife.hearts ? null : players.husband.hearts > players.wife.hearts ? 'husband' : 'wife',
     players,
   };
 }

@@ -525,6 +525,41 @@ body,
   }
 }
 
+/* A character card that got a heart today: one heart beats and two small ones float up from it. */
+.heart-beat {
+  animation: px-heart-beat 1.4s steps(1) infinite;
+}
+@keyframes px-heart-beat {
+  0%,
+  69% {
+    transform: scale(1);
+  }
+  70%,
+  84% {
+    transform: scale(1.2);
+  }
+  85%,
+  100% {
+    transform: scale(1);
+  }
+}
+.heart-rise {
+  animation: px-heart-rise 2.4s steps(8) infinite;
+}
+.heart-rise-late {
+  animation-delay: -1.2s;
+}
+@keyframes px-heart-rise {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-6px, -22px);
+    opacity: 0;
+  }
+}
+
 .px-blink {
   animation: px-blink 1s steps(1) infinite;
 }
@@ -544,10 +579,13 @@ body,
   .twinkle,
   .hearth-flicker,
   .spark,
-  .px-blink {
+  .px-blink,
+  .heart-beat,
+  .heart-rise {
     animation: none;
   }
-  .spark {
+  .spark,
+  .heart-rise {
     opacity: 0;
   }
   .px-bar-fill {
@@ -675,7 +713,8 @@ body,
   animation: none !important;
 }
 [data-quality='low'] .px-confetti,
-[data-quality='low'] .spark {
+[data-quality='low'] .spark,
+[data-quality='low'] .heart-rise {
   display: none !important;
 }
 [data-quality='low'] body {

@@ -122,13 +122,8 @@ check('the roadmap keeps future ideas, with a suggested next version', () => {
   assert.match(source('README.md'), /\[ROADMAP\.md\]\(ROADMAP\.md\)/);
 });
 
-check('version and What\'s New are 1.7.2', () => {
-  assert.equal(m.APP_VERSION, '1.7.2');
-  assert.equal(JSON.parse(source('package.json')).version, '1.7.2');
-  const lock = JSON.parse(source('package-lock.json'));
-  assert.equal(lock.version, '1.7.2');
-  assert.equal(lock.packages[''].version, '1.7.2');
-  const { notes } = m.PATCH_NOTES[0];
+check('What\'s New and the changelog have 1.7.2', () => {
+  const { notes } = m.PATCH_NOTES.find((entry) => entry.version === '1.7.2');
   for (const section of Object.values(notes)) assert.equal(section.en.length, section.vi.length);
   assert.match(source('CHANGELOG.md'), /## \[1\.7\.2\] - \d{4}-\d{2}-\d{2}\r?\n\r?\nSpec: \[UPDATE_v1\.7\.2\.md\]/);
   assert.ok(exists('UPDATE_v1.7.2.md'));

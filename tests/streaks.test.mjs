@@ -48,26 +48,26 @@ test('"both" keeps both streaks alive; excluded log is ignored (re-assign)', () 
 
 test('breakdown: streak gold is not split for "both"; skills apply to the share', () => {
   const s = m.createInitialState('2026-10-01');
-  s.characters.husband.skills = [{ skillId: 'raid-master', level: 1 }]; // +15% gold on heavy
-  const task = s.tasks.find((t) => t.id === 'mop'); // 45 XP / 50 gold, heavy
+  s.characters.husband.skills = [{ skillId: 'raid-master', level: 1 }]; // +20% gold, +10% XP on heavy
+  const task = s.tasks.find((t) => t.id === 'mop'); // 42 XP / 45 gold, heavy
   const b = m.computeRewardBreakdown(task, 'both', s.characters, SKILL_POOL, { husband: 5, wife: 3 });
-  assert.equal(b.husband.baseGold, 25);
-  assert.ok(Math.abs(b.husband.skillGold - 3.75) < 1e-9);
+  assert.equal(b.husband.baseGold, 22.5);
+  assert.ok(Math.abs(b.husband.skillGold - 4.5) < 1e-9);
   assert.equal(b.husband.streakGold, 2, 'day 5 = +2, full amount');
   assert.equal(b.wife.streakGold, 1);
-  assert.ok(Math.abs(b.husband.gold - (25 + 3.75 + 2)) < 1e-9);
-  assert.equal(b.wife.xp, 22.5);
+  assert.ok(Math.abs(b.husband.gold - (22.5 + 4.5 + 2)) < 1e-9);
+  assert.equal(b.wife.xp, 21);
   const solo = m.computeRewardBreakdown(task, 'wife', s.characters, SKILL_POOL, { wife: 10 });
   assert.equal(solo.husband, null);
-  assert.equal(solo.wife.gold, 50 + 21);
+  assert.equal(solo.wife.gold, 45 + 21);
 });
 
 test('group skills only affect their group', () => {
   const s = m.createInitialState('2026-10-01');
-  s.characters.wife.skills = [{ skillId: 'quick-hands', level: 2 }]; // +20% xp, +10% gold on quick
+  s.characters.wife.skills = [{ skillId: 'quick-hands', level: 2 }]; // +20% xp, +20% gold on quick
   const quick = s.tasks.find((t) => t.id === 'trash');
   const main = s.tasks.find((t) => t.id === 'sweep');
-  assert.deepEqual(m.computeRewardSplit(quick, 'wife', s.characters, SKILL_POOL).wife, { xp: 6, gold: 11 });
+  assert.deepEqual(m.computeRewardSplit(quick, 'wife', s.characters, SKILL_POOL).wife, { xp: 6, gold: 12 });
   assert.deepEqual(m.computeRewardSplit(main, 'wife', s.characters, SKILL_POOL).wife, { xp: 15, gold: 20 });
 });
 
@@ -83,6 +83,7 @@ test('old data: retired skills migrate, groups are inferred', () => {
       { id: 'custom-2', nameKey: 'Fix sink', xp: 10, gold: 5, category: 'cleaning', enabled: true },
     ],
     chronicle: { id: 1, startDate: '2026-10-01', endDate: '2026-10-31' }, logs: [], prizePool: 1, prizeHistory: [],
+    skillsRefundedIn: '1.8.0',
   };
   const s = m.parseGameState(raw, '2026-10-02');
   assert.deepEqual(s.characters.husband.skills, [{ skillId: 'quick-hands', level: 2 }, { skillId: 'steady-worker', level: 1 }]);

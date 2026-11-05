@@ -1,28 +1,31 @@
-import { Crown, Fire, Flag, Gift, Moon, Script, Star, TrendingUp } from 'pixelarticons/react';
+import { Crown, Fire, Flag, Gift, Heart as HeartIcon, Moon, Script, Star, TrendingUp } from 'pixelarticons/react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { CharacterId, GameEvent, TaskLog, WheelSpinEvent } from '../../types';
+import type { CharacterId, GameEvent, Heart, TaskLog, WheelSpinEvent } from '../../types';
 import { formatDay, formatGold, localDateKey, parseDateKey } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { STREAK_MIN_DAYS } from '../../utils/streaks';
 import { dayMvp } from '../../utils/mvp';
 import { taskName } from '../../utils/taskNames';
-import { CharacterName } from '../ui/CharacterName';
+import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Card } from '../ui/Card';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
+import { Snowflake } from '../ui/pixel/SnowflakeIcon';
 import { Ticket } from '../ui/pixel/TicketIcon';
 import { Tooltip } from '../ui/Tooltip';
 
 const IDS: CharacterId[] = ['husband', 'wife'];
 
-type Entry = { kind: 'quest'; log: TaskLog } | { kind: 'spin'; spin: WheelSpinEvent };
-const entryTime = (entry: Entry) => (entry.kind === 'quest' ? entry.log.timestamp : entry.spin.timestamp);
+type Entry = { kind: 'quest'; log: TaskLog } | { kind: 'spin'; spin: WheelSpinEvent } | { kind: 'heart'; heart: Heart };
+const entryTime = (entry: Entry) =>
+  entry.kind === 'quest' ? entry.log.timestamp : entry.kind === 'spin' ? entry.spin.timestamp : entry.heart.timestamp;
 
 /**
- * The chronicle's page for one day: quests and wheel spins, what they paid, and who carried the day.
- * Interest gold is shown apart as a badge, since it never counts for the payout or the MVP.
+ * The chronicle's page for one day: quests, wheel spins and hearts, what they paid, and who carried the day.
+ * Interest gold is shown apart as a badge, since it never counts for the payout or the MVP, and Streak Freezes used
+ * that day as tags.
  */
 export function DayLog({
   date,
@@ -40,9 +43,12 @@ export function DayLog({
   const today = localDateKey();
   const isFinal = date === state.chronicle.endDate;
   const spins = events.filter((event): event is WheelSpinEvent => event.type === 'spin');
+  const hearts = state.hearts.filter((heart) => heart.date === date);
+  const frozen = IDS.filter((id) => state.freezes.some((freeze) => freeze.characterId === id && freeze.date === date));
   const entries: Entry[] = [
     ...logs.map((log): Entry => ({ kind: 'quest', log })),
     ...spins.map((spin): Entry => ({ kind: 'spin', spin })),
+    ...hearts.map((heart): Entry => ({ kind: 'heart', heart })),
   ].sort((a, b) => entryTime(a) - entryTime(b));
   const totals = Object.fromEntries(
     IDS.map((id) => [
@@ -86,6 +92,18 @@ export function DayLog({
           >
             <Icon as={tag.icon} size={12} />
             {t(tag.key)}
+          </span>
+        ))}
+        {frozen.map((id) => (
+          <span
+            key={id}
+            className="inline-flex max-w-full items-center gap-1 bg-parchment-300 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]"
+          >
+            <Icon as={Snowflake} size={12} />
+            <span className="max-w-[8rem] truncate">
+              <CharacterName id={id} />
+            </span>
+            · {t('calendar.tag.freeze')}
           </span>
         ))}
       </div>
@@ -149,6 +167,29 @@ export function DayLog({
       ) : (
         <ul className="px-scroll max-h-80 space-y-2 overflow-y-auto overscroll-contain pr-1" tabIndex={0} aria-label={t('calendar.questList')}>
           {entries.map((entry) => {
+            if (entry.kind === 'heart') {
+              const { heart } = entry;
+              return (
+                <li key={heart.id} className="px-slot flex items-center gap-3 px-3 py-2">
+                  <span className="shrink-0 font-arcade text-[9px] text-wood-600">{time.format(heart.timestamp)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1 truncate text-base font-extrabold leading-tight text-brick-600">
+                      <Icon as={HeartIcon} size={24} />
+                      {t('calendar.heart')}
+                    </p>
+                    <p className="text-sm font-bold uppercase text-wood-600">
+                      <span className="max-w-[10rem] truncate">
+                        <CharacterName id={heart.from} />
+                      </span>
+                    </p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-plum-600">
+                    <Icon as={Ticket} size={24} />
+                    <span className="font-arcade text-[10px]">+1</span>
+                  </span>
+                </li>
+              );
+            }
             if (entry.kind === 'spin') {
               const { spin } = entry;
               return (
@@ -190,6 +231,13 @@ export function DayLog({
                       <span className="inline-flex items-center gap-0.5 text-ember-700">
                         <Icon as={Fire} size={12} />
                         {t('calendar.streak', { days: streak })}
+                      </span>
+                    )}
+                    {/* Tag Team: this kept the spouse's streak going. */}
+                    {log.coveredFor && (
+                      <span className="inline-flex items-center gap-0.5 text-moss-700">
+                        <Icon as={Fire} size={12} />
+                        {spliceName(t('calendar.covered', { who: NAME_SLOT }), <CharacterName id={log.coveredFor} />)}
                       </span>
                     )}
                   </p>

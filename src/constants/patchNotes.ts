@@ -17,6 +17,40 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.8.0',
+    date: '2026-11-04',
+    notes: {
+      features: {
+        en: [
+          'Send your partner a heart once a day. They get a free ticket, and hearts show on their card.',
+          'Streak Freezes: on a day you do nothing, one keeps your streaks safe. You get 3 each Chronicle.',
+          'Turn on notifications in Settings to hear about hearts, get a 9 PM reminder and know when a new Chronicle starts.',
+          'Tap the level bars on a skill to see every level.',
+        ],
+        vi: [
+          'Gửi tim cho người ấy mỗi ngày một lần. Người ấy được tặng một vé, và thẻ nhân vật có tim.',
+          'Đóng băng chuỗi: hôm nào bận không làm nhiệm vụ nào, chuỗi của bạn vẫn được giữ. Mỗi Mùa được 3 lần.',
+          'Bật thông báo trong Cài đặt để biết khi có tim, được nhắc lúc 9 giờ tối và khi Mùa mới bắt đầu.',
+          'Chạm vào thanh cấp của kỹ năng để xem chỉ số mọi cấp.',
+        ],
+      },
+      balance: {
+        en: [
+          'Skills got new values, and all your skill points are back so you can choose again.',
+          'Shop Savvy is now Errand Runner, and it helps with everyday chores too.',
+          'Synergistic Streak is now Tag Team: do your partner’s streak quest to earn extra gold. Do it alone and you get their streak gold too.',
+          'Mop House now gives 42 XP and 45 gold.',
+        ],
+        vi: [
+          'Kỹ năng có chỉ số mới, và bạn được trả lại hết điểm để chọn lại.',
+          'Đi chợ sành sỏi giờ là Việc vặt, giúp cả việc chung hằng ngày.',
+          'Cộng hưởng giờ là Tiếp sức: làm nhiệm vụ người ấy đang có chuỗi để nhận thêm vàng. Làm một mình còn được cả vàng chuỗi của người ấy.',
+          'Lau nhà giờ cho 42 kinh nghiệm và 45 vàng.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.7.2',
     date: '2026-11-03',
     notes: {

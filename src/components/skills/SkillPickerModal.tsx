@@ -50,7 +50,7 @@ export function SkillPickerModal({
                 <p className="text-lg font-extrabold leading-tight">{t(skill.nameKey as TranslationKey)}</p>
                 <SkillDescription skill={skill} level={owned?.level ?? 0} characterLevel={getLevelFromXp(character.xp)} className="text-sm leading-snug text-wood-600" />
                 <div className="mt-1.5">
-                  <TierPips level={owned?.level ?? 0} />
+                  <TierPips level={owned?.level ?? 0} skill={skill} />
                 </div>
               </div>
               {owned?.level === 4 ? (

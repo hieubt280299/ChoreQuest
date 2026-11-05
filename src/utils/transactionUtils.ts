@@ -24,14 +24,20 @@ export type OpResult = { ok: true; state: GameState } | { ok: false; error: Tran
 /** How many op ids are remembered: far more than can be in flight from two players at once. */
 export const APPLIED_OPS_LIMIT = 40;
 
-/** Settles any days that passed, then trims old logs and events. */
+/** Settles any days that passed, then trims old logs, events, hearts and freezes. */
 export function settle(state: GameState, today: string): GameState {
   const settled = advanceDays(state, today);
   const logs = pruneLogs(settled.logs, today);
   const events = pruneLogs(settled.events, today);
+  const hearts = pruneLogs(settled.hearts, today);
+  const freezes = pruneLogs(settled.freezes, today);
+  const trimmed =
+    logs.length !== settled.logs.length ||
+    events.length !== settled.events.length ||
+    hearts.length !== settled.hearts.length ||
+    freezes.length !== settled.freezes.length;
   // Same object when nothing was due, so callers can tell whether there is anything to save.
-  if (logs.length === settled.logs.length && events.length === settled.events.length) return settled;
-  return { ...settled, logs, events };
+  return trimmed ? { ...settled, logs, events, hearts, freezes } : settled;
 }
 
 /** Applies an op on top of `state` (settled to `today` first), at most once per op id. */
@@ -74,6 +80,10 @@ export function householdPatch(prev: GameState, next: GameState): Record<string,
     'game.mvpSettledOn': [before.game.mvpSettledOn, after.game.mvpSettledOn],
     'game.levelResetAt': [before.game.levelResetAt, after.game.levelResetAt],
     'game.appliedOps': [before.game.appliedOps, after.game.appliedOps],
+    'game.hearts': [before.game.hearts, after.game.hearts],
+    'game.freezes': [before.game.freezes, after.game.freezes],
+    'game.freezesSettledOn': [before.game.freezesSettledOn, after.game.freezesSettledOn],
+    'game.skillsRefundedIn': [before.game.skillsRefundedIn, after.game.skillsRefundedIn],
   };
   const patch: Record<string, unknown> = {};
   for (const [path, [a, b]] of Object.entries(fields)) {

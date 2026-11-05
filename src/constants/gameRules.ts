@@ -71,7 +71,7 @@ export const DEFAULT_TASKS: Task[] = [
   // Heavy tasks: 41+ XP
   { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 42, gold: 42, category: 'cleaning', group: 'heavy', enabled: true },
   { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 45, gold: 50, category: 'shopping', group: 'heavy', enabled: true },
-  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 45, gold: 50, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 42, gold: 45, category: 'cleaning', group: 'heavy', enabled: true },
   { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 55, gold: 65, category: 'cleaning', group: 'heavy', enabled: true },
 ];
 
@@ -110,13 +110,18 @@ const V15_REBALANCE: Rebalance = {
   vacuum: { from: [42, 50, 'heavy'], to: [42, 42, 'heavy'] },
 };
 
+/** v1.8 rebalance: Mop House 42 XP / 45 gold. */
+const V18_REBALANCE: Rebalance = {
+  mop: { from: [45, 50, 'heavy'], to: [42, 45, 'heavy'] },
+};
+
 /**
  * Built-in quests still on the values of an earlier version are moved to the current defaults, one rebalance at
- * a time (v0.2 -> v1.0 -> v1.5). Quests a moderator has edited are left alone.
+ * a time (v0.2 -> v1.0 -> v1.5 -> v1.8). Quests a moderator has edited are left alone.
  */
 export function rebalanceTask<T extends Pick<Task, 'id' | 'xp' | 'gold' | 'group'>>(task: T): T {
   let current = task;
-  for (const step of [V1_REBALANCE, V15_REBALANCE]) {
+  for (const step of [V1_REBALANCE, V15_REBALANCE, V18_REBALANCE]) {
     const change = step[current.id];
     if (!change) continue;
     const [xp, gold, group] = change.from;
@@ -169,7 +174,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.speedCleaner.desc',
     icon: 'sparkles',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'cleaning', xp: levels(0.1, 0.15, 0.2, 0.25), gold: levels(0.1, 0.15, 0.2, 0.25) },
+    effect: { kind: 'category', categories: ['cleaning'], xp: levels(0.08, 0.16, 0.24, 0.32), gold: levels(0.08, 0.16, 0.24, 0.32) },
   },
   {
     id: 'master-chef',
@@ -177,7 +182,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.masterChef.desc',
     icon: 'chef',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'cooking', xp: levels(0.04, 0.08, 0.12, 0.16), gold: levels(0.1, 0.18, 0.26, 0.34) },
+    effect: { kind: 'category', categories: ['cooking'], xp: levels(0.09, 0.18, 0.27, 0.36), gold: levels(0.09, 0.18, 0.27, 0.36) },
   },
   {
     id: 'gold-doubler',
@@ -193,7 +198,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.quickHands.desc',
     icon: 'zap',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'quick', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.05, 0.1, 0.15, 0.2) },
+    effect: { kind: 'group', group: 'quick', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.1, 0.2, 0.3, 0.4) },
   },
   {
     id: 'team-player',
@@ -201,7 +206,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.teamPlayer.desc',
     icon: 'hearts',
     maxLevel: 4,
-    effect: { kind: 'together', xp: levels(0.12, 0.24, 0.36, 0.48), gold: levels(0.1, 0.2, 0.3, 0.4) },
+    effect: { kind: 'together', xp: levels(0.15, 0.3, 0.45, 0.6), gold: levels(0.15, 0.3, 0.45, 0.6) },
   },
   {
     id: 'iron-will',
@@ -209,15 +214,16 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.ironWill.desc',
     icon: 'shirt',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'laundry', xp: levels(0.04, 0.08, 0.12, 0.16), gold: levels(0.1, 0.2, 0.3, 0.4) },
+    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.2, 0.3, 0.4, 0.5), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
+    // Errand Runner (was Shop Savvy, which covered shopping only); the id is kept so learned levels carry over.
     id: 'shop-savvy',
     nameKey: 'skill.shopSavvy.name',
     descriptionKey: 'skill.shopSavvy.desc',
     icon: 'cart',
     maxLevel: 4,
-    effect: { kind: 'category', category: 'shopping', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.05, 0.1, 0.15, 0.2) },
+    effect: { kind: 'category', categories: ['shopping', 'general'], xp: levels(0.15, 0.3, 0.45, 0.6), gold: levels(0.15, 0.3, 0.45, 0.6) },
   },
   {
     id: 'zen-housekeeper',
@@ -225,8 +231,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.zenHousekeeper.desc',
     icon: 'lightbulb',
     maxLevel: 4,
-    // XP grows with the character: 40/60/80/100% plus 1% per character level.
-    effect: { kind: 'all', xp: levels(0.4, 0.6, 0.8, 1), xpPerCharacterLevel: 0.01 },
+    // XP grows with the character: 30/45/60/75% plus 1% per character level.
+    effect: { kind: 'all', xp: levels(0.3, 0.45, 0.6, 0.75), xpPerCharacterLevel: 0.01 },
   },
   {
     id: 'raid-master',
@@ -234,7 +240,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.raidMaster.desc',
     icon: 'shield',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'heavy', gold: levels(0.15, 0.25, 0.35, 0.45) },
+    effect: { kind: 'group', group: 'heavy', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.2, 0.3, 0.4, 0.5) },
   },
   {
     id: 'steady-worker',
@@ -252,7 +258,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     maxLevel: 4,
     // `values`: Normal Tickets at each chronicle start and each level-up; `gold`: extra gold on Wheel of Fortune
     // prizes won with a Normal Ticket.
-    effect: { kind: 'chronicle_tickets', values: levels(1, 2, 3, 4), gold: levels(0.25, 0.5, 0.75, 1) },
+    effect: { kind: 'chronicle_tickets', values: levels(1, 2, 3, 4), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
     id: 'gold-interest',
@@ -260,15 +266,17 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldInterest.desc',
     icon: 'trending',
     maxLevel: 4,
-    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05) },
+    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05), caps: levels(15, 30, 45, 60) },
   },
   {
+    // Tag Team (was Synergistic Streak). Done alone, the quest also pays the spouse's streak bonus gold and keeps their
+    // streak going, one day shorter (see `computeRewardBreakdown`, `streakEndingOn`). No XP bonus.
     id: 'synergistic-streak',
     nameKey: 'skill.synergy.name',
     descriptionKey: 'skill.synergy.desc',
     icon: 'link',
     maxLevel: 4,
-    effect: { kind: 'spouse_streak', xp: levels(0.1, 0.15, 0.2, 0.25), gold: levels(0.2, 0.3, 0.4, 0.5) },
+    effect: { kind: 'spouse_streak', gold: levels(0.15, 0.3, 0.45, 0.6) },
   },
   {
     id: 'hall-of-fame',
@@ -276,13 +284,13 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.hallOfFame.desc',
     icon: 'trophy',
     maxLevel: 4,
-    // Golden Tickets at every 5th MVP day.
+    // Golden Tickets at every 3rd MVP day.
     effect: { kind: 'mvp_tickets', values: levels(1, 2, 3, 4) },
   },
 ];
 
 /** Hall of Fame pays at every this-many MVP days in a chronicle. */
-export const HALL_OF_FAME_EVERY = 5;
+export const HALL_OF_FAME_EVERY = 3;
 
 /** A character's level in a skill (0 = not learned). */
 export function skillLevel(character: Pick<Character, 'skills'>, skillId: string): number {
@@ -292,6 +300,14 @@ export function skillLevel(character: Pick<Character, 'skills'>, skillId: string
 /** A skill's `values` entry at a level (tickets, interest rate), 0 when not learned. */
 export function skillEffectValue(skill: SkillDefinition, level: number): number {
   return level > 0 ? (skill.effect.values?.[level - 1] ?? 0) : 0;
+}
+
+/** Whether a `category` or `group` skill's bonus counts for a quest of this category and task size. */
+export function skillCoversQuest(skill: SkillDefinition, task: Pick<Task, 'category' | 'group'>): boolean {
+  const { kind, categories, group } = skill.effect;
+  if (kind === 'category') return !!categories?.includes(task.category);
+  if (kind === 'group') return task.group === group;
+  return false;
 }
 
 /**
@@ -310,8 +326,21 @@ export function fortunesFavorTickets(character: Pick<Character, 'skills'>): numb
   return favor ? skillEffectValue(favor, skillLevel(character, favor.id)) : 0;
 }
 
-/** Most gold Gold Interest can pay a character in one day. */
-export const DAILY_INTEREST_CAP = 100;
+/** Most gold Gold Interest pays a character in one day at a skill level (0 when not learned). */
+export function dailyInterestCap(level: number): number {
+  const interest = SKILL_POOL.find((skill) => skill.id === 'gold-interest');
+  return level > 0 ? (interest?.effect.caps?.[level - 1] ?? 0) : 0;
+}
+
+/** Streak Freezes each player gets per chronicle (they don't carry over). */
+export const STREAK_FREEZES_PER_CHRONICLE = 3;
+/** Normal Tickets a heart gives the player who receives it. */
+export const HEART_TICKETS = 1;
+/**
+ * The one-time skill point refund that came with the v1.8.0 rebalance: every learned skill is unlearned once, so
+ * players can spend their points again on the new values.
+ */
+export const SKILL_REFUND_VERSION = '1.8.0';
 
 export function createDefaultCharacter(id: CharacterId, name: string): Character {
   return { id, name, xp: 0, gold: 0, skills: [], tickets: 0, goldenTickets: 0, ticketLevel: 1, mvpDays: 0 };

@@ -21,34 +21,38 @@ check('caps: 8 skill slots, 24 points, 14 skills', () => {
   assert.equal(m.SKILL_POOL.length, 14);
 });
 
-check('Speed Cleaner lv3 + Fast Learner lv2 (v1.2.0 values) at character level 1', () => {
+check('Speed Cleaner lv3 + Fast Learner lv2 (v1.8.0 values) at character level 1', () => {
   const s = withSkills(m.createInitialState(today), 'husband', [{ skillId: 'speed-cleaner', level: 3 }, { skillId: 'zen-housekeeper', level: 2 }]);
   const r = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'cleaning', group: 'main' }, 'husband', s.characters, m.SKILL_POOL);
-  // XP: +20% cleaning, +60% +1% (character level 1) all; gold: +20% cleaning only
-  close(r.husband.xp, 181);
-  close(r.husband.gold, 120);
+  // XP: +24% cleaning, +45% +1% (character level 1) all; gold: +24% cleaning only
+  close(r.husband.xp, 170);
+  close(r.husband.gold, 124);
 });
 
-check('Master Chef 10/18/26/34, Heavy Lifter 15/25/35/45, Quick Hands 5..20 gold, Team Player 12..48 XP / 10..40 gold', () => {
-  const chef = m.SKILL_POOL.find((s) => s.id === 'master-chef').effect.gold;
-  assert.deepEqual(chef, [0.1, 0.18, 0.26, 0.34]);
-  assert.deepEqual(m.SKILL_POOL.find((s) => s.id === 'raid-master').effect.gold, [0.15, 0.25, 0.35, 0.45]);
+check('Master Chef 9..36, Heavy Lifter 20..50 gold / 10..40 XP, Quick Hands 10..40, Team Player 15..60 (v1.8.0)', () => {
+  const chef = m.SKILL_POOL.find((s) => s.id === 'master-chef').effect;
+  assert.deepEqual(chef.gold, [0.09, 0.18, 0.27, 0.36]);
+  assert.deepEqual(chef.xp, [0.09, 0.18, 0.27, 0.36]);
+  const heavy = m.SKILL_POOL.find((s) => s.id === 'raid-master').effect;
+  assert.deepEqual(heavy.gold, [0.2, 0.3, 0.4, 0.5]);
+  assert.deepEqual(heavy.xp, [0.1, 0.2, 0.3, 0.4]);
   const quick = m.SKILL_POOL.find((s) => s.id === 'quick-hands').effect;
-  assert.deepEqual(quick.gold, [0.05, 0.1, 0.15, 0.2]);
+  assert.deepEqual(quick.gold, [0.1, 0.2, 0.3, 0.4]);
   assert.deepEqual(quick.xp, [0.1, 0.2, 0.3, 0.4]);
   const team = m.SKILL_POOL.find((s) => s.id === 'team-player').effect;
-  assert.deepEqual(team.xp, [0.12, 0.24, 0.36, 0.48]);
-  assert.deepEqual(team.gold, [0.1, 0.2, 0.3, 0.4]);
+  assert.deepEqual(team.xp, [0.15, 0.3, 0.45, 0.6]);
+  assert.deepEqual(team.gold, [0.15, 0.3, 0.45, 0.6]);
 });
 
-check('Synergistic Streak only when the spouse has a 3+ day streak on that quest', () => {
+check('Tag Team only when the spouse has a 3+ day streak on that quest', () => {
   const s = withSkills(m.createInitialState(today), 'wife', [{ skillId: 'synergistic-streak', level: 2 }]);
   const base = { xp: 100, gold: 100, category: 'general', group: 'quick' };
   const off = m.computeRewardBreakdown(base, 'wife', s.characters, m.SKILL_POOL, {}, { wife: 2 });
   close(off.wife.gold, 100);
   const on = m.computeRewardBreakdown(base, 'wife', s.characters, m.SKILL_POOL, {}, { wife: 3 });
-  close(on.wife.gold, 130);
-  close(on.wife.xp, 115);
+  // +30% gold, plus the 3-day streak's bonus (1 gold) since it was done alone; no XP bonus any more.
+  close(on.wife.gold, 131);
+  close(on.wife.xp, 100);
 });
 
 check('quest rebalance: v0.2 built-ins migrate, edited quests are kept', () => {
@@ -71,7 +75,7 @@ const log = (date, by, gold) => ({
   goldAwarded: { husband: by === 'husband' ? gold : 0, wife: by === 'wife' ? gold : 0 }, timestamp: 1,
 });
 
-check('Hall of Fame: each finished day settles once; every 5th MVP pays tickets', () => {
+check('Hall of Fame: each finished day settles once; every 3rd MVP pays tickets', () => {
   let s = m.createInitialState(day(-10));
   s = { ...s, chronicle: { ...s.chronicle, startDate: day(-10), endDate: day(20) }, mvpSettledOn: day(-8) };
   s = withSkills(s, 'husband', [{ skillId: 'hall-of-fame', level: 3 }]);
@@ -83,7 +87,7 @@ check('Hall of Fame: each finished day settles once; every 5th MVP pays tickets'
   const next = m.advanceDays(s, today);
   assert.equal(next.characters.husband.mvpDays, 6);
   assert.equal(next.characters.wife.mvpDays, 1);
-  assert.equal(next.characters.husband.goldenTickets, 3, '5th MVP pays lv3 = 3 Golden Tickets');
+  assert.equal(next.characters.husband.goldenTickets, 6, 'the 3rd and 6th MVP days each pay lv3 = 3 Golden Tickets');
   assert.equal(next.characters.husband.tickets, 0);
   assert.equal(next.mvpSettledOn, day(-1));
   assert.equal(m.advanceDays(next, today), next, 'idempotent');
