@@ -29,6 +29,7 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - Notifications only go to browser push services (Google, Mozilla, Apple and Windows; `isPushEndpoint`), and a send gives up after 10 seconds.
   - Players are read 200 at a time, each page with its own household cache, so the run's memory stays flat as more players turn notifications on.
   - The cron secret is compared in constant time.
+- **Heart notifications only reach the partner** (`api/heart.ts`): the partner is the other account in the household's `memberIds` (`partnerOf`), which only ever lists accounts that joined themselves. A uid written inside a member entry is no longer trusted, so a hand-made household can't aim a heart notification at another account.
 
 ## [1.8.0] - 2026-11-05
 

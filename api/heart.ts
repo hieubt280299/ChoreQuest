@@ -1,10 +1,11 @@
-import { freshHeart, heartMessage, type HouseholdData } from './_lib/reminders.js';
+import { freshHeart, heartMessage, partnerOf, type HouseholdData } from './_lib/reminders.js';
 import { devicesOf, firebaseAdmin, json, sendToDevice } from './_lib/server.js';
 
 /**
  * POST /api/heart: a player just sent a heart (saved in the household by the app); notify their partner's devices.
  * Authenticated with the player's Firebase ID token. Only a fresh heart actually stored in the household is
- * announced, and each heart only once, so this can't be used to spam the partner.
+ * announced, and each heart only once, so this can't be used to spam the partner. The partner is the other account
+ * in `memberIds`, never a uid read from a member entry, so a hand-made household can't aim it at anyone else.
  */
 export async function POST(request: Request): Promise<Response> {
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
@@ -21,13 +22,13 @@ export async function POST(request: Request): Promise<Response> {
   if (typeof householdId !== 'string') return json({ error: 'no household' }, 404);
   const household = (await db.doc(`households/${householdId}`).get()).data() as HouseholdData | undefined;
   const me = household?.members?.[uid];
-  if (!household || !me) return json({ error: 'not a member' }, 403);
-  const partner = Object.values(household.members).find((member) => member.uid !== uid);
+  if (!household || !me || !household.memberIds?.includes(uid)) return json({ error: 'not a member' }, 403);
+  const partnerUid = partnerOf(household, uid);
   const heart = freshHeart(household, me.characterId, Date.now());
-  if (!partner || !heart) return json({ sent: 0 });
+  if (!partnerUid || !heart) return json({ sent: 0 });
 
   // Claim the heart for notifying, so a retry or a second call never announces it twice.
-  const partnerRef = db.doc(`users/${partner.uid}`);
+  const partnerRef = db.doc(`users/${partnerUid}`);
   const claimed = await db.runTransaction(async (tx) => {
     const snapshot = await tx.get(partnerRef);
     if (!snapshot.exists || snapshot.get('push.lastHeart') === heart.id) return null;
@@ -38,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const results = await Promise.all(
     Object.entries(claimed).map(([deviceId, device]) =>
-      sendToDevice(db, partner.uid, deviceId, device, heartMessage(device.language, household, me.characterId), 60 * 60 * 24),
+      sendToDevice(db, partnerUid, deviceId, device, heartMessage(device.language, household, me.characterId), 60 * 60 * 24),
     ),
   );
   return json({ sent: results.filter(Boolean).length });

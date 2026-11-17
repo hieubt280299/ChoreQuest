@@ -126,6 +126,21 @@ check('the reminder cron: device ids are path segments, failures stay per device
   assert.doesNotMatch(server, /`push\.devices\.\$\{/);
 });
 
+check('a heart goes to the other account in memberIds, never to a uid written inside a member entry', () => {
+  const entry = (uid, characterId) => ({ uid, characterId, role: 'member' });
+  const forged = { memberIds: ['me'], members: { me: entry('me', 'husband'), extra: entry('someone-else', 'wife') } };
+  assert.equal(m.reminders.partnerOf(forged, 'me'), null, 'an extra member entry is not a partner');
+  const couple = { memberIds: ['me', 'you'], members: { me: entry('me', 'husband'), you: entry('someone-else', 'wife') } };
+  assert.equal(m.reminders.partnerOf(couple, 'me'), 'you', 'the id in memberIds, not the entry\'s uid field');
+  assert.equal(m.reminders.partnerOf(couple, 'you'), 'me');
+  assert.equal(m.reminders.partnerOf(couple, 'stranger'), null, 'only members have a partner');
+  assert.equal(m.reminders.partnerOf({ members: {} }, 'me'), null);
+  const heart = source('api/heart.ts');
+  assert.match(heart, /const partnerUid = partnerOf\(household, uid\);/);
+  assert.match(heart, /!household\.memberIds\?\.includes\(uid\)/);
+  assert.doesNotMatch(heart, /member\.uid !== uid/);
+});
+
 // --- Release ------------------------------------------------------------------------------
 check('release rule written down: semver kinds and minimum gaps', () => {
   const guide = source('AGENT_GUIDE.md');

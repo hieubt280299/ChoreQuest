@@ -6,6 +6,8 @@ export type Language = 'en' | 'vi';
 
 /** The parts of `households/{id}` the notifications read. */
 export interface HouseholdData {
+  /** Accounts in the household. firestore.rules only ever lets an account add itself here, unlike `members` contents. */
+  memberIds: string[];
   members: Record<string, { uid: string; characterId: CharacterId }>;
   chronicle: { id: number; startDate: string; endDate: string };
   game: {
@@ -121,6 +123,16 @@ export function dueReminder(
     return { kind: 'evening', key: clock.date };
   }
   return null;
+}
+
+/**
+ * The partner of `uid` in a household, taken from `memberIds` (where the rules only let an account add itself), or null
+ * if `uid` isn't a member or has no partner yet. The `uid` written inside a member entry is never trusted.
+ */
+export function partnerOf(household: Pick<HouseholdData, 'memberIds'>, uid: string): string | null {
+  const ids = Array.isArray(household.memberIds) ? household.memberIds : [];
+  if (!ids.includes(uid)) return null;
+  return ids.find((id) => typeof id === 'string' && id !== uid) ?? null;
 }
 
 /** The heart this player just sent, if it's still fresh enough to announce. */
