@@ -85,6 +85,47 @@ check('the game shows the held state; the wheel passes its spin time with the sp
   assert.match(source('src/components/dashboard/WheelOfFortune.tsx'), /spinWheel\(characterId, Math\.round\(spinSeconds \* 1000\) \+ 150\)/);
 });
 
+// --- Notifications: one player's saved devices can't break or misuse the reminders --------
+check('only browser push services are ever contacted', () => {
+  const ok = (endpoint) => m.reminders.isPushEndpoint(endpoint);
+  assert.ok(ok('https://fcm.googleapis.com/fcm/send/abc:def'), 'Chrome, Android, Samsung, Opera');
+  assert.ok(ok('https://updates.push.services.mozilla.com/wpush/v2/gAAAA'), 'Firefox');
+  assert.ok(ok('https://web.push.apple.com/QGx'), 'Safari');
+  assert.ok(ok('https://wns2-par02p.notify.windows.com/w/?token=BQY'), 'Edge');
+  for (const bad of [
+    'http://fcm.googleapis.com/fcm/send/abc',
+    'https://fcm.googleapis.com:8443/fcm/send/abc',
+    'https://fcm.googleapis.com.example.com/x',
+    'https://evil-fcm.googleapis.com/x',
+    'https://push.apple.com.example.com/x',
+    'https://fcm.googleapis.com@example.com/x',
+    'https://user:pass@fcm.googleapis.com/x',
+    'https://127.0.0.1/x',
+    'https://localhost/x',
+    'https://metadata.google.internal/x',
+    'not a url',
+    '',
+    undefined,
+    42,
+  ]) {
+    assert.equal(ok(bad), false, String(bad));
+  }
+});
+
+check('the reminder cron: device ids are path segments, failures stay per device, sends time out, pages of players', () => {
+  const cron = source('api/reminders.ts');
+  assert.match(cron, /new FieldPath\('push', 'devices', deviceId, 'sent', due\.kind\)/);
+  assert.doesNotMatch(cron, /`push\.devices\.\$\{/, 'no dotted path built from a device id');
+  assert.match(cron, /Promise\.allSettled\(page\.docs\.map/);
+  assert.match(cron, /\.orderBy\(FieldPath\.documentId\(\)\)\.limit\(PAGE_SIZE\)/);
+  assert.match(cron, /timingSafeEqual\(given, expected\)/);
+  const server = source('api/_lib/server.ts');
+  assert.match(server, /if \(!isPushEndpoint\(device\.endpoint\)\)/);
+  assert.match(server, /timeout: SEND_TIMEOUT_MS,/);
+  assert.match(server, /new FieldPath\('push', 'devices', deviceId\), FieldValue\.delete\(\)/);
+  assert.doesNotMatch(server, /`push\.devices\.\$\{/);
+});
+
 // --- Release ------------------------------------------------------------------------------
 check('release rule written down: semver kinds and minimum gaps', () => {
   const guide = source('AGENT_GUIDE.md');

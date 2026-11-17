@@ -26,6 +26,26 @@ export interface PushDevice {
 }
 
 /**
+ * Browsers' push services: Chrome, Samsung Internet and Opera use Google's (FCM), Firefox Mozilla's, Safari Apple's
+ * and Edge Windows' (WNS). The app only ever saves a subscription the browser gave it, which points at one of them;
+ * anything else in `users/{uid}.push.devices` was written by hand, and the server never contacts it.
+ */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /\.push\.services\.mozilla\.com$/, /\.push\.apple\.com$/, /\.notify\.windows\.com$/];
+
+/** Whether an endpoint is a browser push service the server may send to (HTTPS on the default port, known host). */
+export function isPushEndpoint(endpoint: unknown): boolean {
+  if (typeof endpoint !== 'string') return false;
+  try {
+    const url = new URL(endpoint);
+    return (
+      url.protocol === 'https:' && url.port === '' && !url.username && !url.password && PUSH_HOSTS.some((host) => host.test(url.hostname))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * A player's devices with each push subscription once: if the app's data was cleared, the same browser can be saved
  * again under a new device id, and it should still get one notification, not two.
  */

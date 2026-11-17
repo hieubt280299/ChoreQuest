@@ -22,6 +22,14 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - Versions follow semver, and each waits a minimum time after the previous release: a major 3 months, a minor 2 weeks, a patch 1 day.
   - A version's date is the day it's merged into `main`, so 1.8.0's date is now 2026-11-05, the day it was merged.
 
+### Security
+
+- **Sturdier reminder notifications** (`api/reminders.ts`, `api/_lib/server.ts`):
+  - A device saved with unusual data can no longer stop the hourly reminders of the players after it. Its id is written as a path segment (`FieldPath`), never parsed as a dotted path, and a device or player that fails is logged and skipped.
+  - Notifications only go to browser push services (Google, Mozilla, Apple and Windows; `isPushEndpoint`), and a send gives up after 10 seconds.
+  - Players are read 200 at a time, each page with its own household cache, so the run's memory stays flat as more players turn notifications on.
+  - The cron secret is compared in constant time.
+
 ## [1.8.0] - 2026-11-05
 
 Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
