@@ -30,6 +30,7 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - Players are read 200 at a time, each page with its own household cache, so the run's memory stays flat as more players turn notifications on.
   - The cron secret is compared in constant time.
 - **Heart notifications only reach the partner** (`api/heart.ts`): the partner is the other account in the household's `memberIds` (`partnerOf`), which only ever lists accounts that joined themselves. A uid written inside a member entry is no longer trusted, so a hand-made household can't aim a heart notification at another account.
+- **Local credentials stay out of deploys:** a new `.vercelignore` keeps a Firebase service account key, `.env` files and scratch files out of `vercel` CLI uploads. The functions read the key from the `FIREBASE_SERVICE_ACCOUNT` environment variable, so no key file belongs in the project folder.
 
 ## [1.8.0] - 2026-11-05
 
