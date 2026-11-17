@@ -6,6 +6,8 @@ export type Language = 'en' | 'vi';
 
 /** The parts of `households/{id}` the notifications read. */
 export interface HouseholdData {
+  /** Accounts in the household. firestore.rules only ever lets an account add itself here, unlike `members` contents. */
+  memberIds: string[];
   members: Record<string, { uid: string; characterId: CharacterId }>;
   chronicle: { id: number; startDate: string; endDate: string };
   game: {
@@ -23,6 +25,26 @@ export interface PushDevice {
   language: Language;
   /** What was last sent to this device: the local date of the evening reminder, the chronicle id of its Day 1. */
   sent?: { evening?: string; newChronicle?: string };
+}
+
+/**
+ * Browsers' push services: Chrome, Samsung Internet and Opera use Google's (FCM), Firefox Mozilla's, Safari Apple's
+ * and Edge Windows' (WNS). The app only ever saves a subscription the browser gave it, which points at one of them;
+ * anything else in `users/{uid}.push.devices` was written by hand, and the server never contacts it.
+ */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /\.push\.services\.mozilla\.com$/, /\.push\.apple\.com$/, /\.notify\.windows\.com$/];
+
+/** Whether an endpoint is a browser push service the server may send to (HTTPS on the default port, known host). */
+export function isPushEndpoint(endpoint: unknown): boolean {
+  if (typeof endpoint !== 'string') return false;
+  try {
+    const url = new URL(endpoint);
+    return (
+      url.protocol === 'https:' && url.port === '' && !url.username && !url.password && PUSH_HOSTS.some((host) => host.test(url.hostname))
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -103,6 +125,16 @@ export function dueReminder(
   return null;
 }
 
+/**
+ * The partner of `uid` in a household, taken from `memberIds` (where the rules only let an account add itself), or null
+ * if `uid` isn't a member or has no partner yet. The `uid` written inside a member entry is never trusted.
+ */
+export function partnerOf(household: Pick<HouseholdData, 'memberIds'>, uid: string): string | null {
+  const ids = Array.isArray(household.memberIds) ? household.memberIds : [];
+  if (!ids.includes(uid)) return null;
+  return ids.find((id) => typeof id === 'string' && id !== uid) ?? null;
+}
+
 /** The heart this player just sent, if it's still fresh enough to announce. */
 export function freshHeart(household: HouseholdData, from: CharacterId, now: number) {
   const latest = (household.game.hearts ?? [])
@@ -111,26 +143,30 @@ export function freshHeart(household: HouseholdData, from: CharacterId, now: num
   return latest && now - latest.timestamp <= HEART_FRESH_MS ? latest : null;
 }
 
+/**
+ * Notification text: short, warm and written like a friend would say it, so a glance at the lock screen makes the
+ * player want to jump in. No rules or numbers here (tickets, gold amounts): the app shows those.
+ */
 const TEXT = {
   en: {
-    husband: 'Husband',
-    wife: 'Wife',
-    heartTitle: '{name} sent you a heart',
-    heartBody: 'You got 1 Normal Ticket. Send one back?',
-    eveningTitle: 'No quests done today yet',
-    eveningBody: 'There’s still time to keep your streaks going.',
-    newChronicleTitle: 'A new Chronicle begins!',
-    newChronicleBody: 'Gold is back to 0, and you have 3 new Streak Freezes.',
+    husband: 'Your husband',
+    wife: 'Your wife',
+    heartTitle: '{name} sent you a heart 💖',
+    heartBody: 'Send one back and make their day!',
+    eveningTitle: 'Your quests miss you ⚔️',
+    eveningBody: 'Still time to earn gold and keep your streaks alive!',
+    newChronicleTitle: 'A new Chronicle begins! 🏆',
+    newChronicleBody: 'Fresh start for you both. Who’ll win this time?',
   },
   vi: {
     husband: 'Chồng',
     wife: 'Vợ',
-    heartTitle: '{name} gửi bạn một trái tim',
-    heartBody: 'Bạn được 1 vé thường. Gửi lại một trái tim nhé?',
-    eveningTitle: 'Hôm nay bạn chưa làm nhiệm vụ nào',
-    eveningBody: 'Vẫn còn kịp giữ chuỗi của bạn.',
-    newChronicleTitle: 'Mùa mới bắt đầu!',
-    newChronicleBody: 'Vàng về 0, và bạn có lại 3 lần đóng băng chuỗi.',
+    heartTitle: '{name} vừa gửi tim cho bạn 💖',
+    heartBody: 'Gửi lại một tim cho người ấy vui nhé!',
+    eveningTitle: 'Nhiệm vụ đang chờ bạn ⚔️',
+    eveningBody: 'Vẫn còn kịp kiếm vàng và giữ chuỗi đó!',
+    newChronicleTitle: 'Mùa mới bắt đầu rồi! 🏆',
+    newChronicleBody: 'Cả hai lại về vạch xuất phát. Mùa này ai thắng đây?',
   },
 } as const;
 

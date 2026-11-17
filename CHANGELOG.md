@@ -2,7 +2,51 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
-## [1.8.0] - 2026-11-04
+## [1.8.1] - 2026-11-17
+
+Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
+
+### Fixed
+
+- **Stale data in the installed app after it comes back to the screen.** Android froze the installed app in the background, and Firestore's live connection could die there without the SDK noticing. The screen then kept old data, such as a partner's heart or a jackpot that had grown, until the app was closed and reopened.
+  - Now, coming back after 5+ seconds away (or from the back/forward cache) restarts the connection (`services/firestoreResume.ts`), which fetches the latest data at once.
+  - A save still in progress finishes first.
+- **A spouse's spin no longer spoils its own result.** The spin is saved before the spinner's wheel starts turning, so the partner's screen used to show the result at once: the jackpot reset to 500 or grew by 10, and the spinner's gold, tickets, payout share and day log changed.
+  - Now the partner's screen holds a fresh spin back until the spinner's wheel has stopped (`withoutSpins`, `GameContext`).
+  - Each spin records how long its wheel turns (`spinMs`) and the jackpot before it (`jackpotBefore`).
+  - Only spins that arrive while their wheel may still be turning are held (judged by when they were made, allowing 5 s of clock difference); one seen later, e.g. on coming back to the app, shows at once. Spins from before this version wait for the longest spin (about 11 s).
+- **Tooltips no longer look cut off.** A bubble always sat above everything else, but its frame was the same as a card's, so when its edge landed right on a card's edge the two frame lines merged and the bubble looked cut off. This always happened to the Chronicle info icon in Settings, which sits just under the card title.
+  - Bubbles now have a pointer at the middle of their trigger (`placeTail`) and a light 2px outline (`.px-tooltip`), so they always read as lying on top.
+  - The gap to the trigger is 16px, for the pointer (`BUBBLE_GAP`, `BUBBLE_TAIL`). A bubble aligned to a small trigger such as an info icon reaches a little past its edge, so the pointer sits under its middle.
+  - A bubble sits next to the trigger button itself, which can be taller than its wrapper.
+  - A bubble whose trigger scrolls out of sight (under a bar, or out of a list or dialog) is hidden until the trigger is back (`anchorInView`), instead of floating over the bar.
+  - Checked in the demo: all 123 tooltip openings across every page, each with its trigger mid-screen, under the top bar and above the bottom navigation, at phone and desktop sizes in both languages. Each bubble is on screen, uncovered and points at its trigger.
+- **A very busy household can't fill up its save.** Quest logs, events, hearts and freezes were kept for 120 days however many there were, so a household with many custom quests (or a very long Chronicle) could approach Firestore's 1 MiB document limit, after which nothing would save. Each list now also keeps at most about 1,500 entries, dropping whole oldest days first (`pruneLogs`, `MAX_LOG_ENTRIES`). A month-long Chronicle makes far fewer, so normal households see no change.
+
+### Changed
+
+- **Friendlier push notifications** (`api/_lib/reminders.ts`): every message is rewritten in warmer, more natural English and Vietnamese, short enough for a lock screen.
+  - The heart notification no longer mentions the Normal Ticket (the app shows it).
+  - A partner without a custom name is "Your husband" / "Your wife" in English.
+  - The new Chronicle message leads with the fresh race instead of "gold is back to 0".
+- **Release cadence written down** (AGENT_GUIDE "Versioning & Release Cadence", README):
+  - Versions follow semver, and each waits a minimum time after the previous release: a major 3 months, a minor 2 weeks, a patch 1 day.
+  - A version's date is the day it's merged into `main`, so 1.8.0's date is now 2026-11-05, the day it was merged.
+- **Unused code removed:** the month-based helpers left from before Chronicles (`monthKey`, `msUntilNextMonth`, `monthLabel`), the old 50/50 `splitRewards` (replaced by `computeRewardBreakdown`), the unused `HouseholdCodeDoc` / `UserProfileDoc` types and the unused `.no-scrollbar` class (the installed app's `pwa-mobile` rule does the same job).
+
+### Security
+
+- **Sturdier reminder notifications** (`api/reminders.ts`, `api/_lib/server.ts`):
+  - A device saved with unusual data can no longer stop the hourly reminders of the players after it. Its id is written as a path segment (`FieldPath`), never parsed as a dotted path, and a device or player that fails is logged and skipped.
+  - Notifications only go to browser push services (Google, Mozilla, Apple and Windows; `isPushEndpoint`), and a send gives up after 10 seconds.
+  - Players are read 200 at a time, each page with its own household cache, so the run's memory stays flat as more players turn notifications on.
+  - The cron secret is compared in constant time.
+- **Heart notifications only reach the partner** (`api/heart.ts`): the partner is the other account in the household's `memberIds` (`partnerOf`), which only ever lists accounts that joined themselves. A uid written inside a member entry is no longer trusted, so a hand-made household can't aim a heart notification at another account.
+- **Local credentials stay out of deploys:** a new `.vercelignore` keeps a Firebase service account key, `.env` files and scratch files out of `vercel` CLI uploads. The functions read the key from the `FIREBASE_SERVICE_ACCOUNT` environment variable, so no key file belongs in the project folder.
+- **Build tools updated:** Vite 5.4 → 6.4.5 and esbuild 0.21 → 0.25.12, which fix the known dev-server issues (files outside the project readable through `npm run dev`, cross-origin requests to the dev server). The app's bundle is unchanged.
+  - The Firebase SDKs stay where they are for now. firebase-admin 14 needs Node 22. Newer Firebase client releases made the app fail to start: the client packages picked up a second copy of the Firebase core that firebase-admin installs. They also add 14–67 kB (gzipped) to the download. Their open advisories (undici, gRPC) only affect Node, not the browser.
+
+## [1.8.0] - 2026-11-05
 
 Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 

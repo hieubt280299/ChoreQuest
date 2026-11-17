@@ -1,0 +1,6 @@
+# Never upload local credentials or scratch files with a CLI deploy (`vercel`). Production secrets live in the
+# Vercel project's environment variables (README "Notifications"), not in files.
+*-firebase-adminsdk-*.json
+.env
+.env.*
+.tmp/

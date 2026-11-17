@@ -18,6 +18,7 @@ import {
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getFirebase } from '../config/firebase';
 import { reauthenticateWithGoogle } from '../services/authService';
+import { reconnectOnResume } from '../services/firestoreResume';
 import type { CharacterId, HouseholdDoc, HouseholdMember, LanguageCode, TaskLog } from '../types';
 import { generateHouseholdCode, HOUSEHOLD_CODE_LENGTH, localDateKey, normalizeHouseholdCode } from '../utils/calculations';
 import { nameFromProfile } from '../utils/characterName';
@@ -185,6 +186,13 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         setHouseholdLoadedFor(householdId);
       },
     );
+  }, [uid, householdId]);
+
+  // Coming back to the app after a while restarts the live connection, so the screen never stays stale.
+  useEffect(() => {
+    const firebase = uid && householdId ? getFirebase() : null;
+    if (!firebase) return;
+    return reconnectOnResume(firebase.db);
   }, [uid, householdId]);
 
   let status: HouseholdStatus;

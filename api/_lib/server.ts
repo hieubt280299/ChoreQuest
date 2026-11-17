@@ -1,8 +1,11 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import webpush from 'web-push';
-import { distinctDevices, type PushDevice, type PushMessage } from './reminders.js';
+import { distinctDevices, isPushEndpoint, type PushDevice, type PushMessage } from './reminders.js';
+
+/** A push service answers in well under a second; one that doesn't is given up on, so it never holds up the rest. */
+const SEND_TIMEOUT_MS = 10_000;
 
 // Server-side helpers for the Vercel functions: Firebase Admin (reads households, bypassing security rules) and Web
 // Push. Configured with environment variables on Vercel; see README "Notifications".
@@ -35,7 +38,8 @@ function configureWebPush() {
 
 /**
  * Sends a notification to one of a player's devices. A subscription the push service says is gone (the app was
- * removed or notifications were turned off in the browser) is deleted. Resolves with whether it was delivered.
+ * removed or notifications were turned off in the browser) is deleted. Only browser push services are contacted
+ * (`isPushEndpoint`), and a send that takes too long is given up. Resolves with whether it was delivered.
  */
 export async function sendToDevice(
   db: Firestore,
@@ -46,23 +50,38 @@ export async function sendToDevice(
   ttlSeconds: number,
 ): Promise<boolean> {
   configureWebPush();
+  if (!isPushEndpoint(device.endpoint)) {
+    console.warn('ChoreQuest: skipped a device that is not a browser push service', hostOf(device.endpoint));
+    return false;
+  }
   try {
     await webpush.sendNotification({ endpoint: device.endpoint, keys: device.keys }, JSON.stringify(message), {
       TTL: ttlSeconds,
       urgency: 'normal',
+      timeout: SEND_TIMEOUT_MS,
     });
     return true;
   } catch (err) {
     const status = (err as { statusCode?: number }).statusCode;
     if (status === 404 || status === 410) {
+      // Path segments, never a dotted string: the device id is player data, not a path to parse.
       await db
         .doc(`users/${uid}`)
-        .update({ [`push.devices.${deviceId}`]: FieldValue.delete() })
+        .update(new FieldPath('push', 'devices', deviceId), FieldValue.delete())
         .catch(() => undefined);
     } else {
       console.error('ChoreQuest: push failed', status ?? err);
     }
     return false;
+  }
+}
+
+/** Just the host of an endpoint, for logs (the rest of a push endpoint is a per-device token). */
+function hostOf(endpoint: unknown): string {
+  try {
+    return new URL(String(endpoint)).host;
+  } catch {
+    return '(not a URL)';
   }
 }
 

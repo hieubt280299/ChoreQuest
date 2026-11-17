@@ -168,6 +168,40 @@ body,
   .px-tooltip {
     color: rgb(var(--c-ink)) !important;
     background-color: rgb(var(--c-parchment-50));
+    /* The panel frame without its drop shadow. A light 2px outline and the drop shadow come from the filter, so they
+       wrap the pointer too, and the outline keeps the bubble's frame apart from a card's frame it happens to line up
+       with: it always reads as on top, never as cut off. */
+    box-shadow:
+      0 calc(var(--bw) * -1) 0 0 var(--pb),
+      0 var(--bw) 0 0 var(--pb),
+      calc(var(--bw) * -1) 0 0 0 var(--pb),
+      var(--bw) 0 0 0 var(--pb),
+      inset -4px -4px 0 0 var(--sh),
+      inset 4px 4px 0 0 var(--hl);
+    filter: drop-shadow(2px 0 0 rgb(var(--c-parchment-50))) drop-shadow(-2px 0 0 rgb(var(--c-parchment-50)))
+      drop-shadow(0 2px 0 rgb(var(--c-parchment-50))) drop-shadow(0 -2px 0 rgb(var(--c-parchment-50)))
+      drop-shadow(0 6px 0 rgba(20, 10, 5, 0.45));
+  }
+  /* The pointer at the trigger (FloatingBubble): below the bubble pointing down, or flipped above it. */
+  .px-tooltip-tail {
+    position: absolute;
+    left: var(--tail-x, 12px);
+    top: calc(100% - 4px);
+    shape-rendering: crispEdges;
+  }
+  .px-tooltip[data-side='below'] .px-tooltip-tail {
+    top: auto;
+    bottom: calc(100% - 4px);
+    transform: scaleY(-1);
+  }
+  .px-tooltip[data-tail='off'] .px-tooltip-tail {
+    display: none;
+  }
+  .px-tooltip-tail-fill {
+    fill: rgb(var(--c-parchment-50));
+  }
+  .px-tooltip-tail-ink {
+    fill: var(--pb);
   }
   .px-tooltip .text-wood-500,
   .px-tooltip .text-wood-600,
@@ -769,18 +803,9 @@ html::-webkit-scrollbar-corner,
   }
 }
 
-/* Hide a scrollbar while keeping scrolling (touch, momentum, wheel and keyboard) exactly as it is. */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and old Edge */
-  scrollbar-width: none; /* Firefox, Chrome 121+ */
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-
 /* Installed app (PWA) on a phone or tablet (`pwa-mobile`, set by utils/pwaMode.ts, which also detects iOS
-   home-screen apps): no visible scrollbars anywhere, page and inner scroll areas alike. Browsers and desktop
-   keep their scrollbars. */
+   home-screen apps): no visible scrollbars anywhere, page and inner scroll areas alike, while scrolling (touch,
+   momentum, wheel and keyboard) works exactly as before. Browsers and desktop keep their scrollbars. */
 .pwa-mobile,
 .pwa-mobile * {
   -ms-overflow-style: none;

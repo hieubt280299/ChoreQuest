@@ -277,6 +277,10 @@ export interface WheelSpinEvent {
   ticket?: WheelTicket;
   /** A Golden Ticket miss gave a Normal Ticket back. */
   refunded?: boolean;
+  /** The jackpot bonus before this spin, so the spouse's screen can keep showing it until the wheel stops. */
+  jackpotBefore?: number;
+  /** How long the spinner's wheel turns (ms), so the spouse's screen knows when to reveal the result. */
+  spinMs?: number;
 }
 
 /** Gold Interest paid at the start of a day (counts for the payout, not for the day's MVP). */
@@ -453,17 +457,4 @@ export interface HouseholdDoc {
     freezesSettledOn?: string;
     skillsRefundedIn?: string;
   };
-}
-
-/** `householdCodes/{code}`: join-code lookup. */
-export interface HouseholdCodeDoc {
-  householdId: string;
-  createdBy: string;
-}
-
-/** `users/{uid}` */
-export interface UserProfileDoc {
-  householdId: string | null;
-  email: string | null;
-  updatedAt: number;
 }

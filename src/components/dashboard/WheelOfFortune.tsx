@@ -304,7 +304,12 @@ export function WheelOfFortune() {
     setRequesting(true);
     // Keep showing the current pot while the spin is saved, so a miss doesn't give itself away early.
     setShownBonus(state.wheel.jackpotBonus);
-    const outcome = await spinWheel(characterId);
+    // How long the wheel turns, picked before saving: the spin carries it, so the spouse's screen shows the result
+    // only once it has stopped here. Longer spins turn more, so the wheel keeps a lively speed (about one turn per
+    // second).
+    const seconds = SPIN_MIN_SECONDS + secureRandom() * (SPIN_MAX_SECONDS - SPIN_MIN_SECONDS);
+    const spinSeconds = still ? 0.01 : quality === 'low' ? 2 : seconds;
+    const outcome = await spinWheel(characterId, Math.round(spinSeconds * 1000) + 150);
     setRequesting(false);
     if (!outcome.ok) {
       setShownBonus(null);
@@ -320,14 +325,11 @@ export function WheelOfFortune() {
     const slice = matches[Math.floor(secureRandom() * matches.length)];
     const landing = (slice.start + slice.end) / 2 + (secureRandom() - 0.5) * (slice.end - slice.start) * 0.6;
     // The pointer is at the top, so the wheel turns until that point of the face is under it.
-    // Longer spins turn more, so the wheel keeps a lively speed (about one turn per second).
-    const seconds = SPIN_MIN_SECONDS + secureRandom() * (SPIN_MAX_SECONDS - SPIN_MIN_SECONDS);
     const turns = Math.round(seconds) * 360;
     const offset = (((360 - landing - rotation) % 360) + 360) % 360;
     setDuration(seconds);
     setRotation(rotation + turns + offset);
     setSpinning(true);
-    const spinSeconds = still ? 0.01 : quality === 'low' ? 2 : seconds;
     window.clearTimeout(finishTimer.current);
     finishTimer.current = window.setTimeout(finish, spinSeconds * 1000 + 150);
   };

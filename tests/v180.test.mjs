@@ -294,8 +294,8 @@ check('a heart is announced while fresh, with the sender\'s name in the device l
   assert.equal(r.freshHeart(h, 'husband', now).id, 'a');
   assert.equal(r.freshHeart(h, 'husband', now + r.HEART_FRESH_MS), null);
   assert.equal(r.freshHeart(h, 'wife', now), null);
-  assert.equal(r.heartMessage('vi', h, 'husband').title, 'Hieu gửi bạn một trái tim');
-  assert.equal(r.heartMessage('en', household(), 'wife').title, 'Wife sent you a heart');
+  assert.match(r.heartMessage('vi', h, 'husband').title, /^Hieu /);
+  assert.match(r.heartMessage('en', household(), 'wife').title, /^Your wife /);
   assert.equal(r.reminderMessage('vi', 'evening').tag, 'evening');
 });
 
@@ -376,13 +376,8 @@ check('a card shows hearts on the day its player got one, to both players', () =
 });
 
 // --- Release --------------------------------------------------------------------------------
-check('version and What\'s New are 1.8.0', () => {
-  assert.equal(m.APP_VERSION, '1.8.0');
-  assert.equal(JSON.parse(source('package.json')).version, '1.8.0');
-  const lock = JSON.parse(source('package-lock.json'));
-  assert.equal(lock.version, '1.8.0');
-  assert.equal(lock.packages[''].version, '1.8.0');
-  const { notes } = m.PATCH_NOTES[0];
+check('What\'s New and the changelog have 1.8.0', () => {
+  const { notes } = m.PATCH_NOTES.find((entry) => entry.version === '1.8.0');
   for (const section of Object.values(notes)) assert.equal(section.en.length, section.vi.length);
   assert.match(source('CHANGELOG.md'), /## \[1\.8\.0\] - \d{4}-\d{2}-\d{2}\r?\n\r?\nSpec: \[UPDATE_v1\.8\.0\.md\]/);
 });
