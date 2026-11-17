@@ -55,7 +55,7 @@ import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex 
 import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
 import { trackSave } from '../utils/savesInFlight';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
-import { rollWheelPrize, spinOnState } from '../utils/wheel';
+import { isFreshSpin, rollWheelPrize, spinOnState, spinRevealDelay, withoutSpins } from '../utils/wheel';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 
@@ -89,6 +89,10 @@ const SETTLE_DAYS: GameOp = { update: (current) => current };
 export type SpinResult = { ok: true; spin: WheelSpinEvent; jackpotBefore: number } | { ok: false; error: TranslationKey };
 
 interface GameContextValue {
+  /**
+   * The game as this screen shows it: the saved state, minus a spouse's spin whose wheel is still turning on their
+   * screen (it shows once it stops, so nothing here gives the result away first).
+   */
   state: GameState;
   loading: boolean;
   today: string;
@@ -135,7 +139,7 @@ interface GameContextValue {
    * Spend a ticket on the Wheel of Fortune. Resolves once the spin is saved (online: in a transaction on the
    * latest household data, so the prize and jackpot are the server's), so the wheel can stay locked till then.
    */
-  spinWheel: (characterId: CharacterId) => Promise<SpinResult>;
+  spinWheel: (characterId: CharacterId, spinMs?: number) => Promise<SpinResult>;
   /** Send the partner a heart from this character (once per local day); it gives them a Normal Ticket. */
   sendHeart: (from: CharacterId) => ActionResult;
   /** Whether this character has sent their heart today. */
@@ -529,7 +533,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const spinWheel = useCallback(
-    async (characterId: CharacterId): Promise<SpinResult> => {
+    async (characterId: CharacterId, spinMs?: number): Promise<SpinResult> => {
       if (!canActAs(characterId)) return { ok: false, error: 'household.error.ownCharacter' };
       // The prize is rolled once; the gold it pays (jackpot, Fortune's Favor) comes from the state it lands on.
       const prize = rollWheelPrize();
@@ -541,7 +545,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         id: newOpId(),
         update: (current) => {
           // Golden Tickets go first (2x gold; a miss refunds a Normal Ticket), see `spinOnState`.
-          const outcome = spinOnState(current, characterId, prize, { id: spinId, date, timestamp: now });
+          // `spinMs` (how long this wheel turns) tells the spouse's screen when to show the result.
+          const outcome = spinOnState(current, characterId, prize, { id: spinId, date, timestamp: now, ...(spinMs ? { spinMs } : {}) });
           if (!outcome) return 'wheel.error.noTickets';
           seen.jackpotBefore = current.wheel.jackpotBonus;
           return outcome.state;
@@ -708,6 +713,47 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const clearSyncError = useCallback(() => setSyncError(null), []);
 
+  // A spouse's spin stays hidden here while their wheel is still turning (spin id -> when to show it), so the jackpot,
+  // their gold and the day log can't spoil the result before they see it themselves (`withoutSpins`). Only spins that
+  // arrive while the app is open, and are recent, are held; the demo shares one screen, so nothing is held there.
+  const [heldSpins, setHeldSpins] = useState<Record<string, number>>({});
+  const seenSpins = useRef<Set<string> | null>(null);
+  const householdId = household?.id ?? null;
+  useEffect(() => {
+    seenSpins.current = null;
+    setHeldSpins({});
+  }, [householdId, demo]);
+  useEffect(() => {
+    if (demo || loading) return;
+    const spins = state.events.filter((event): event is WheelSpinEvent => event.type === 'spin');
+    if (!seenSpins.current) {
+      // Spins already there when the app opens aren't news.
+      seenSpins.current = new Set(spins.map((spin) => spin.id));
+      return;
+    }
+    const now = Date.now();
+    const arrived: Record<string, number> = {};
+    for (const spin of spins) {
+      if (seenSpins.current.has(spin.id)) continue;
+      seenSpins.current.add(spin.id);
+      if (spin.characterId !== myCharacter && isFreshSpin(spin, now)) arrived[spin.id] = now + spinRevealDelay(spin);
+    }
+    if (Object.keys(arrived).length > 0) setHeldSpins((current) => ({ ...current, ...arrived }));
+  }, [state.events, demo, loading, myCharacter]);
+  useEffect(() => {
+    const times = Object.values(heldSpins);
+    if (times.length === 0) return;
+    const id = window.setTimeout(
+      () => {
+        const now = Date.now();
+        setHeldSpins((current) => Object.fromEntries(Object.entries(current).filter(([, revealAt]) => revealAt > now)));
+      },
+      Math.max(0, Math.min(...times) - Date.now()) + 20,
+    );
+    return () => window.clearTimeout(id);
+  }, [heldSpins]);
+  const shownState = useMemo(() => withoutSpins(state, Object.keys(heldSpins)), [state, heldSpins]);
+
   const streakIndex = useMemo(() => buildStreakIndex(state.logs, undefined, state.freezes), [state.logs, state.freezes]);
   const levelResetUnlocked = (['husband', 'wife'] as CharacterId[]).some(
     (id) => getLevelFromXp(state.characters[id].xp) >= MAX_LEVEL,
@@ -715,7 +761,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<GameContextValue>(
     () => ({
-      state,
+      state: shownState,
       loading,
       today,
       reward,
@@ -832,6 +878,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }),
     [
       state,
+      shownState,
       loading,
       today,
       reward,

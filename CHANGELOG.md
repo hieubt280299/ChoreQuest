@@ -2,7 +2,27 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
-## [1.8.0] - 2026-11-04
+## [1.8.1] - 2026-11-17
+
+Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
+
+### Fixed
+
+- **Stale data in the installed app after it comes back to the screen.** Android froze the installed app in the background, and Firestore's live connection could die there without the SDK noticing. The screen then kept old data, such as a partner's heart or a jackpot that had grown, until the app was closed and reopened.
+  - Now, coming back after 5+ seconds away (or from the back/forward cache) restarts the connection (`services/firestoreResume.ts`), which fetches the latest data at once.
+  - A save still in progress finishes first.
+- **A spouse's spin no longer spoils its own result.** The spin is saved before the spinner's wheel starts turning, so the partner's screen used to show the result at once: the jackpot reset to 500 or grew by 10, and the spinner's gold, tickets, payout share and day log changed.
+  - Now the partner's screen holds a fresh spin back until the spinner's wheel has stopped (`withoutSpins`, `GameContext`).
+  - Each spin records how long its wheel turns (`spinMs`) and the jackpot before it (`jackpotBefore`).
+  - Only spins that arrive while their wheel may still be turning are held (judged by when they were made, allowing 5 s of clock difference); one seen later, e.g. on coming back to the app, shows at once. Spins from before this version wait for the longest spin (about 11 s).
+
+### Changed
+
+- **Release cadence written down** (AGENT_GUIDE "Versioning & Release Cadence", README):
+  - Versions follow semver, and each waits a minimum time after the previous release: a major 3 months, a minor 2 weeks, a patch 1 day.
+  - A version's date is the day it's merged into `main`, so 1.8.0's date is now 2026-11-05, the day it was merged.
+
+## [1.8.0] - 2026-11-05
 
 Spec: [UPDATE_v1.8.0.md](UPDATE_v1.8.0.md)
 

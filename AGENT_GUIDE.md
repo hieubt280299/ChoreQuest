@@ -157,7 +157,7 @@ src/
 - **One-time skill refund** (`refundSkills`, first step of `advanceDays`): a rebalance that changes skill values can refund every learned skill once per household (`SKILL_REFUND_VERSION`, marker `skillsRefundedIn`; v1.8.0 did). Players who had skills get `refundNotice`, shown as a dialog after What's New with a shortcut to the Skills page (`RefundNoticeModal`), cleared once read. New games start with the marker set.
 - **Home banner:** one chronicle banner shows the chronicle number, countdown, prize pool and the live payout split.
 - **Chronicle summary:** from Chronicle 2 on, the first launch during a new chronicle (any day, not only Day 1) shows the chronicle that just ended: winner (or tie), each player's gold, MVP days, hearts received (and who got the most), prize and share (`chronicleSummary`, `chronicleSummaryDue`). Shown once per household per device (`chorequest.summarySeen.<scope>`), after "What's New" if both are due, with a shortcut to the Wardrobe when rewards are waiting.
-- **What's New:** `constants/patchNotes.ts` holds plain-language release notes per version (`VersionConfig`: Major features, Balance adjustments, Bug fixes, Performance; EN and VI). The first entry is the app version (tests check it equals `package.json`). Existing players see it once after each update (`utils/seenVersion.ts`; fresh installs don't), and Settings → About reopens it. Add the notes for every release.
+- **What's New:** `constants/patchNotes.ts` holds short release notes per version, in simple words anyone understands (technical detail goes in CHANGELOG.md). Bug fixes never explain the bug; they follow a template: "Fixed [specific issue or crash]." or "Resolved an issue where [mechanic] failed to trigger under [condition]." (VI: "Đã sửa lỗi …" / "Đã khắc phục lỗi …"). It holds the notes per version (`VersionConfig`: Major features, Balance adjustments, Bug fixes, Performance; EN and VI). The first entry is the app version (tests check it equals `package.json`). Existing players see it once after each update (`utils/seenVersion.ts`; fresh installs don't), and Settings → About reopens it. Add the notes for every release.
 
 #### 6. Cosmetics
 
@@ -179,6 +179,8 @@ src/
   - **New characters** start with the Google profile's name (`nameFromProfile`, `seedCharacterName`); joining sets it in a second transaction, because the join write may only touch membership.
 - **App updates** (`utils/appUpdate.ts`, started in `main.tsx`): the app registers the service worker itself (`injectRegister: false`). It checks for updates on launch, on resume (`visibilitychange`), when back online and every 30 minutes. A downloaded version waits (`skipWaiting` isn't automatic) until the app posts `SKIP_WAITING` to it once nothing is in progress (a save in flight via `utils/savesInFlight.ts`, a dialog, typing, a wheel spin); the worker then claims the page (`clientsClaim`) and `controllerchange` reloads it. `version.json` (emitted by `vite.config.ts`, not precached, no-cache on Vercel) is compared with `APP_VERSION` as a fallback, reloading at most once per version per tab.
 - **Notifications** (v1.8.0, `utils/push.ts`, `settings/NotificationsSetting`, `public/push-sw.js`, `api/`): per device, from one row of Settings → Display, shown only until it's on (the device's own settings turn it off, and the row comes back if they do). Signing out unsubscribes the device first (`forgetPushDevice`), and the server sends to each subscription once (`distinctDevices`). The device subscribes with Web Push (VAPID key `VITE_VAPID_PUBLIC_KEY`) and the subscription is saved under `users/{uid}.push.devices.{deviceId}` with its time zone and language (`usePushRefresh` keeps it current). `api/heart` (called after a heart is saved, authenticated with the player's ID token) notifies the partner once per heart; `api/reminders`, run by Vercel Cron at every hour, sends each device what's due at its local time: 9 PM if that player did no quest today, 8 AM on Day 1 of a Chronicle (`api/_lib/reminders.ts`, pure and tested). Server code imports only `api/_lib/*.js` (Vercel bundles each function on its own). iPhones need the Home Screen app. Setup: README "Notifications".
+- **Live data on resume** (v1.8.1, `services/firestoreResume.ts`, started by `HouseholdContext`): phones freeze an installed app in the background and Firestore's live connection can die without the SDK noticing. Coming back after 5+ seconds (or from the back/forward cache) runs `disableNetwork` + `enableNetwork` once no save is in flight, which fetches the latest household at once.
+- **A spouse's spin stays a surprise** (v1.8.1): spins record `spinMs` (how long the spinner's wheel turns, picked before saving) and `jackpotBefore`. `GameContext` holds a spouse's spin that arrives while its wheel may still be turning (`isFreshSpin`, 5 s clock allowance) until `spinRevealDelay` has passed, and exposes `state` with it undone (`withoutSpins`: jackpot, gold, tickets, day log). Ops always work on the real state. Nothing is held in the demo (one shared screen).
 - **Tier pips** (`TierPips` with `skill`): hovering or tapping them shows the skill's values at all 4 levels, the current one highlighted (`skillLevelTable`).
 - **Skill descriptions:** `exact` shows only the current values. Use it wherever the skill can't be upgraded in place (Home tips, the partner's loadout, the spend confirmation). Your own Skills page shows current → next.
 - **Daily loop (v1.7.0):** Complete is one tap (`TasksView.startCompleting` credits the active player); only effort and late quests open `WhoDidItModal`. `QuestToast` shows the reward with Undo and Change, and `RewardModal` now only plays the coin sound and shows level-up cards. Quests are compact rows (`TaskCard`); finished ones collapse into "Done today" unless searching, filtering by Show, editing or viewing yesterday. Sort, group and show live in the Filter dialog (`QuestViewControls`), and an edit mode reveals New quest and the quest editors.
@@ -247,6 +249,24 @@ src/
 
 - `npm test` bundles the pure game logic (`tests/logic-entry.ts`, esbuild) and runs every `tests/*.test.mjs` suite in Node; `npm test -- v140` runs one. Suites are grouped by version (`core`, `streaks`, `v020` … `v140`).
 - When a rule changes, update the affected expectations and add checks to that version's suite. Keep new logic in pure functions so it can be tested here.
+
+### 🗓️ Versioning & Release Cadence
+
+Every version needs time for the developer and QE (currently the project owner and Claude) to verify it before it ships.
+
+- **Pick the right kind of version (semver):**
+    - **MAJOR (X.0.0):** incompatible changes that break existing callers. For ChoreQuest, that means saved data, the household document or the Firestore rules change in a way older app versions or existing saves can't handle.
+    - **MINOR (X.Y.0):** new functionality that stays backward compatible, such as features, screens and balance changes.
+    - **PATCH (X.Y.Z):** backward-compatible bug fixes only.
+- **Minimum time since the previous release:**
+    - MAJOR: at least **3 months** after the previous major.
+    - MINOR: at least **2 weeks** after the previous minor or major.
+    - PATCH: at least **1 day** after the previous release of any kind.
+- **Release date:** the day the version is merged into `main`, which Vercel then deploys. It's the version's date in `CHANGELOG.md` and `patchNotes.ts`.
+- **Before implementing a version** (an `UPDATE_vX.Y.Z.md`, or "do this as vX.Y.Z"), check two things:
+    1. **Kind:** does the content match the kind of version? If not, suggest the right one. For example, a patch that adds a feature becomes the next minor, and a minor that breaks old saves or clients becomes a major.
+    2. **Timing:** is the gap since the previous release long enough on the planned release date? If not, say so and give the earliest allowed date.
+- Work can start early; only the release (the merge into `main`) waits.
 
 ### 🚀 Getting Started
 

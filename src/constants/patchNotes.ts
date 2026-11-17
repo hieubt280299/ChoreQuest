@@ -17,8 +17,24 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.8.1',
+    date: '2026-11-17',
+    notes: {
+      fixes: {
+        en: [
+          'Fixed old data showing after coming back to the app.',
+          'Resolved an issue where your partner could see your wheel prize before the wheel stopped.',
+        ],
+        vi: [
+          'Đã sửa lỗi hiện dữ liệu cũ khi quay lại app.',
+          'Đã khắc phục lỗi người ấy thấy phần thưởng vòng quay trước khi vòng quay dừng.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.8.0',
-    date: '2026-11-04',
+    date: '2026-11-05',
     notes: {
       features: {
         en: [

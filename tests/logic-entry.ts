@@ -8,6 +8,7 @@ export * from '../src/utils/mvp';
 export * from '../src/utils/password';
 export * from '../src/utils/characterName';
 export * from '../src/services/authService';
+export { RECONNECT_AFTER_HIDDEN_MS, shouldReconnect } from '../src/services/firestoreResume';
 export * from '../src/utils/invite';
 export * from '../src/utils/today';
 export * from '../src/utils/skillFilters';
