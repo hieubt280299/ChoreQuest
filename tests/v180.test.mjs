@@ -294,8 +294,8 @@ check('a heart is announced while fresh, with the sender\'s name in the device l
   assert.equal(r.freshHeart(h, 'husband', now).id, 'a');
   assert.equal(r.freshHeart(h, 'husband', now + r.HEART_FRESH_MS), null);
   assert.equal(r.freshHeart(h, 'wife', now), null);
-  assert.equal(r.heartMessage('vi', h, 'husband').title, 'Hieu gửi bạn một trái tim');
-  assert.equal(r.heartMessage('en', household(), 'wife').title, 'Wife sent you a heart');
+  assert.match(r.heartMessage('vi', h, 'husband').title, /^Hieu /);
+  assert.match(r.heartMessage('en', household(), 'wife').title, /^Your wife /);
   assert.equal(r.reminderMessage('vi', 'evening').tag, 'evening');
 });
 

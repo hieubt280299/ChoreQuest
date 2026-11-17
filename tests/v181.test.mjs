@@ -176,6 +176,72 @@ check('release rule written down: semver kinds and minimum gaps', () => {
   assert.match(guide, /PATCH: at least \*\*1 day\*\*/);
 });
 
+// --- Tooltips never look cut off ---------------------------------------------------
+check('a bubble points at its trigger, across the gap between them', () => {
+  const area = { width: 393, height: 852, top: 64, bottom: 760 };
+  const size = { width: 240, height: 60 };
+  const trigger = { top: 400, bottom: 424, left: 300, right: 324 };
+  assert.ok(m.BUBBLE_GAP > m.BUBBLE_TAIL, 'the pointer never touches its trigger');
+  const above = m.placeBubble(trigger, size, area, 'right');
+  const tail = m.placeTail(trigger, above, size);
+  assert.equal(above.side, 'above');
+  assert.ok(tail.show);
+  assert.equal(above.left + tail.x + m.BUBBLE_TAIL_WIDTH / 2, 312, 'aimed at the middle of the trigger');
+  // Near the top bar it goes below, still pointing at the trigger.
+  const high = { top: 90, bottom: 114, left: 20, right: 44 };
+  const below = m.placeBubble(high, size, area);
+  assert.equal(below.side, 'below');
+  assert.ok(m.placeTail(high, below, size).show);
+  // A trigger at the far end of a wide bubble: the pointer stops short of the bubble's pixel corner.
+  const edge = m.placeTail({ top: 400, bottom: 424, left: 0, right: 4 }, { top: 300, left: 8, side: 'above' }, size);
+  assert.ok(edge.x >= 6 && edge.x <= size.width - 6 - m.BUBBLE_TAIL_WIDTH);
+  // No room on either side: the bubble covers its trigger and has no pointer.
+  assert.equal(m.placeTail(trigger, { top: 380, left: 100, side: 'above' }, size).show, false);
+});
+
+check('a bubble hides while its trigger is scrolled out of sight', () => {
+  const area = { top: 64, bottom: 760 };
+  const trigger = (top) => ({ top, bottom: top + 24, left: 100, right: 124 });
+  assert.equal(m.anchorInView(trigger(300), area, []), true);
+  assert.equal(m.anchorInView(trigger(40), area, []), false, 'under the top bar');
+  assert.equal(m.anchorInView(trigger(750), area, []), false, 'under the bottom navigation');
+  const list = { top: 200, bottom: 400, left: 0, right: 393 };
+  assert.equal(m.anchorInView(trigger(300), area, [list]), true);
+  assert.equal(m.anchorInView(trigger(420), area, [list]), false, 'scrolled out of a list');
+});
+
+check('bubbles have an outline and a pointer, and sit next to the trigger button itself', () => {
+  const css = source('src/index.css');
+  const tooltip = css.match(/\.px-tooltip \{[^}]*\}/)[0];
+  assert.match(tooltip, /filter: drop-shadow\(2px 0 0/);
+  assert.doesNotMatch(tooltip, /0 calc\(var\(--bw\) \* 2\.5\)/, 'the drop shadow comes from the filter, so the outline wraps it');
+  assert.match(css, /\.px-tooltip\[data-side='below'\] \.px-tooltip-tail/);
+  const bubble = source('src/components/ui/FloatingBubble.tsx');
+  assert.match(bubble, /className="px-tooltip-tail"/);
+  assert.match(bubble, /anchorInView\(/);
+  assert.match(source('src/components/ui/Tooltip.tsx'), /anchor=\{trigger\}/);
+});
+
+check('push notifications are short and friendly, with no game rules in them', () => {
+  const household = { memberIds: [], members: {}, game: { characters: { husband: {}, wife: { customName: 'Mai' } } } };
+  for (const language of ['en', 'vi']) {
+    const messages = [
+      m.reminders.heartMessage(language, household, 'husband'),
+      m.reminders.heartMessage(language, household, 'wife'),
+      m.reminders.reminderMessage(language, 'evening'),
+      m.reminders.reminderMessage(language, 'newChronicle'),
+    ];
+    for (const { title, body } of messages) {
+      assert.ok(title.length <= 40, `${language} title fits: ${title}`);
+      assert.ok(body.length > 0 && body.length <= 60, `${language} body fits: ${body}`);
+      assert.doesNotMatch(`${title} ${body}`, /ticket|vé|\d/i, 'no tickets or numbers');
+    }
+    assert.match(messages[1].title, /^Mai /, 'the partner\'s own name when they set one');
+  }
+  assert.match(m.reminders.heartMessage('en', household, 'husband').title, /^Your husband sent you a heart/);
+  assert.match(m.reminders.heartMessage('vi', household, 'husband').title, /^Chồng vừa gửi tim cho bạn/);
+});
+
 check('version and What\'s New are 1.8.1', () => {
   assert.equal(m.APP_VERSION, '1.8.1');
   assert.equal(JSON.parse(source('package.json')).version, '1.8.1');

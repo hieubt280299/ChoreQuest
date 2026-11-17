@@ -24,10 +24,12 @@ export const PATCH_NOTES: VersionConfig[] = [
         en: [
           'Fixed old data showing after coming back to the app.',
           'Resolved an issue where your partner could see your wheel prize before the wheel stopped.',
+          'Fixed tips looking cut off at the edge of a card.',
         ],
         vi: [
           'Đã sửa lỗi hiện dữ liệu cũ khi quay lại app.',
           'Đã khắc phục lỗi người ấy thấy phần thưởng vòng quay trước khi vòng quay dừng.',
+          'Đã sửa lỗi lời giải thích trông như bị cắt ở mép thẻ.',
         ],
       },
     },

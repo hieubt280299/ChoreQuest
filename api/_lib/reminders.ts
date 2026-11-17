@@ -143,26 +143,30 @@ export function freshHeart(household: HouseholdData, from: CharacterId, now: num
   return latest && now - latest.timestamp <= HEART_FRESH_MS ? latest : null;
 }
 
+/**
+ * Notification text: short, warm and written like a friend would say it, so a glance at the lock screen makes the
+ * player want to jump in. No rules or numbers here (tickets, gold amounts): the app shows those.
+ */
 const TEXT = {
   en: {
-    husband: 'Husband',
-    wife: 'Wife',
-    heartTitle: '{name} sent you a heart',
-    heartBody: 'You got 1 Normal Ticket. Send one back?',
-    eveningTitle: 'No quests done today yet',
-    eveningBody: 'There’s still time to keep your streaks going.',
-    newChronicleTitle: 'A new Chronicle begins!',
-    newChronicleBody: 'Gold is back to 0, and you have 3 new Streak Freezes.',
+    husband: 'Your husband',
+    wife: 'Your wife',
+    heartTitle: '{name} sent you a heart 💖',
+    heartBody: 'Send one back and make their day!',
+    eveningTitle: 'Your quests miss you ⚔️',
+    eveningBody: 'Still time to earn gold and keep your streaks alive!',
+    newChronicleTitle: 'A new Chronicle begins! 🏆',
+    newChronicleBody: 'Fresh start for you both. Who’ll win this time?',
   },
   vi: {
     husband: 'Chồng',
     wife: 'Vợ',
-    heartTitle: '{name} gửi bạn một trái tim',
-    heartBody: 'Bạn được 1 vé thường. Gửi lại một trái tim nhé?',
-    eveningTitle: 'Hôm nay bạn chưa làm nhiệm vụ nào',
-    eveningBody: 'Vẫn còn kịp giữ chuỗi của bạn.',
-    newChronicleTitle: 'Mùa mới bắt đầu!',
-    newChronicleBody: 'Vàng về 0, và bạn có lại 3 lần đóng băng chuỗi.',
+    heartTitle: '{name} vừa gửi tim cho bạn 💖',
+    heartBody: 'Gửi lại một tim cho người ấy vui nhé!',
+    eveningTitle: 'Nhiệm vụ đang chờ bạn ⚔️',
+    eveningBody: 'Vẫn còn kịp kiếm vàng và giữ chuỗi đó!',
+    newChronicleTitle: 'Mùa mới bắt đầu rồi! 🏆',
+    newChronicleBody: 'Cả hai lại về vạch xuất phát. Mùa này ai thắng đây?',
   },
 } as const;
 

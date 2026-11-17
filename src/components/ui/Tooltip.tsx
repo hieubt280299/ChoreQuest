@@ -33,6 +33,8 @@ export function Tooltip({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  // The bubble and its pointer go next to the button itself, which can be a little taller than its wrapper.
+  const trigger = useRef<HTMLButtonElement>(null);
   const bubble = useRef<HTMLSpanElement>(null);
   // How the current press started: a mouse click keeps a hover-opened bubble open instead of toggling it.
   const pointer = useRef('');
@@ -66,6 +68,7 @@ export function Tooltip({
       onPointerLeave={(event) => event.pointerType === 'mouse' && setOpen(false)}
     >
       <button
+        ref={trigger}
         type="button"
         aria-label={ariaLabel}
         aria-describedby={open ? tooltipId : undefined}
@@ -88,7 +91,7 @@ export function Tooltip({
         <FloatingBubble
           id={tooltipId}
           role="tooltip"
-          anchor={ref}
+          anchor={trigger}
           bubbleRef={bubble}
           align={align}
           className="max-w-[min(15rem,calc(100vw-1rem))] px-2.5 py-1.5 text-left text-sm font-normal normal-case leading-snug text-ink"

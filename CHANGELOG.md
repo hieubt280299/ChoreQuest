@@ -15,10 +15,20 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - Now the partner's screen holds a fresh spin back until the spinner's wheel has stopped (`withoutSpins`, `GameContext`).
   - Each spin records how long its wheel turns (`spinMs`) and the jackpot before it (`jackpotBefore`).
   - Only spins that arrive while their wheel may still be turning are held (judged by when they were made, allowing 5 s of clock difference); one seen later, e.g. on coming back to the app, shows at once. Spins from before this version wait for the longest spin (about 11 s).
+- **Tooltips no longer look cut off.** A bubble always sat above everything else, but its frame was the same as a card's, so when its edge landed right on a card's edge the two frame lines merged and the bubble looked cut off. This always happened to the Chronicle info icon in Settings, which sits just under the card title.
+  - Bubbles now have a pointer at the middle of their trigger (`placeTail`) and a light 2px outline (`.px-tooltip`), so they always read as lying on top.
+  - The gap to the trigger is 16px, for the pointer (`BUBBLE_GAP`, `BUBBLE_TAIL`). A bubble aligned to a small trigger such as an info icon reaches a little past its edge, so the pointer sits under its middle.
+  - A bubble sits next to the trigger button itself, which can be taller than its wrapper.
+  - A bubble whose trigger scrolls out of sight (under a bar, or out of a list or dialog) is hidden until the trigger is back (`anchorInView`), instead of floating over the bar.
+  - Checked in the demo: all 123 tooltip openings across every page, each with its trigger mid-screen, under the top bar and above the bottom navigation, at phone and desktop sizes in both languages. Each bubble is on screen, uncovered and points at its trigger.
 - **A very busy household can't fill up its save.** Quest logs, events, hearts and freezes were kept for 120 days however many there were, so a household with many custom quests (or a very long Chronicle) could approach Firestore's 1 MiB document limit, after which nothing would save. Each list now also keeps at most about 1,500 entries, dropping whole oldest days first (`pruneLogs`, `MAX_LOG_ENTRIES`). A month-long Chronicle makes far fewer, so normal households see no change.
 
 ### Changed
 
+- **Friendlier push notifications** (`api/_lib/reminders.ts`): every message is rewritten in warmer, more natural English and Vietnamese, short enough for a lock screen.
+  - The heart notification no longer mentions the Normal Ticket (the app shows it).
+  - A partner without a custom name is "Your husband" / "Your wife" in English.
+  - The new Chronicle message leads with the fresh race instead of "gold is back to 0".
 - **Release cadence written down** (AGENT_GUIDE "Versioning & Release Cadence", README):
   - Versions follow semver, and each waits a minimum time after the previous release: a major 3 months, a minor 2 weeks, a patch 1 day.
   - A version's date is the day it's merged into `main`, so 1.8.0's date is now 2026-11-05, the day it was merged.
