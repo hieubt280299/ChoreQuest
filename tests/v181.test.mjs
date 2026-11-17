@@ -141,6 +141,32 @@ check('a heart goes to the other account in memberIds, never to a uid written in
   assert.doesNotMatch(heart, /member\.uid !== uid/);
 });
 
+// --- The household document can't outgrow Firestore's 1 MiB --------------------------------
+check('logs are capped by count too: whole oldest days go first, the newest are kept', () => {
+  assert.equal(m.MAX_LOG_ENTRIES, 1500);
+  const day = (n) => m.addDays(today, -n);
+  const entries = [];
+  for (let d = 0; d < 40; d += 1) for (let i = 0; i < 40; i += 1) entries.push({ id: `${d}-${i}`, date: day(d) }); // newest first
+  const kept = m.pruneLogs(entries, today);
+  // 1,600 entries: the 1,500 newest reach back into day 37, which is kept whole; days 38 and 39 go.
+  assert.equal(kept.length, 1520);
+  assert.ok(kept.every((entry) => entry.date >= day(37)));
+  assert.equal(kept.filter((entry) => entry.date === today).length, 40, "today's are all kept");
+  assert.deepEqual(kept, entries.slice(0, 1520), 'order kept');
+  // Appended oldest-first (like freezes): the same entries go.
+  assert.deepEqual(m.pruneLogs([...entries].reverse(), today), [...kept].reverse());
+});
+
+check('under the cap, only the 120-day rule applies; settling trims an over-full log', () => {
+  const few = [{ date: m.addDays(today, -130) }, { date: m.addDays(today, -100) }, { date: today }];
+  assert.deepEqual(m.pruneLogs(few, today), few.slice(1));
+  const small = Array.from({ length: 1500 }, (_, i) => ({ date: m.addDays(today, -(i % 90)) }));
+  assert.equal(m.pruneLogs(small, today).length, 1500, 'exactly at the cap: nothing extra goes');
+  const log = (n, i) => ({ ...meta(`log-${n}-${i}`, { date: m.addDays(today, -n) }), taskId: `quest${i}`, completedBy: 'husband', xpAwarded: { husband: 1, wife: 0 }, goldAwarded: { husband: 1, wife: 0 } });
+  const busy = { ...m.createInitialState(today), logs: Array.from({ length: 1600 }, (_, k) => log(Math.floor(k / 40), k % 40)) };
+  assert.equal(m.settle(busy, today).logs.length, 1520);
+});
+
 // --- Release ------------------------------------------------------------------------------
 check('release rule written down: semver kinds and minimum gaps', () => {
   const guide = source('AGENT_GUIDE.md');

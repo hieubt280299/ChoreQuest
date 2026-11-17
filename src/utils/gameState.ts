@@ -50,10 +50,26 @@ import { buildStreakIndex, involves, streakWouldBreak } from './streaks';
 
 // Firestore documents are capped at 1 MiB, so keep only recent logs (the UI reads the current chronicle).
 const LOG_RETENTION_DAYS = 120;
+/**
+ * …and at most about this many entries per list. A month-long chronicle makes far fewer (one log per quest per day),
+ * so it only matters with many custom quests or a very long chronicle, where dropping the oldest days keeps saving
+ * possible instead of the document outgrowing Firestore's limit.
+ */
+export const MAX_LOG_ENTRIES = 1500;
 const HISTORY_LIMIT = 24;
 
-export function pruneLogs<T extends { date: string }>(logs: T[], today = localDateKey()): T[] {
-  const cutoff = addDays(today, -LOG_RETENTION_DAYS);
+/**
+ * Logs (or events, hearts, freezes) from the last 120 days, and over `max` entries only the newest whole days that
+ * reach it: a day is kept or dropped as a whole, so the result can pass `max` by part of one day. Works in any order.
+ */
+export function pruneLogs<T extends { date: string }>(logs: T[], today = localDateKey(), max = MAX_LOG_ENTRIES): T[] {
+  let cutoff = addDays(today, -LOG_RETENTION_DAYS);
+  if (logs.length > max) {
+    // The day of the max-th newest entry: older days go.
+    const dates = logs.map((log) => log.date).sort();
+    const oldestKept = dates[dates.length - max];
+    if (oldestKept > cutoff) cutoff = oldestKept;
+  }
   return logs.filter((log) => log.date >= cutoff);
 }
 

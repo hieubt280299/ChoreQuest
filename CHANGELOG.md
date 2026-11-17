@@ -15,6 +15,7 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - Now the partner's screen holds a fresh spin back until the spinner's wheel has stopped (`withoutSpins`, `GameContext`).
   - Each spin records how long its wheel turns (`spinMs`) and the jackpot before it (`jackpotBefore`).
   - Only spins that arrive while their wheel may still be turning are held (judged by when they were made, allowing 5 s of clock difference); one seen later, e.g. on coming back to the app, shows at once. Spins from before this version wait for the longest spin (about 11 s).
+- **A very busy household can't fill up its save.** Quest logs, events, hearts and freezes were kept for 120 days however many there were, so a household with many custom quests (or a very long Chronicle) could approach Firestore's 1 MiB document limit, after which nothing would save. Each list now also keeps at most about 1,500 entries, dropping whole oldest days first (`pruneLogs`, `MAX_LOG_ENTRIES`). A month-long Chronicle makes far fewer, so normal households see no change.
 
 ### Changed
 
