@@ -458,16 +458,3 @@ export interface HouseholdDoc {
     skillsRefundedIn?: string;
   };
 }
-
-/** `householdCodes/{code}`: join-code lookup. */
-export interface HouseholdCodeDoc {
-  householdId: string;
-  createdBy: string;
-}
-
-/** `users/{uid}` */
-export interface UserProfileDoc {
-  householdId: string | null;
-  email: string | null;
-  updatedAt: number;
-}

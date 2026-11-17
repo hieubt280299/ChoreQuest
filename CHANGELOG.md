@@ -21,6 +21,7 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
 - **Release cadence written down** (AGENT_GUIDE "Versioning & Release Cadence", README):
   - Versions follow semver, and each waits a minimum time after the previous release: a major 3 months, a minor 2 weeks, a patch 1 day.
   - A version's date is the day it's merged into `main`, so 1.8.0's date is now 2026-11-05, the day it was merged.
+- **Unused code removed:** the month-based helpers left from before Chronicles (`monthKey`, `msUntilNextMonth`, `monthLabel`), the old 50/50 `splitRewards` (replaced by `computeRewardBreakdown`), the unused `HouseholdCodeDoc` / `UserProfileDoc` types and the unused `.no-scrollbar` class (the installed app's `pwa-mobile` rule does the same job).
 
 ### Security
 

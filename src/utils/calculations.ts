@@ -79,20 +79,6 @@ export function goldForLevelRange(fromLevel: number, toLevel: number): number {
   return gold;
 }
 
-export function splitRewards(xp: number, gold: number, completer: Completer): Record<CharacterId, { xp: number; gold: number }> {
-  if (completer === 'both') {
-    return {
-      husband: { xp: xp / 2, gold: gold / 2 },
-      wife: { xp: xp / 2, gold: gold / 2 },
-    };
-  }
-  const empty = { xp: 0, gold: 0 };
-  if (completer === 'husband') {
-    return { husband: { xp, gold }, wife: empty };
-  }
-  return { husband: empty, wife: { xp, gold } };
-}
-
 export function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -127,10 +113,6 @@ export function localDateKey(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-export function monthKey(date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
 /** Skill points earned by a level: one per level, capped at what all skill slots can hold (24). */
 export function skillPointsEarned(level: number): number {
   return Math.min(level, MAX_SKILL_POINTS);
@@ -139,11 +121,6 @@ export function skillPointsEarned(level: number): number {
 export function skillPointsAvailable(level: number, skills: CharacterSkill[]): number {
   const allocated = skills.reduce((sum, skill) => sum + skill.level, 0);
   return Math.max(0, skillPointsEarned(level) - allocated);
-}
-
-export function msUntilNextMonth(date = new Date()): number {
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1, 0, 0, 0, 0);
-  return Math.max(0, end.getTime() - date.getTime());
 }
 
 export function formatCountdown(ms: number): { days: number; hours: number; minutes: number } {
@@ -201,14 +178,6 @@ export function applySkillBonuses(
   }
 
   return { xp: baseXp * xpMult, gold: baseGold * goldMult };
-}
-
-export function monthLabel(month: string, locale: string): string {
-  const [year, monthNum] = month.split('-').map(Number);
-  return new Date(year, (monthNum ?? 1) - 1, 1).toLocaleDateString(locale, {
-    month: 'long',
-    year: 'numeric',
-  });
 }
 
 export function daysInMonth(year: number, monthIndex: number): number {
