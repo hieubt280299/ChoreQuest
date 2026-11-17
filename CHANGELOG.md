@@ -33,6 +33,8 @@ Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)
   - The cron secret is compared in constant time.
 - **Heart notifications only reach the partner** (`api/heart.ts`): the partner is the other account in the household's `memberIds` (`partnerOf`), which only ever lists accounts that joined themselves. A uid written inside a member entry is no longer trusted, so a hand-made household can't aim a heart notification at another account.
 - **Local credentials stay out of deploys:** a new `.vercelignore` keeps a Firebase service account key, `.env` files and scratch files out of `vercel` CLI uploads. The functions read the key from the `FIREBASE_SERVICE_ACCOUNT` environment variable, so no key file belongs in the project folder.
+- **Build tools updated:** Vite 5.4 → 6.4.5 and esbuild 0.21 → 0.25.12, which fix the known dev-server issues (files outside the project readable through `npm run dev`, cross-origin requests to the dev server). The app's bundle is unchanged.
+  - The Firebase SDKs stay where they are for now. firebase-admin 14 needs Node 22. Newer Firebase client releases made the app fail to start: the client packages picked up a second copy of the Firebase core that firebase-admin installs. They also add 14–67 kB (gzipped) to the download. Their open advisories (undici, gRPC) only affect Node, not the browser.
 
 ## [1.8.0] - 2026-11-05
 
