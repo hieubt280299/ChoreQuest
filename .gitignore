@@ -11,3 +11,6 @@ tests/.build
 # Firebase service account keys (server credentials: keep them out of git)
 chorequest-32a06-firebase-adminsdk-fbsvc-6c24e95c89.json
 *-firebase-adminsdk-*.json
+
+# Scratch files for local / AI agent sessions
+.tmp/
