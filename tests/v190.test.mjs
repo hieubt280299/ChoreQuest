@@ -220,7 +220,11 @@ check('Get the app: the guide for each device', () => {
 });
 
 check('Get the app shows on the sign-in screen, the top bar (phones), the side menu, the More drawer and Settings', () => {
-  assert.match(source('src/components/auth/AuthScreen.tsx'), /<InstallButton variant="icon" \/>/);
+  const auth = source('src/components/auth/AuthScreen.tsx');
+  assert.match(auth, /<InstallButton variant="banner" \/>/, 'a big banner on the sign-in screen');
+  assert.ok(auth.indexOf('<InstallButton variant="banner" />') < auth.indexOf('<CabinScene />'), 'right under the title');
+  assert.match(source('src/index.css'), /prefers-reduced-motion: reduce\) \{\s*\.bob,\s*\.px-nudge,/, 'its animation stops for reduced motion');
+  for (const language of ['en', 'vi']) assert.ok(m.translations[language]['install.bannerTitle'] && m.translations[language]['install.bannerBody'], language);
   assert.match(source('src/App.tsx'), /<InstallButton variant="icon" className="md:hidden" \/>/);
   const nav = source('src/components/auth/Navigation.tsx');
   assert.match(nav, /<InstallButton variant="menu" menuItem onPrompted=/);

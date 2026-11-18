@@ -504,6 +504,25 @@ body,
   }
 }
 
+/* "Get the app" on the sign-in screen: the download arrow hops down now and then to catch the eye. */
+.px-nudge {
+  animation: px-nudge 2s steps(1) infinite;
+}
+@keyframes px-nudge {
+  0%,
+  79% {
+    transform: translateY(0);
+  }
+  80%,
+  89% {
+    transform: translateY(4px);
+  }
+  90%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .twinkle {
   animation: px-twinkle 2.4s steps(1) infinite;
 }
@@ -610,6 +629,7 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .bob,
+  .px-nudge,
   .twinkle,
   .hearth-flicker,
   .spark,

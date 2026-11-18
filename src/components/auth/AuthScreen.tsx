@@ -34,8 +34,7 @@ export function AuthScreen() {
   return (
     <div className="relative mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-4 py-10">
       {/* Vietnamese is the default, so the language can be changed before signing in. */}
-      <div className="absolute right-4 top-4 flex gap-3">
-        <InstallButton variant="icon" />
+      <div className="absolute right-4 top-4">
         <LanguageToggle />
       </div>
       {/* Arcade title screen */}
@@ -45,6 +44,8 @@ export function AuthScreen() {
         </h1>
         <p className="px-subtitle mt-4 text-xl">{t('app.tagline')}</p>
       </div>
+      {/* First thing under the title, so first-time visitors see it before signing in (hidden in the installed app). */}
+      <InstallButton variant="banner" />
       <div className="px-panel px-panel-wood p-2">
         <CabinScene />
       </div>

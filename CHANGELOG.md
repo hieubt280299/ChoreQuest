@@ -8,7 +8,7 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
 
 ### Added
 
-- **"Get the app" button** on the sign-in screen, the phone top bar, the desktop side menu, the More drawer and Settings (`InstallButton`, which `InstallAppCard` now uses too).
+- **"Get the app" button**: a big banner under the title on the sign-in screen (download icon that hops every 2 s, one line on what installing gives, full-width green button), plus buttons on the phone top bar, the desktop side menu, the More drawer and Settings (`InstallButton`, which `InstallAppCard` now uses too).
   - Opens the browser's own install dialog where there is one (`beforeinstallprompt`).
   - Otherwise opens a 1–3 step guide for the device and browser (`InstallGuideModal`, `utils/installGuide.ts`): iPhone / iPad Share → Add to Home Screen, Android browser menu, Chrome and Edge menus on computers, Safari 17+ Add to Dock. Firefox and older Safari are told to switch to Chrome or Edge.
   - In-app browsers (Zalo, Facebook, Messenger, Instagram) first get "open in Safari / Chrome".

@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import type { InstallStep } from '../../utils/installGuide';
 import { canInstall, currentInstallGuide, promptInstall, showInstallButton, subscribeInstallPrompt } from '../../utils/installPrompt';
 import { Button } from './Button';
+import { Card } from './Card';
 import { Icon } from './Icon';
 import { Modal } from './Modal';
 
@@ -51,7 +52,8 @@ export function InstallGuideModal({ open, onClose }: { open: boolean; onClose: (
 
 /**
  * "Get the app": opens the browser's own install dialog where it has one, otherwise a short guide. Hidden inside the
- * installed app. `icon` is the square top-bar button, `menu` a navigation row, `card` a full-width button.
+ * installed app. `icon` is the square top-bar button, `menu` a navigation row, `card` a button for a card, and
+ * `banner` the big invitation on the sign-in screen.
  * `onPrompted` runs once the browser's dialog opens (e.g. to close the More drawer); the guide keeps the drawer open,
  * since closing it would unmount the guide too.
  */
@@ -61,7 +63,7 @@ export function InstallButton({
   onPrompted,
   className = '',
 }: {
-  variant: 'icon' | 'menu' | 'card';
+  variant: 'icon' | 'menu' | 'card' | 'banner';
   /** Inside a `role="menu"` list (the More drawer). */
   menuItem?: boolean;
   onPrompted?: () => void;
@@ -108,6 +110,29 @@ export function InstallButton({
           <Icon as={Download} size={24} />
           {label}
         </button>
+        {guide}
+      </>
+    );
+  }
+  if (variant === 'banner') {
+    // The sign-in screen's invitation for first-time visitors: what installing gives, then one big button.
+    return (
+      <>
+        <Card tone="moss" className="space-y-4 !p-4">
+          <div className="flex items-center gap-3 min-[400px]:gap-4">
+            <span className="px-slot flex h-14 w-14 shrink-0 items-center justify-center text-moss-700 min-[400px]:h-16 min-[400px]:w-16">
+              <Icon as={Download} size={48} className="px-nudge" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xl font-extrabold uppercase leading-tight min-[400px]:text-2xl">{t('install.bannerTitle')}</p>
+              <p className="mt-1 text-base leading-snug text-wood-700">{t('install.bannerBody')}</p>
+            </div>
+          </div>
+          <Button variant="moss" className="w-full text-lg" onClick={open}>
+            <Icon as={Download} size={24} />
+            {label}
+          </Button>
+        </Card>
         {guide}
       </>
     );

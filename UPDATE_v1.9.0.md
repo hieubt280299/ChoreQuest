@@ -10,7 +10,9 @@ A **Download** button that installs ChoreQuest (a PWA) or explains how.
 
 #### Where it shows
 
-* **Sign-in screen** (`AuthScreen`), next to the language button.
+* **Sign-in screen** (`AuthScreen`): a big banner right under the title, so first-time visitors see it before signing in (`InstallButton variant="banner"`).
+    * A light green card with a download icon that hops every 2 s (`.px-nudge`; off with reduced motion or low graphics), a title ("Play it like an app" / "Chơi như một ứng dụng"), one line on what installing gives, and a full-width green "Get the app" button.
+    * The green button doesn't compete with the orange Log in button.
 * **Logged in:** the top bar (`App.tsx`, phones only), the desktop side menu (`SideNav`) and the More drawer.
 * The Settings card (`InstallAppCard`) uses the same logic. One shared component: `ui/InstallButton` (icon, menu and card styles).
 * **Hidden** when running as the installed app (`display-mode: standalone` / `fullscreen`, or `navigator.standalone`) and after `appinstalled`.
