@@ -136,7 +136,8 @@ export const SPOUSE_STREAK_MIN_DAYS = 3;
 
 /**
  * Multiplies a reward by the character's skill bonuses for this task (category, group, co-op, the spouse's
- * streak). `partnerStreak` is the spouse's current streak on this quest, in days.
+ * streak, the gold position). `partnerStreak` is the spouse's current streak on this quest, in days; `behind`
+ * says whether the character has no more chronicle gold than the spouse before this quest (Seesaw).
  */
 export function applySkillBonuses(
   baseXp: number,
@@ -146,6 +147,7 @@ export function applySkillBonuses(
   character: Character,
   skillPool: SkillDefinition[],
   partnerStreak = 0,
+  behind = true,
 ): { xp: number; gold: number } {
   let xpMult = 1;
   let goldMult = 1;
@@ -169,11 +171,17 @@ export function applySkillBonuses(
       case 'spouse_streak':
         applies = partnerStreak >= SPOUSE_STREAK_MIN_DAYS;
         break;
+      case 'gold_position':
+        // Seesaw: gold while behind or tied, XP while leading, never both.
+        if (behind) goldMult += effect.gold?.[owned.level - 1] ?? 0;
+        else xpMult += effect.xp?.[owned.level - 1] ?? 0;
+        break;
       default:
         break;
     }
     if (!applies) continue;
-    xpMult += (effect.xp?.[owned.level - 1] ?? 0) + (effect.xpPerCharacterLevel ?? 0) * getLevelFromXp(character.xp);
+    const perCharacterLevel = effect.xpPerCharacterLevel?.[owned.level - 1] ?? 0;
+    xpMult += (effect.xp?.[owned.level - 1] ?? 0) + perCharacterLevel * getLevelFromXp(character.xp);
     goldMult += effect.gold?.[owned.level - 1] ?? 0;
   }
 
@@ -302,7 +310,9 @@ export function computeRewardBreakdown(
   for (const id of recipients) {
     const baseXp = base.xp * share;
     const baseGold = base.gold * share;
-    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0);
+    // Seesaw compares chronicle gold before this quest's rewards (a tie counts as behind).
+    const behind = characters[id].gold <= characters[spouseOf(id)].gold;
+    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0, behind);
     const days = streakDays[id] ?? 0;
     const streakGold = streakBonusGold(days);
     const partnerDays = partnerStreaks[id] ?? 0;

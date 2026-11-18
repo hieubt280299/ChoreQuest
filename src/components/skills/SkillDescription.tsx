@@ -8,7 +8,12 @@ import { taskName } from '../../utils/taskNames';
 import { Tooltip } from '../ui/Tooltip';
 import { FastLearnerTooltip, MvpTooltip, TicketTooltip } from './FastLearnerTooltip';
 
-type ValueField = 'xp' | 'gold' | 'values' | 'caps';
+type ValueField = 'xp' | 'gold' | 'values' | 'caps' | 'xpPerCharacterLevel';
+
+/** A fraction as a percentage with at most one decimal: 0.25 → "25%", 0.015 → "1.5%", 0.375 → "37.5%". */
+export function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 1000) / 10}%`;
+}
 
 /**
  * A skill's value at each level as display text: XP and gold bonuses and interest as percentages
@@ -18,17 +23,25 @@ export function skillLevelValues(skill: SkillDefinition, field: ValueField = 'va
   const list = skill.effect[field] ?? [];
   const asCount =
     field === 'caps' || (field === 'values' && (skill.effect.kind === 'chronicle_tickets' || skill.effect.kind === 'mvp_tickets'));
-  return list.map((value) => (asCount ? String(value) : `${Math.round(value * 100)}%`));
+  return list.map((value) => (asCount ? String(value) : formatPercent(value)));
 }
 
 /** The stats a skill's tier pips explain, each with its value at all 4 levels (the tier pip tooltip). */
 export function skillLevelTable(skill: SkillDefinition): { label: TranslationKey; field: ValueField }[] {
   const { kind } = skill.effect;
   const rows: { label: TranslationKey; field: ValueField }[] = [];
+  if (kind === 'gold_position') {
+    // Seesaw pays one or the other: gold while behind, XP while leading.
+    return [
+      { label: 'skills.table.goldBehind', field: 'gold' },
+      { label: 'skills.table.xpLeading', field: 'xp' },
+    ];
+  }
   if (kind === 'chronicle_tickets') rows.push({ label: 'skills.table.tickets', field: 'values' });
   if (kind === 'daily_interest') rows.push({ label: 'skills.table.interest', field: 'values' }, { label: 'skills.table.cap', field: 'caps' });
   if (kind === 'mvp_tickets') rows.push({ label: 'skills.table.goldenTickets', field: 'values' });
   if (skill.effect.xp) rows.push({ label: 'skills.table.xp', field: 'xp' });
+  if (skill.effect.xpPerCharacterLevel) rows.push({ label: 'skills.table.perLevel', field: 'xpPerCharacterLevel' });
   if (skill.effect.gold) rows.push({ label: kind === 'chronicle_tickets' ? 'skills.table.spinGold' : 'skills.table.gold', field: 'gold' });
   return rows;
 }

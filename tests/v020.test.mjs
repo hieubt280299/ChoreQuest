@@ -76,6 +76,17 @@ check('misses grow the jackpot by 10, a jackpot pays 500 + bonus and resets it',
 });
 
 // --- Gold Interest --------------------------------------------------------
+/** On-time quests by `id` on these days (offsets from today): since v1.9 interest pays only after such a day. */
+const active = (state, id, ...offsets) => ({
+  ...state,
+  logs: [
+    ...state.logs,
+    ...offsets.map((offset) => ({
+      id: `active-${id}-${offset}`, taskId: 'beds', date: day(offset), completedBy: id, timestamp: 0,
+      xpAwarded: { husband: 0, wife: 0 }, goldAwarded: { husband: 0, wife: 0 },
+    })),
+  ],
+});
 const withSkill = (state, id, skillId, level, extra = {}) => ({
   ...state,
   characters: {
@@ -85,19 +96,20 @@ const withSkill = (state, id, skillId, level, extra = {}) => ({
 });
 
 check('interest adds rate x current gold each new day (compounding) and logs it for the day log', () => {
-  const s = withSkill({ ...base(), chronicle: { ...base().chronicle, endDate: day(20) } }, 'wife', 'gold-interest', 2, {
+  let s = withSkill({ ...base(), chronicle: { ...base().chronicle, endDate: day(20) } }, 'wife', 'gold-interest', 2, {
     gold: 100,
     interestOn: day(-3),
   });
+  s = active(s, 'wife', -3, -2, -1); // interest pays the day after a day with a quest (v1.9)
   const next = m.applyDailyInterest(s, today);
-  // Level 2 = 3% a day on current gold (v1.5): 100 -> 103 -> 106 (3.09) -> 109 (3.18)
-  assert.equal(next.characters.wife.gold, 109, 'interest is ordinary gold (counts for the payout)');
+  // Level 2 = 2% a day on current gold (v1.9): 100 -> 102 -> 104 (2.04) -> 106 (2.08)
+  assert.equal(next.characters.wife.gold, 106, 'interest is ordinary gold (counts for the payout)');
   assert.equal(next.characters.wife.interestOn, today);
   assert.equal('interestGold' in next.characters.wife, false);
   assert.deepEqual(next.events.filter((e) => e.type === 'interest').map((e) => [e.date, e.gold]).sort(), [
-    [day(-2), 3],
-    [day(-1), 3],
-    [today, 3],
+    [day(-2), 2],
+    [day(-1), 2],
+    [today, 2],
   ]);
   assert.equal(m.applyDailyInterest(next, today), next, 'same day again: no change');
 });
@@ -117,42 +129,43 @@ check("a chronicle's first day never pays interest", () => {
   assert.equal(next.events.length, 0);
 });
 
-check('rounding: 2% of 30 gold is 1 a day; 2% of 20 is 0 (no event)', () => {
-  const a = m.applyDailyInterest(withSkill(base(), 'husband', 'gold-interest', 1, { gold: 30, interestOn: day(-1) }), today);
-  assert.equal(a.characters.husband.gold, 31);
-  const b = m.applyDailyInterest(withSkill(base(), 'husband', 'gold-interest', 1, { gold: 20, interestOn: day(-1) }), today);
-  assert.equal(b.characters.husband.gold, 20);
+check('rounding: 1% of 60 gold is 1 a day; 1% of 40 is 0 (no event)', () => {
+  const a = m.applyDailyInterest(active(withSkill(base(), 'husband', 'gold-interest', 1, { gold: 60, interestOn: day(-1) }), 'husband', -1), today);
+  assert.equal(a.characters.husband.gold, 61);
+  const b = m.applyDailyInterest(active(withSkill(base(), 'husband', 'gold-interest', 1, { gold: 40, interestOn: day(-1) }), 'husband', -1), today);
+  assert.equal(b.characters.husband.gold, 40);
   assert.equal(b.events.length, 0);
 });
 
 // --- Rollover: interest, Fortune's Favor, payout -----------------------------
-check('advanceDays: interest up to the last day counts for the payout, then reset and Fortune tickets', () => {
+check('advanceDays: interest up to the last day counts for the payout, then gold resets', () => {
   let s = base();
   s = { ...s, chronicle: { ...s.chronicle, startDate: day(-30), endDate: day(-2) } };
   s = withSkill(s, 'husband', 'gold-interest', 1, { gold: 100, interestOn: day(-4), tickets: 1 });
   s = withSkill(s, 'husband', 'fortunes-favor', 3);
   s = { ...s, characters: { ...s.characters, wife: { ...s.characters.wife, gold: 300 } } };
+  s = active(s, 'husband', -4, -3, -2, -1);
   const next = m.advanceDays(s, today);
   const result = next.prizeHistory[0];
-  // 2% a day: 100 -> 102 -> 104 (2.04)
-  assert.deepEqual(result.goldSnapshot, { husband: 104, wife: 300 }, 'interest is in the payout snapshot');
-  assert.equal(result.payout.husband, s.prizePool * (104 / 404));
+  // 1% a day (v1.9): 100 -> 101 -> 102 (1.01)
+  assert.deepEqual(result.goldSnapshot, { husband: 102, wife: 300 }, 'interest is in the payout snapshot');
+  assert.equal(result.payout.husband, s.prizePool * (102 / 402));
   const interest = next.events.filter((e) => e.type === 'interest');
   assert.deepEqual(interest.map((e) => e.date).sort(), [day(-3), day(-2)], 'only days inside the old chronicle pay');
   assert.equal(next.characters.husband.gold, 0);
-  assert.equal(next.characters.husband.tickets, 1 + 3, "Fortune's Favor lv3 = +3 Normal Tickets");
+  assert.equal(next.characters.husband.tickets, 1, "Fortune's Favor gives no tickets at a new chronicle (v1.9)");
   assert.equal(next.characters.wife.tickets, 0);
   assert.equal(next.characters.husband.interestOn, today);
   assert.equal(next.chronicle.id, s.chronicle.id + 1);
   assert.equal(m.advanceDays(next, today), next, 'idempotent once settled');
 });
 
-check("Fortune's Favor levels 1-4 give 1 / 2 / 3 / 4 Normal Tickets each chronicle", () => {
-  for (const [level, tickets] of [[1, 1], [2, 2], [3, 3], [4, 4]]) {
+check("Fortune's Favor gives no Normal Tickets at a new chronicle at any level (v1.9: level-ups only)", () => {
+  for (const level of [1, 2, 3, 4]) {
     let s = base();
     s = { ...s, chronicle: { ...s.chronicle, startDate: day(-30), endDate: day(-1) } };
     s = withSkill(s, 'wife', 'fortunes-favor', level);
-    assert.equal(m.advanceDays(s, today).characters.wife.tickets, tickets);
+    assert.equal(m.advanceDays(s, today).characters.wife.tickets, 0);
   }
 });
 

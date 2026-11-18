@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
+import { InstallButton } from '../ui/InstallButton';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { PasswordInput } from '../ui/PasswordInput';
 import { TEXT_ACTION } from '../ui/textAction';
@@ -33,7 +34,8 @@ export function AuthScreen() {
   return (
     <div className="relative mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-4 py-10">
       {/* Vietnamese is the default, so the language can be changed before signing in. */}
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-4 top-4 flex gap-3">
+        <InstallButton variant="icon" />
         <LanguageToggle />
       </div>
       {/* Arcade title screen */}

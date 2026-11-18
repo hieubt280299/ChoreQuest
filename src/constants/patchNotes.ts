@@ -17,6 +17,40 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.9.0',
+    date: '2026-11-19',
+    notes: {
+      features: {
+        en: [
+          'New "Get the app" button: put ChoreQuest on your home screen in a few taps.',
+          'New skill Seesaw: more gold when you are behind, more XP when you are ahead.',
+        ],
+        vi: [
+          'Nút "Tải ứng dụng" mới: đưa ChoreQuest lên màn hình chính chỉ với vài lần chạm.',
+          'Kỹ năng mới Bập bênh: ít vàng hơn thì được thêm vàng, dẫn trước thì được thêm kinh nghiệm.',
+        ],
+      },
+      balance: {
+        en: [
+          'Many skills got stronger: Quick Hands, Errand Runner, Laundry Pro, Heavy Lifter, Master Chef, Team Player, Steady Worker and Tag Team.',
+          'Gold Interest, Fast Learner and Fortune’s Favor are a little weaker.',
+          'Gold Interest now only pays after a day you did a quest.',
+          'Fortune’s Favor now gives 2 tickets every time you level up.',
+          'Streaks now give as much gold as their length, up to 10.',
+          'Laundry quests give 2 more gold. Big quests give a little less gold.',
+        ],
+        vi: [
+          'Nhiều kỹ năng mạnh hơn: Nhanh tay, Việc vặt, Chuyên gia giặt giũ, Lực sĩ việc nặng, Đầu bếp chính, Đồng đội, Chăm chỉ và Tiếp sức.',
+          'Tích tiểu thành đại, Học nhanh và Kiếm vé may mắn yếu đi một chút.',
+          'Tích tiểu thành đại giờ chỉ trả lãi sau ngày bạn có làm nhiệm vụ.',
+          'Kiếm vé may mắn giờ tặng 2 vé mỗi lần lên cấp.',
+          'Chuỗi giờ cho số vàng bằng số ngày, tối đa 10.',
+          'Nhiệm vụ giặt giũ được thêm 2 vàng. Nhiệm vụ lớn được ít vàng hơn một chút.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.8.1',
     date: '2026-11-17',
     notes: {

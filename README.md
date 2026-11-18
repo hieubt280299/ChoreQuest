@@ -8,8 +8,8 @@ Built with React, TypeScript and Firebase. It installs as a PWA on phones and ha
 
 - **Quests:** log a chore when you finish it, as done by you, your partner or both of you (a "both" quest splits its reward 50/50). Each quest can be completed once a day. Quests are grouped by effort (Quick / Moderate / Heavy) and by category (cleaning, cooking, laundry, …).
 - **XP and levels:** quests give XP, up to level 30. Each level-up pays bonus gold, a skill point and a Wheel of Fortune ticket. Reaching level 30 unlocks a "New legend" reset of levels and skills.
-- **Skills:** choose up to 8 of 14 household buffs, each with 4 levels, such as more gold from cooking quests, a bonus for quests done together, extra wheel tickets, or daily interest on your gold.
-- **Streaks:** completing the same quest on consecutive days pays Fibonacci bonus gold from day 3.
+- **Skills:** choose up to 8 of 15 household buffs, each with 4 levels, such as more gold from cooking quests, a bonus for quests done together, extra wheel tickets, or daily interest on your gold.
+- **Streaks:** completing the same quest on consecutive days pays bonus gold from day 3, equal to the streak length (up to 10).
 - **Wheel of Fortune:** claim one free ticket a day, then spin for gold. Every miss grows a shared jackpot.
 - **Chronicles:** a season, one month by default. Gold resets when it ends, while XP, levels and skills stay. The prize pool (in VND) is split by each partner's share of the gold.
 - **Households:** each household holds two accounts and is joined with a 6-character code. Moderators manage quests, the prize pool and the chronicle end date. Logged quests can be undone or re-assigned, and the calendar shows a day-by-day log.

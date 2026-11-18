@@ -11,32 +11,26 @@ const skill = (id) => m.SKILL_POOL.find((s) => s.id === id).effect;
 const withChar = (state, id, extra) => ({ ...state, characters: { ...state.characters, [id]: { ...state.characters[id], ...extra } } });
 
 // --- Rebalance ------------------------------------------------------------
-check('default quests: dishwashing 28/30, cooking 40/42, vacuum 42/42', () => {
+check('quests on the v1.5 values (dishwashing 28/30, cooking 40/42, vacuum 42/42) move on to the defaults', () => {
   const by = (id) => m.DEFAULT_TASKS.find((t) => t.id === id);
-  for (const id of ['dishesLunch', 'dishesDinner']) assert.deepEqual([by(id).xp, by(id).gold], [28, 30], id);
-  for (const id of ['cookLunch', 'cooking', 'cookPetFood']) assert.deepEqual([by(id).xp, by(id).gold, by(id).group], [40, 42, 'main'], id);
-  assert.deepEqual([by('vacuum').xp, by('vacuum').gold, by('vacuum').group], [42, 42, 'heavy']);
+  const v15 = { dishesLunch: [28, 30, 'main'], dishesDinner: [28, 30, 'main'], cookLunch: [40, 42, 'main'], cooking: [40, 42, 'main'], cookPetFood: [40, 42, 'main'], vacuum: [42, 42, 'heavy'] };
+  for (const [id, [xp, gold, group]] of Object.entries(v15)) {
+    const moved = m.rebalanceTask({ id, xp, gold, group });
+    assert.deepEqual([moved.xp, moved.gold, moved.group], [by(id).xp, by(id).gold, by(id).group], id);
+  }
 });
 
-check('saved quests on v1.0 values move to v1.5; edited ones are kept', () => {
-  assert.deepEqual(m.rebalanceTask({ id: 'dishesLunch', xp: 25, gold: 30, group: 'main' }), { id: 'dishesLunch', xp: 28, gold: 30, group: 'main' });
-  assert.deepEqual(m.rebalanceTask({ id: 'cookPetFood', xp: 40, gold: 45, group: 'main' }), { id: 'cookPetFood', xp: 40, gold: 42, group: 'main' });
-  assert.deepEqual(m.rebalanceTask({ id: 'vacuum', xp: 42, gold: 50, group: 'heavy' }), { id: 'vacuum', xp: 42, gold: 42, group: 'heavy' });
+check('saved quests on v1.0 values move to the current defaults; edited ones are kept', () => {
+  const current = (id) => { const { xp, gold, group } = m.DEFAULT_TASKS.find((t) => t.id === id); return { id, xp, gold, group }; };
+  assert.deepEqual(m.rebalanceTask({ id: 'dishesLunch', xp: 25, gold: 30, group: 'main' }), current('dishesLunch'));
+  assert.deepEqual(m.rebalanceTask({ id: 'cookPetFood', xp: 40, gold: 45, group: 'main' }), current('cookPetFood'));
+  assert.deepEqual(m.rebalanceTask({ id: 'vacuum', xp: 42, gold: 50, group: 'heavy' }), current('vacuum'));
   const edited = { id: 'cooking', xp: 50, gold: 45, group: 'main' };
   assert.equal(m.rebalanceTask(edited), edited);
   const parsed = m.parseGameState({ ...m.createInitialState(today), tasks: [{ ...m.DEFAULT_TASKS.find((t) => t.id === 'cooking'), gold: 45 }] }, today);
-  assert.equal(parsed.tasks[0].gold, 42, 'migrated on load');
+  assert.equal(parsed.tasks[0].gold, current('cooking').gold, 'migrated on load');
 });
 
-check('skills (v1.8.0): Master Chef 9..36%, Laundry Pro 20..50% XP / 20..80% gold, Golden Touch 6..24% gold, Gold Interest 2/3/4/5%', () => {
-  assert.deepEqual(skill('master-chef').xp, [0.09, 0.18, 0.27, 0.36]);
-  assert.deepEqual(skill('master-chef').gold, [0.09, 0.18, 0.27, 0.36]);
-  assert.deepEqual(skill('iron-will').xp, [0.2, 0.3, 0.4, 0.5]);
-  assert.deepEqual(skill('iron-will').gold, [0.2, 0.4, 0.6, 0.8]);
-  assert.deepEqual(skill('gold-doubler').gold, [0.06, 0.12, 0.18, 0.24]);
-  assert.deepEqual(skill('gold-interest').values, [0.02, 0.03, 0.04, 0.05]);
-  assert.deepEqual([1, 2, 3, 4].map(m.dailyInterestCap), [15, 30, 45, 60]);
-});
 
 // --- Intensity --------------------------------------------------------------
 check('intensity only applies to Moderate quests with it turned on', () => {
@@ -62,9 +56,10 @@ check('skill bonuses build on the scaled base', () => {
   const s = withChar(m.createInitialState(today), 'wife', { skills: [{ skillId: 'master-chef', level: 4 }] });
   const cooking = { xp: 40, gold: 42, category: 'cooking', group: 'main', intensityEnabled: true };
   const heavy = m.computeRewardBreakdown(m.intensityBase(cooking, 'heavy'), 'wife', s.characters, m.SKILL_POOL);
+  const chef = 1 + skill('master-chef').xp[3];
   close(heavy.wife.baseXp, 60);
-  close(heavy.wife.xp, 60 * 1.36);
-  close(heavy.wife.gold, 63 * 1.36);
+  close(heavy.wife.xp, 60 * chef);
+  close(heavy.wife.gold, 63 * chef);
   const both = m.computeRewardBreakdown(m.intensityBase(cooking, 'light'), 'both', s.characters, m.SKILL_POOL);
   close(both.wife.baseGold, 21 / 2);
   close(both.husband.gold, 21 / 2, 'no skills');

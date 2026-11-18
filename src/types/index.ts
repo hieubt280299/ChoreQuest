@@ -56,7 +56,8 @@ export interface SkillDefinition {
     | 'ticket'
     | 'trending'
     | 'link'
-    | 'trophy';
+    | 'trophy'
+    | 'seesaw';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -73,8 +74,10 @@ export type SkillEffectKind =
   | 'together'
   /** Quests the spouse currently has an active streak (3+ days) on (Tag Team). */
   | 'spouse_streak'
-  /** Extra wheel tickets at the start of each chronicle (`values`). */
+  /** Extra Normal Tickets at each level-up (`values`) and more gold on Normal Ticket spins (`gold`) (Fortune's Favor). */
   | 'chronicle_tickets'
+  /** Behind or tied in chronicle gold before the quest: `gold` bonus; leading: `xp` bonus instead (Seesaw). */
+  | 'gold_position'
   /** Daily interest on current gold (`values`, fractions), up to `caps` gold a day. */
   | 'daily_interest'
   /** Extra wheel tickets at every 3rd MVP day of a chronicle (`values`). */
@@ -90,8 +93,8 @@ export interface SkillEffect {
   values?: number[];
   /** Most gold a day at levels 1-4 (Gold Interest). */
   caps?: number[];
-  /** Extra XP bonus per character level on top of `xp` (Fast Learner: +1% per level). */
-  xpPerCharacterLevel?: number;
+  /** Extra XP bonus per character level on top of `xp`, at skill levels 1-4 (Fast Learner: 1 / 1.5 / 2 / 2.5%). */
+  xpPerCharacterLevel?: number[];
   /** Quest categories a `category` skill covers (Errand Runner covers two). */
   categories?: TaskCategory[];
   group?: TaskGroup;

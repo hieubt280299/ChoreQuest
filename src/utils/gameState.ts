@@ -322,20 +322,26 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
 }
 
 const GOLD_INTEREST = SKILL_POOL.find((skill) => skill.id === 'gold-interest')!;
-const FORTUNES_FAVOR = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor')!;
 const HALL_OF_FAME = SKILL_POOL.find((skill) => skill.id === 'hall-of-fame')!;
 
 /**
  * Gold Interest: at the start of each day after `interestOn`, up to `upTo`, a character with the skill
  * gains its rate of their current gold (rounded) as ordinary gold, so it counts for the payout. Each
  * payout is also logged as an `interest` event, which keeps it out of the day's MVP. A chronicle's first
- * day never pays (gold has just reset). Derived only from stored data, so every device computes the
- * same result whoever opens the app first.
+ * day never pays (gold has just reset), and a day only pays if the character finished a quest on time the day
+ * before (alone or "Both"; late quests don't count, since they can be logged after the day was settled). Derived
+ * only from stored data, so every device computes the same result whoever opens the app first.
  */
 export function applyDailyInterest(state: GameState, upTo: string): GameState {
   let changed = false;
   const characters = { ...state.characters };
   const events = [...state.events];
+  const activeDays: Record<CharacterId, Set<string>> = { husband: new Set(), wife: new Set() };
+  for (const log of state.logs) {
+    if (log.late) continue;
+    if (log.completedBy !== 'wife') activeDays.husband.add(log.date);
+    if (log.completedBy !== 'husband') activeDays.wife.add(log.date);
+  }
   for (const id of ['husband', 'wife'] as CharacterId[]) {
     const character = characters[id];
     const level = skillLevel(character, GOLD_INTEREST.id);
@@ -353,6 +359,8 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
     for (let day = addDays(character.interestOn, 1); day <= upTo; day = addDays(day, 1)) {
       // Day 1 of a chronicle never pays (gold has just reset); every later day pays at most the level's daily cap.
       if (day <= state.chronicle.startDate) continue;
+      // Active days only: no on-time quest yesterday, no interest today.
+      if (!activeDays[id].has(addDays(day, -1))) continue;
       const interest = Math.min(cap, Math.round(gold * rate));
       if (interest <= 0) continue;
       gold += interest;
@@ -484,12 +492,8 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
   if (stats) result.stats = stats;
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
-  // Gold (and interest) reset; Fortune's Favor hands out its tickets for the new chronicle.
-  const fresh = (id: CharacterId) => {
-    const character = state.characters[id];
-    const bonusTickets = skillEffectValue(FORTUNES_FAVOR, skillLevel(character, FORTUNES_FAVOR.id));
-    return { ...character, gold: 0, mvpDays: 0, tickets: character.tickets + bonusTickets };
-  };
+  // Gold (and interest) reset. Fortune's Favor pays its tickets at level-ups only (since v1.9).
+  const fresh = (id: CharacterId) => ({ ...state.characters[id], gold: 0, mvpDays: 0 });
   return {
     ...state,
     chronicle: next,

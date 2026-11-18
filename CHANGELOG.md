@@ -2,6 +2,49 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.9.0] - 2026-11-19
+
+Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
+
+### Added
+
+- **"Get the app" button** on the sign-in screen, the phone top bar, the desktop side menu, the More drawer and Settings (`InstallButton`, which `InstallAppCard` now uses too).
+  - Opens the browser's own install dialog where there is one (`beforeinstallprompt`).
+  - Otherwise opens a 1–3 step guide for the device and browser (`InstallGuideModal`, `utils/installGuide.ts`): iPhone / iPad Share → Add to Home Screen, Android browser menu, Chrome and Edge menus on computers, Safari 17+ Add to Dock. Firefox and older Safari are told to switch to Chrome or Edge.
+  - In-app browsers (Zalo, Facebook, Messenger, Instagram) first get "open in Safari / Chrome".
+  - Hidden inside the installed app (`isInstalledApp`, now exported from `utils/pwaMode.ts`) and after `appinstalled`.
+- **New skill: Seesaw** (_Bập bênh_, effect kind `gold_position`, General filter).
+  - Before each quest's rewards it compares Chronicle gold with the spouse's. Behind or tied: +6 / 12 / 18 / 24% gold. Leading: +10 / 20 / 30 / 40% XP instead.
+  - Decided inside `computeRewardBreakdown` from the stored gold, so both phones agree. Late rules apply as usual, each owner of a Both quest checks their own side, and undo takes back the stored amounts.
+
+### Changed
+
+- **Skill rebalance** (no refund; `SKILL_REFUND_VERSION` stays `1.8.0`):
+
+  | Skill | v1.8 | v1.9 |
+  | --- | --- | --- |
+  | Gold Interest | 2 / 3 / 4 / 5%, cap 15 / 30 / 45 / 60 | 1 / 2 / 3 / 4%, cap 15 / 25 / 35 / 45, active days only |
+  | Fortune's Favor | 1 / 2 / 3 / 4 Normal Tickets per Chronicle and per level-up | 2 per level-up at every level, none per Chronicle |
+  | Fast Learner | 30 / 45 / 60 / 75% XP + 1% per character level | 25 / 30 / 35 / 40% + 1 / 1.5 / 2 / 2.5% per character level |
+  | Quick Hands | 10 / 20 / 30 / 40% | 15 / 25 / 35 / 45% |
+  | Errand Runner | 15 / 30 / 45 / 60% | 30 / 40 / 50 / 60% |
+  | Laundry Pro | XP 20–50%, gold 20–80% | 30 / 45 / 60 / 75% both |
+  | Heavy Lifter | XP 10–40%, gold 20–50% | XP 15 / 30 / 45 / 60%, gold 20 / 40 / 60 / 80% |
+  | Master Chef | 9 / 18 / 27 / 36% | 12 / 24 / 36 / 48% |
+  | Team Player | 15 / 30 / 45 / 60% | 20 / 40 / 60 / 80% |
+  | Steady Worker | 10 / 15 / 20 / 25% | 10 / 16 / 22 / 28% |
+  | Tag Team | 15 / 30 / 45 / 60% gold | 25 / 50 / 75 / 100% gold |
+
+  - **Gold Interest, active days only** (`applyDailyInterest`): a day pays only if the player finished an on-time quest (alone or Both) the day before. Late quests don't count, since they can be logged after the day was settled.
+  - **Fortune's Favor** no longer gives tickets at a new Chronicle (`applyChronicleRollover`).
+  - **Fast Learner:** `xpPerCharacterLevel` is now per skill level. Its tier pips show it as its own row, and half percents show one decimal (`formatPercent`).
+  - Laundry Pro's description names its now-equal XP and gold bonus once.
+- **Quest rebalance** (`V19_REBALANCE`; saved built-ins on the v1.8 values move, edited quests stay):
+  - Laundry quests +2 gold: Wash Clothes and Collect Dried Clothes 8 / 10, Hang / Dry Clothes 10 / 12, Change Bed Sheets 13 / 17.
+  - Quests with 30+ gold −5 gold, but never below their XP: dishwashing 28 / 28, cooking 40 / 40, Supermarket Shopping 45 / 45, Mop House 42 / 42, Clean Bathroom 55 / 60. Vacuum House stays 42 / 42.
+- **Streak gold = streak length:** days 3–10 pay 3–10 gold, then 10 a day (was Fibonacci up to 21; `STREAK_BONUS_GOLD`). Tag Team's cover run-down follows: 10, 9, 8 … 3.
+- **Tests:** older suites now read skill and quest values from the code instead of pinning v1.8 numbers; the new values are pinned in `tests/v190.test.mjs`.
+
 ## [1.8.1] - 2026-11-17
 
 Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)

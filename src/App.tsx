@@ -16,6 +16,7 @@ import { SkillsView } from './components/skills/SkillsView';
 import { RewardModal } from './components/tasks/RewardModal';
 import { TasksView } from './components/tasks/TasksView';
 import { AudioToggle } from './components/ui/AudioToggle';
+import { InstallButton } from './components/ui/InstallButton';
 import { LanguageToggle } from './components/ui/LanguageToggle';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { OfflineBadge } from './components/ui/OfflineBadge';
@@ -66,6 +67,7 @@ export default function App() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 md:justify-end">
           <p className="px-wordmark hidden text-[11px] min-[400px]:block md:hidden">ChoreQuest</p>
           <div className="ml-auto flex items-center gap-3 md:ml-0">
+            <InstallButton variant="icon" className="md:hidden" />
             <LanguageToggle />
             <AudioToggle />
             <ProfileSwitcher onOpenWardrobe={() => setWardrobeOpen(true)} />

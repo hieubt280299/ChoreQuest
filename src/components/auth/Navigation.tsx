@@ -10,6 +10,7 @@ import type { AppView } from '../../types';
 import { getLevelFromXp, skillPointsAvailable } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { Icon } from '../ui/Icon';
+import { InstallButton } from '../ui/InstallButton';
 import { pixelEase } from '../ui/Modal';
 import { PixelSprite } from '../ui/pixel/PixelSprite';
 
@@ -126,6 +127,7 @@ export function BottomNav({
                 <Icon as={Shirt} size={24} />
                 {t('cosmetics.title')}
               </button>
+              <InstallButton variant="menu" menuItem onPrompted={() => setMoreOpen(false)} />
             </motion.div>
           </motion.div>
         )}
@@ -214,6 +216,7 @@ export function SideNav({
             <Icon as={Shirt} size={24} />
             {t('cosmetics.title')}
           </button>
+          <InstallButton variant="menu" />
         </div>
       </div>
     </aside>

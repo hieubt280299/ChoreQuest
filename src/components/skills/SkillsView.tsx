@@ -55,11 +55,6 @@ export function TierPips({ level, skill }: { level: number; skill?: SkillDefinit
               ))}
             </span>
           ))}
-          {skill.effect.xpPerCharacterLevel ? (
-            <span className="block text-wood-700">
-              {t('skills.perCharacterLevel', { value: Math.round(skill.effect.xpPerCharacterLevel * 100) })}
-            </span>
-          ) : null}
         </span>
       }
     />

@@ -4,8 +4,8 @@ import { addDays } from './calculations';
 // Consecutive-day quest streaks. They're derived from the quest log rather than stored, so undoing or
 // re-assigning an entry automatically fixes them and there's nothing to keep in sync.
 
-/** Bonus gold for streak days 3..10 (Fibonacci); longer streaks stay at the day-10 value. */
-export const STREAK_BONUS_GOLD = [1, 1, 2, 3, 5, 8, 13, 21] as const;
+/** Bonus gold for streak days 3..10: the streak's length (since v1.9); longer streaks stay at the day-10 value. */
+export const STREAK_BONUS_GOLD = [3, 4, 5, 6, 7, 8, 9, 10] as const;
 export const STREAK_MIN_DAYS = 3;
 export const STREAK_MAX_DAYS = STREAK_MIN_DAYS + STREAK_BONUS_GOLD.length - 1;
 
