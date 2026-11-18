@@ -413,23 +413,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [canRename, commit],
   );
 
+  const yesterdayOpen = useCallback((now: Date = new Date()) => {
+    const current = stateRef.current;
+    const todayKey = localDateKey(now);
+    return now.getHours() < 12 && todayKey !== current.chronicle.startDate && !current.logs.some((log) => log.date === todayKey);
+  }, []);
+
+  /**
+   * Either player may fix (undo or re-assign) any entry, whoever did or logged it (v1.9): today's entries, and late
+   * entries ("Yesterday's quests") while the late window is open. Yesterday's on-time entries stay locked.
+   */
   const canManageLog = useCallback(
     (log: TaskLog) => {
       // Gold of finished chronicles is already settled, so only current-chronicle logs can change; and XP
       // from before a level reset is gone, so those entries can't be undone either.
       if (log.date < stateRef.current.chronicle.startDate || !canPlay) return false;
       if (stateRef.current.levelResetAt !== undefined && log.timestamp < stateRef.current.levelResetAt) return false;
-      if (demo || isModerator) return true;
-      return log.loggedBy === user?.uid || log.completedBy === myCharacter || log.completedBy === 'both';
+      const todayKey = localDateKey();
+      if (log.late) return log.date === addDays(todayKey, -1) && yesterdayOpen();
+      return log.date === todayKey;
     },
-    [canPlay, demo, isModerator, myCharacter, user?.uid],
+    [canPlay, yesterdayOpen],
   );
-
-  const yesterdayOpen = useCallback((now: Date = new Date()) => {
-    const current = stateRef.current;
-    const todayKey = localDateKey(now);
-    return now.getHours() < 12 && todayKey !== current.chronicle.startDate && !current.logs.some((log) => log.date === todayKey);
-  }, []);
 
   const yesterdayQuests = useCallback(() => {
     const current = stateRef.current;
@@ -607,9 +612,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           update: (current) => {
             const entry = current.logs.find((item) => item.id === logId);
             if (!entry) return 'tasks.error.missing';
-            const revoked = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
-            if (!revoked.ok) return 'tasks.error.skillsSpent';
-            return { ...current, characters: revoked.characters, logs: current.logs.filter((item) => item.id !== logId) };
+            const characters = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
+            return { ...current, characters, logs: current.logs.filter((item) => item.id !== logId) };
           },
         }).result,
       );
@@ -638,13 +642,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (xp === undefined || gold === undefined || !category || !group) return 'tasks.error.missing';
 
           const revoked = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
-          if (!revoked.ok) return 'tasks.error.skillsSpent';
           // Streaks as of that entry's day, not counting the entry itself. Later entries keep the bonus they earned.
           const index = buildStreakIndex(current.logs, entry.id, current.freezes);
           const full = computeRewardBreakdown(
             { xp, gold, category, group },
             completer,
-            revoked.characters,
+            revoked,
             SKILL_POOL,
             recipientStreaks(index, entry.taskId, completer, entry.date),
             partnerStreaks(index, entry.taskId, completer, entry.date),
@@ -652,7 +655,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           // A late entry keeps the late rules when re-assigned.
           const breakdown = entry.late ? lateRewardBreakdown(full) : full;
           const split = splitFromBreakdown(breakdown);
-          const { characters, levelUps } = grantRewards(revoked.characters, split);
+          const { characters, levelUps } = grantRewards(revoked, split);
           const { coveredFor: _coveredFor, ...unchanged } = entry;
           const updated: TaskLog = {
             ...unchanged,

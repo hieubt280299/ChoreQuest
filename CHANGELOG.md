@@ -43,6 +43,11 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
   - Laundry quests +2 gold: Wash Clothes and Collect Dried Clothes 8 / 10, Hang / Dry Clothes 10 / 12, Change Bed Sheets 13 / 17.
   - Quests with 30+ gold −5 gold, but never below their XP: dishwashing 28 / 28, cooking 40 / 40, Supermarket Shopping 45 / 45, Mop House 42 / 42, Clean Bathroom 55 / 60. Vacuum House stays 42 / 42.
 - **Streak gold = streak length:** days 3–10 pay 3–10 gold, then 10 a day (was Fibonacci up to 21; `STREAK_BONUS_GOLD`). Tag Team's cover run-down follows: 10, 9, 8 … 3.
+- **Fix an entry** (`canManageLog`):
+  - Either player can now undo or re-assign any entry, whoever did or logged it.
+  - Today's entries can be fixed, and so can yesterday's late entries while the late window is open; yesterday's on-time entries stay locked. The Yesterday view shows Fix on late entries and stays available while there are any.
+  - Fixing no longer refuses when a level's skill points are spent: the player keeps the level and owes the missing XP (`Character.xpDebt`, `revokeRewards`). For example, level 7 with 10 XP losing 20 XP becomes level 7 with −10 XP.
+  - New XP pays the debt first (`grantRewards`). The text shows negative XP; bars and level rings show it as empty (`characterXpProgress`).
 - **Tests:** older suites now read skill and quest values from the code instead of pinning v1.8 numbers; the new values are pinned in `tests/v190.test.mjs`.
 
 ## [1.8.1] - 2026-11-17

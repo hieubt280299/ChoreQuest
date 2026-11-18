@@ -24,10 +24,14 @@ export const PATCH_NOTES: VersionConfig[] = [
         en: [
           'New "Get the app" button: put ChoreQuest on your home screen in a few taps.',
           'New skill Seesaw: more gold when you are behind, more XP when you are ahead.',
+          'Either of you can now fix any finished quest. Late quests can be fixed until noon.',
+          'Fixing a quest is never blocked: you keep your level, even if your XP goes below zero.',
         ],
         vi: [
           'Nút "Tải ứng dụng" mới: đưa ChoreQuest lên màn hình chính chỉ với vài lần chạm.',
           'Kỹ năng mới Bập bênh: ít vàng hơn thì được thêm vàng, dẫn trước thì được thêm kinh nghiệm.',
+          'Giờ cả hai đều sửa được mọi nhiệm vụ đã xong. Nhiệm vụ làm trễ sửa được đến 12 giờ trưa.',
+          'Sửa nhiệm vụ không còn bị chặn: bạn vẫn giữ cấp, kể cả khi kinh nghiệm xuống dưới 0.',
         ],
       },
       balance: {

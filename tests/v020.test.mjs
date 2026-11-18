@@ -33,9 +33,8 @@ check('undo then redo a level-up does not pay tickets twice', () => {
   const first = m.grantRewards(s.characters, { husband: { xp, gold: 5 }, wife: { xp: 0, gold: 0 } });
   assert.equal(first.characters.husband.goldenTickets, 1);
   const undone = m.revokeRewards(first.characters, { husband: xp, wife: 0 }, { husband: 5, wife: 0 });
-  assert.ok(undone.ok);
-  assert.equal(undone.characters.husband.goldenTickets, 1, 'tickets are kept on undo');
-  const again = m.grantRewards(undone.characters, { husband: { xp, gold: 5 }, wife: { xp: 0, gold: 0 } });
+  assert.equal(undone.husband.goldenTickets, 1, 'tickets are kept on undo');
+  const again = m.grantRewards(undone, { husband: { xp, gold: 5 }, wife: { xp: 0, gold: 0 } });
   assert.equal(again.characters.husband.goldenTickets, 1, 'no second ticket for the same level');
   assert.equal(again.levelUps[0].goldenTickets, 0);
 });

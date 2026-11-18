@@ -102,8 +102,9 @@ export const TaskCard = memo(
         {editing ? (
           <IconButton icon={Pencil} align="right" label={t('tasks.edit')} onClick={() => onEdit(task)} />
         ) : log ? (
-          // Yesterday's entries are locked: no fixing them.
-          !yesterday && canFix && <IconButton icon={Undo} align="right" label={t('tasks.editLog')} onClick={() => onFix(log)} />
+          // Which entries can be fixed is decided by `canManageLog`: today's, and yesterday's late ones while the late
+          // window is open (yesterday's on-time entries stay locked).
+          canFix && <IconButton icon={Undo} align="right" label={t('tasks.editLog')} onClick={() => onFix(log)} />
         ) : (
           <IconButton
             icon={Check}

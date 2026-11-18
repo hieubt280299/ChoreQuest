@@ -1,6 +1,6 @@
 # UPDATE v1.9.0 Specification
 
-Minor version: a new button, a new skill, and a skill and quest rebalance. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
+Minor version: a new button, a new skill, a skill and quest rebalance, and simpler Fix entry rules. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
 
 ---
 
@@ -149,7 +149,37 @@ Unchanged: Golden Touch, Speed Cleaner, Hall of Fame.
 
 ---
 
-### 5. ✅ Release Checklist
+### 5. 🛠️ Fix an Entry
+
+#### Who can fix what (`canManageLog`)
+
+* **Either player** can undo or change who did any entry, whoever did or logged it (no moderator, logger or completer check).
+* **Today's entries** (on time) can be fixed.
+* **During the late window** ("Yesterday's quests", until noon):
+    * Yesterday's **late** entries can be fixed by either player. Fix shows on them in the Yesterday view (`TaskCard`).
+    * Yesterday's **on-time** entries stay locked, as before.
+    * The Yesterday view stays available while yesterday has late entries, even once every quest is done.
+* Unchanged: entries from before the Chronicle start or a level reset can't be fixed.
+
+#### Never refuse over spent skill points (`revokeRewards`)
+
+* If taking back the XP would drop a level whose skill points are already spent, the player **keeps the level** and owes the missing XP:
+    * New optional `Character.xpDebt`. `xp` stays at the start of the kept level (`xpAtLevelStart`).
+    * *Example:* level 7 with 10 XP loses 20 XP → level 7 with −10 XP.
+    * New XP pays the debt first (`grantRewards`).
+    * No level-up gold is taken back, since the level stays.
+* If the points are not all spent, the level drops as before and its level-up gold is taken back.
+* `revokeRewards` always succeeds and returns the characters. Remove `tasks.error.skillsSpent`.
+* `xpDebt` is saved and loaded (dropped when not a positive number) and cleared by a New Legend reset.
+
+#### Display (`characterXpProgress`)
+
+* Text shows the negative XP: "−10 / 780 XP".
+* XP bars and level rings show it as 0 (empty).
+
+---
+
+### 6. ✅ Release Checklist
 
 * **Tests:** `v100`, `v120`, `v180` and `streaks` pin v1.8 values. Update them to check behaviour only, and put the new values in `tests/v190.test.mjs`. That suite also covers:
     * Seesaw: behind, tied, leading, Both, late, undo.
@@ -157,6 +187,7 @@ Unchanged: Golden Touch, Speed Cleaner, Hall of Fame.
     * Fortune's Favor tickets: per level-up only.
     * The quest rebalance step.
     * The streak table.
+    * Fix an entry: keeping a level with negative XP, paying it back, the unchanged level drop, save and load, and who can fix what.
 * **Docs:** AGENT_GUIDE (skill values, Seesaw, streak rule, Fast Learner example) and README (Fibonacci streaks).
 * **Release:** CHANGELOG, `package.json` version, a What's New entry in `patchNotes.ts` (EN + VI, short and simple), and ROADMAP statuses.
 * **Merge** no earlier than 2026-11-19 (two weeks after v1.8.0).

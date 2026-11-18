@@ -16,6 +16,12 @@ export interface Character {
   /** Player-chosen display name (max 16 letters/digits/spaces); unset = show the role. */
   customName?: string;
   xp: number;
+  /**
+   * XP owed after a fixed entry took back more XP than the character's level holds while that level's skill points
+   * were spent: the level is kept (`xp` sits at its start) and this much new XP pays it back first. Shown as negative
+   * XP ("-10 XP"). Absent when 0.
+   */
+  xpDebt?: number;
   /** Gold earned this chronicle (quests, wheel, interest); decides the payout split. */
   gold: number;
   skills: CharacterSkill[];

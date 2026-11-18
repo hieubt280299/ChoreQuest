@@ -91,9 +91,8 @@ check('Seesaw late: half gold when behind, nothing while leading; undo takes bac
   const split = m.splitFromBreakdown(m.computeRewardBreakdown(quest, 'husband', s.characters, m.SKILL_POOL));
   const granted = m.grantRewards(s.characters, split).characters;
   const undone = m.revokeRewards(granted, { husband: split.husband.xp, wife: 0 }, { husband: split.husband.gold, wife: 0 });
-  assert.ok(undone.ok);
-  assert.equal(undone.characters.husband.gold, 0);
-  assert.equal(undone.characters.husband.xp, xp);
+  assert.equal(undone.husband.gold, 0);
+  assert.equal(undone.husband.xp, xp);
 });
 
 check('Seesaw sits under General, with its icon, both descriptions and its two tier pip rows', () => {
@@ -231,6 +230,63 @@ check('Get the app shows on the sign-in screen, the top bar (phones), the side m
   assert.match(prompt, /return !installed && !isInstalledApp\(\);/, 'hidden in the installed app and after installing');
   assert.match(source('src/utils/pwaMode.ts'), /export function isInstalledApp/);
   for (const language of ['en', 'vi']) assert.ok(m.translations[language]['install.button'], language);
+});
+
+// --- Fix an entry ---------------------------------------------------------------------------
+const atLevel7 = (extraXp, points = 7) => {
+  const xp = m.xpAtLevelStart(7) + extraXp;
+  return withChar(m.createInitialState(today), 'wife', { xp, skills: [{ skillId: 'gold-doubler', level: 4 }, { skillId: 'master-chef', level: points - 4 }] });
+};
+
+check('fixing an entry keeps a level whose skill points are spent: level 7, 10 XP, -20 XP -> level 7, -10 XP', () => {
+  const s = atLevel7(10);
+  const after = m.revokeRewards(s.characters, { husband: 0, wife: 20 }, { husband: 0, wife: 0 });
+  assert.equal(m.getLevelFromXp(after.wife.xp), 7, 'level kept');
+  assert.equal(after.wife.xpDebt, 10);
+  const progress = m.characterXpProgress(after.wife);
+  assert.equal(progress.level, 7);
+  assert.equal(progress.currentInLevel, -10, 'text shows -10 XP');
+  assert.equal(progress.percent, 0, 'bars show it as empty');
+  assert.equal(after.wife.gold, s.characters.wife.gold, 'no level-up gold taken back, since the level stays');
+  // Losing more grows the debt; new XP pays it back first.
+  const deeper = m.revokeRewards(after, { husband: 0, wife: 5 }, { husband: 0, wife: 0 });
+  assert.equal(deeper.wife.xpDebt, 15);
+  const paid = m.grantRewards(deeper, { husband: { xp: 0, gold: 0 }, wife: { xp: 20, gold: 0 } }).characters;
+  assert.equal(paid.wife.xpDebt, undefined);
+  assert.equal(m.characterXpProgress(paid.wife).currentInLevel, 5);
+  const partly = m.grantRewards(deeper, { husband: { xp: 0, gold: 0 }, wife: { xp: 6, gold: 0 } }).characters;
+  assert.equal(partly.wife.xpDebt, 9);
+  assert.equal(partly.wife.xp, m.xpAtLevelStart(7));
+});
+
+check('with points left unspent, the level drops as before (and its level-up gold goes back)', () => {
+  const s = withChar(atLevel7(10, 6), 'wife', { gold: 500 }); // 6 of 7 points spent: level 6 still covers them
+  const after = m.revokeRewards(s.characters, { husband: 0, wife: 20 }, { husband: 0, wife: 0 });
+  assert.equal(m.getLevelFromXp(after.wife.xp), 6);
+  assert.equal(after.wife.xp, m.xpAtLevelStart(7) - 10);
+  assert.equal(after.wife.xpDebt, undefined);
+  assert.equal(after.wife.gold, 500 - m.getLevelUpGold(7));
+});
+
+check('XP owed survives a save and load, bad values are dropped, and a New Legend reset clears it', () => {
+  const s = withChar(atLevel7(0), 'wife', { xpDebt: 12 });
+  const back = m.fromHouseholdDoc(m.toHouseholdSections(s), today);
+  assert.equal(back.characters.wife.xpDebt, 12);
+  const bad = m.parseGameState(withChar(s, 'wife', { xpDebt: -4 }), today);
+  assert.equal('xpDebt' in bad.characters.wife, false);
+  assert.equal('xpDebt' in m.resetLevelsAndSkills(s).characters.wife, false);
+});
+
+check('either player can fix any entry: today\'s, and late ones while the late window is open', () => {
+  const ctx = source('src/context/GameContext.tsx');
+  const rule = ctx.slice(ctx.indexOf('const canManageLog = useCallback('), ctx.indexOf('[canPlay, yesterdayOpen],'));
+  assert.doesNotMatch(rule, /loggedBy|myCharacter|isModerator/, 'whoever did or logged it');
+  assert.match(rule, /if \(log\.late\) return log\.date === addDays\(todayKey, -1\) && yesterdayOpen\(\);/);
+  assert.match(rule, /return log\.date === todayKey;/, "yesterday's on-time entries stay locked");
+  assert.doesNotMatch(ctx, /skillsSpent/, 'fixing never refuses over spent skill points');
+  assert.match(source('src/components/tasks/TaskCard.tsx'), /canFix && <IconButton icon=\{Undo\}/, 'Fix shows in the Yesterday view too');
+  assert.match(source('src/components/tasks/TasksView.tsx'), /lateQuests\.length > 0 \|\| lateEntries/);
+  assert.equal(m.translations.en['tasks.error.skillsSpent'], undefined);
 });
 
 // --- Release -------------------------------------------------------------------------------

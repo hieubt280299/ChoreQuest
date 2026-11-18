@@ -272,7 +272,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
     // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
-    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, ...rest } = data
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, xpDebt, ...rest } = data
       .characters![id] as Character & {
       interestGold?: unknown;
     };
@@ -295,6 +295,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       ...(isDateKey(ticketClaimedOn) ? { ticketClaimedOn } : {}),
       ...(isDateKey(interestOn) ? { interestOn } : {}),
       ...(refundNotice === true ? { refundNotice } : {}),
+      ...(count(xpDebt) > 0 ? { xpDebt: count(xpDebt) } : {}),
     };
   };
   const state: GameState = {
@@ -546,11 +547,17 @@ export function resetLevelsAndSkills(state: GameState, now = Date.now()): GameSt
   return {
     ...state,
     characters: {
-      husband: { ...state.characters.husband, xp: 0, skills: [], ticketLevel: 1 },
-      wife: { ...state.characters.wife, xp: 0, skills: [], ticketLevel: 1 },
+      husband: { ...withoutXpDebt(state.characters.husband), xp: 0, skills: [], ticketLevel: 1 },
+      wife: { ...withoutXpDebt(state.characters.wife), xp: 0, skills: [], ticketLevel: 1 },
     },
     levelResetAt: now,
   };
+}
+
+/** A character with no XP owed (levels start again from 0 after a reset). */
+function withoutXpDebt(character: Character): Character {
+  const { xpDebt: _xpDebt, ...rest } = character;
+  return rest;
 }
 
 export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKey(), advance = true): GameState | null {

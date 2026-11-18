@@ -6,7 +6,7 @@ import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character } from '../../types';
-import { formatGold, getXpProgress } from '../../utils/calculations';
+import { characterXpProgress, formatGold } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
 import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
@@ -52,7 +52,8 @@ export function CharacterCard({ character, active }: { character: Character; act
   const { role, hasCustomName } = useCharacterName();
   const [renaming, setRenaming] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
-  const progress = getXpProgress(character.xp);
+  // XP owed after a fixed entry shows as negative XP in the text and an empty bar.
+  const progress = characterXpProgress(character);
   const id = character.id;
   const claimed = character.ticketClaimedOn === today;
   const ticketLabel = character.tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: character.tickets });

@@ -73,12 +73,15 @@ export function TasksView() {
   } = useGame();
   const [pending, setPending] = useState<Task | null>(null);
   // "Yesterday's quests" view: every quest with yesterday's state; unfinished ones can be completed late (no XP,
-  // half gold), finished ones are locked.
+  // half gold), late ones can be fixed, and ones finished on time yesterday are locked.
   const [yesterdayView, setYesterdayView] = useState(false);
   const now = useMinuteNow();
   const graceOpen = yesterdayOpen(now);
   const lateQuests = graceOpen ? yesterdayQuests() : [];
-  const showingYesterday = yesterdayView && graceOpen && lateQuests.length > 0;
+  // The view stays open while yesterday has late entries, so they can still be fixed once everything is done.
+  const lateEntries = graceOpen && state.logs.some((log) => log.late && log.date === addDays(localDateKey(now), -1));
+  const yesterdayAvailable = graceOpen && (lateQuests.length > 0 || lateEntries);
+  const showingYesterday = yesterdayView && yesterdayAvailable;
   const [completer, setCompleter] = useState<Completer>(activeCharacter);
   const [fixing, setFixing] = useState<TaskLog | null>(null);
   const [fixCompleter, setFixCompleter] = useState<Completer>('both');
@@ -220,7 +223,7 @@ export function TasksView() {
           <ErrorNote error={error} />
         </div>
       )}
-      {graceOpen && lateQuests.length > 0 && (
+      {yesterdayAvailable && (
         <YesterdaysQuestsBanner active={showingYesterday} count={lateQuests.length} onToggle={() => {
             // Each view starts from the default sort, grouping and filter.
             setPrefs(DEFAULT_PREFS);
