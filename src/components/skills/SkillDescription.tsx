@@ -124,7 +124,8 @@ export function SkillDescription({
         if (!field) return <Fragment key={partIndex}>{part}</Fragment>;
         const values = skillLevelValues(skill, field);
         const current = values[level - 1];
-        const next = exact ? undefined : values[level];
+        // No "2 → 2" when the next level gives the same (Fortune's Favor's tickets).
+        const next = exact || values[level] === current ? undefined : values[level];
         return (
           <Fragment key={partIndex}>
             {current && <strong className="font-extrabold text-brick-600">{current}</strong>}

@@ -132,6 +132,11 @@ check("Fortune's Favor: 2 Normal Tickets per level-up at every level, none per C
   assert.doesNotMatch(m.translations.en['skill.fortunesFavor.desc'], /Chronicle/);
 });
 
+check('a value that is the same at every level is shown once (no "2 / 2 / 2 / 2", no "2 → 2")', () => {
+  assert.match(source('src/components/skills/SkillsView.tsx'), /const same = values\.every\(\(value\) => value === values\[0\]\);/);
+  assert.match(source('src/components/skills/SkillDescription.tsx'), /const next = exact \|\| values\[level\] === current \? undefined : values\[level\];/);
+});
+
 // --- Quests and streaks ------------------------------------------------------------------
 check('quest values (v1.9.0): laundry +2 gold; 30+ gold -5 but never below XP', () => {
   const expected = {
