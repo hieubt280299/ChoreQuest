@@ -79,19 +79,21 @@ check('level-up: 1 Golden Ticket per new level, plus Fortune\'s Favor Normal Tic
   s = withChar(s, 'husband', { skills: [{ skillId: 'fortunes-favor', level: 3 }] });
   const xp = m.XP_CURVE[0] + m.XP_CURVE[1]; // level 1 -> 3
   const { characters, levelUps } = m.grantRewards(s.characters, { husband: { xp, gold: 0 }, wife: { xp: 0, gold: 0 } });
+  const perLevel = m.fortunesFavorTickets(s.characters.husband);
+  assert.ok(perLevel > 0);
   assert.equal(characters.husband.goldenTickets, 2);
-  assert.equal(characters.husband.tickets, 6, 'favor lv3 = 3 per level');
+  assert.equal(characters.husband.tickets, 2 * perLevel, "Fortune's Favor's tickets for each of the 2 levels");
   assert.equal(levelUps[0].goldenTickets, 2);
-  assert.equal(levelUps[0].tickets, 6);
+  assert.equal(levelUps[0].tickets, 2 * perLevel);
 });
 
-check("Fortune's Favor: 1 / 2 / 3 / 4 Normal Tickets each new Chronicle", () => {
+check("Fortune's Favor: no tickets at a new Chronicle (v1.9: level-ups only)", () => {
   for (const level of [1, 2, 3, 4]) {
     let s = m.createInitialState(day(-40));
     s = { ...s, chronicle: { ...s.chronicle, startDate: day(-40), endDate: day(-1) } };
     s = withChar(s, 'wife', { skills: [{ skillId: 'fortunes-favor', level }] });
     const next = m.advanceDays(s, today);
-    assert.equal(next.characters.wife.tickets, level);
+    assert.equal(next.characters.wife.tickets, 0);
     assert.equal(next.characters.wife.goldenTickets, 0);
   }
 });
@@ -110,11 +112,12 @@ check('Hall of Fame: 1 / 2 / 3 / 4 Golden Tickets at every 3rd MVP day', () => {
   }
 });
 
-check('Team Player: +15/30/45/60% XP and gold on quests done together', () => {
+check('Team Player: XP and gold on quests done together (values: v190)', () => {
+  const bonus = m.SKILL_POOL.find((d) => d.id === 'team-player').effect.gold[3];
   const s = withChar(m.createInitialState(today), 'husband', { skills: [{ skillId: 'team-player', level: 4 }] });
   const both = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'both', s.characters, m.SKILL_POOL);
-  assert.ok(Math.abs(both.husband.xp - 50 * 1.6) < 1e-9);
-  assert.ok(Math.abs(both.husband.gold - 50 * 1.6) < 1e-9);
+  assert.ok(Math.abs(both.husband.xp - 50 * (1 + bonus)) < 1e-9);
+  assert.ok(Math.abs(both.husband.gold - 50 * (1 + bonus)) < 1e-9);
   const solo = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'husband', s.characters, m.SKILL_POOL);
   assert.equal(solo.husband.xp, 100, 'not alone');
 });

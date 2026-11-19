@@ -5,16 +5,24 @@ Ideas for future versions, to revise and pick from. Nothing here is promised. On
 **Size:** S = a few days · M = about a week · L = bigger, or needs a server.
 **Status:** Idea · Planned · Done · Parked.
 
-_Last revised: 2026-11-04 (after v1.8.0)._
+_Last revised: 2026-11-18 (v1.9.0 built)._
 
 ---
 
-## ⭐ Suggested next: v1.9.0
+## ✅ Built: v1.9.0 (release planned 2026-11-25)
 
-v1.8.0 shipped hearts, Streak Freezes, reminders and the skill rebalance. Next, these give tickets and gold real-world meaning and add daily variety. Both are S–M.
+Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
+
+1. **Get the App button** (S)
+2. **Seesaw** skill (S)
+3. **Lucky Quest of the Day** (S)
+4. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
+
+## ⭐ Suggested next: v1.10.0
+
+v1.9.0 shipped the Lucky Quest of the Day. Next, the reward shop gives tickets and gold real-world meaning.
 
 1. **Reward shop** (M)
-2. **Lucky Quest of the Day** (S)
 
 Then the **Weekly Boss Raid** as the headline of the version after.
 
@@ -37,12 +45,12 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
-| **Lucky Quest of the Day** | S | Idea | One random quest pays double gold today, highlighted on the Today card. |
+| **Lucky Quest of the Day** | S | Done (v1.9.0) | One quest a day, the same for both players, pays double base gold when done on time; a star on the quest and a row on the Today card. |
 | **Household events** | M | Idea | Rotating modifiers: "Rainy week: laundry +50% XP", "Guests are coming: cleaning pays more". Vietnamese seasons: a **Tết cleaning week** with double XP, lanterns in the cabin for **Trung thu**. |
 | **Combos** | S | Idea | Finish 3 quests within an hour for a combo bonus. An "Early bird" badge for quests done before 9am. |
 
 **To decide:**
-- **Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?
+- ~~**Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?~~ Yes (v1.9.0).
 - **Events:** chosen by the moderator, or automatic on the calendar?
 
 ## 🏆 Long-term goals
@@ -86,9 +94,10 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
 | **Skill rebalance** | M | Done (v1.8.0) | Gold Interest capped per level, weak skills raised, Errand Runner and Tag Team redesigned, all points refunded once. |
+| **Skill and quest rebalance** | S | Done (v1.9.0) | Checked against a real household's quest log: Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry +2 gold, big quests −2 to −5 gold (never below XP), streak gold = streak length (up to 10). No refund. |
 | **"Your skills earned you…"** | S | Idea | The Chronicle summary says how much gold each skill earned ("Your skills earned 1,240 gold this Mùa"). Makes skills feel real. |
 | **Level-4 bonuses** | M | Idea | Maxing a skill unlocks something new: Speed Cleaner streaks pay from day 2, every heavy quest gives Heavy Lifter a Normal Ticket, a meal from Master Chef gives the partner +5 XP, Fortune's Favor re-spins a miss once per Mùa. |
-| **Underdog** | S | Idea | +10/20/30/40% gold while you're behind your partner this Mùa: a catch-up skill so the player who's behind stays motivated. |
+| **Seesaw** (was Underdog) | S | Done (v1.9.0) | Behind your partner in gold this Mùa (or tied): +6/12/18/24% gold per quest. Leading: +10/20/30/40% XP instead. A catch-up skill so the player who's behind stays motivated, and still useful when ahead. |
 | **Active skills** | M | Idea | Tap to use: "Double Down" (next quest pays double, once a week), "Second Wind" (rescue a broken streak, once per Mùa). |
 | **Combos** | M | Idea | Two related skills unlock a bonus together, e.g. Master Chef + Errand Runner: cooking on a day you went shopping pays +20%. |
 | **A choice at level 4** | M | Idea | Pick one of two upgrades (Golden Touch L4: +24% gold, or +12% gold and +12% XP), so the partners' builds differ. |
@@ -96,7 +105,13 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | **Skill of the Month** | S | Idea | Each Mùa one skill gets a free +1 level for everyone who owns it, so the best picks shift. |
 
 **To decide:**
-- **Underdog:** does it fight the payout split, which is meant to reward whoever does more?
+- ~~**Underdog:** does it fight the payout split, which is meant to reward whoever does more?~~ Answered by Seesaw: the gold bonus stops once you catch up, so at level 4 you still need about 80% of your partner's quest gold to keep level.
+
+## 📱 The app
+
+| Idea | Size | Status | What it is |
+| --- | --- | --- | --- |
+| **Get the App button** | S | Done (v1.9.0) | A Download button on the sign-in screen, the top bar, the side menu, the More drawer and Settings. One tap installs on Android and Windows; iPhones and iPads get a short "Add to Home Screen" guide. Hidden inside the installed app. |
 
 ---
 

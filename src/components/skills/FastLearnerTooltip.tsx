@@ -4,10 +4,13 @@ import { Tooltip } from '../ui/Tooltip';
 
 const highlight = 'font-extrabold text-moss-700 underline decoration-dotted decoration-2 underline-offset-2';
 
+/** A fraction as a percent number with at most one decimal: 0.005 → 0.5, 0.185 → 18.5. */
+const percentNumber = (fraction: number) => Math.round(fraction * 1000) / 10;
+
 /**
- * "+1% per character level" in a skill description (Fast Learner). With a character level known, a tooltip
- * shows the live total XP bonus, e.g. character lv. 5 with the skill at lv. 2: 60% + 5% = "Current XP bonus: 65%".
- * An unlearned skill shows what it would give at skill level 1.
+ * "+1.5% per character level" in a skill description (Fast Learner), at the skill's current level (level 1 when
+ * not learned). With a character level known, a tooltip shows the live total XP bonus, e.g. character lv. 5 with
+ * the skill at lv. 1: 16% + 5 × 0.5% = "Current XP bonus: 18.5%".
  */
 export function FastLearnerTooltip({
   skill,
@@ -22,12 +25,12 @@ export function FastLearnerTooltip({
   interactive: boolean;
 }) {
   const { t } = useLanguage();
-  const perLevel = skill.effect.xpPerCharacterLevel ?? 0;
-  const label = t('skills.perCharacterLevel', { value: Math.round(perLevel * 100) });
+  const skillLevel = Math.max(1, level);
+  const perLevel = skill.effect.xpPerCharacterLevel?.[skillLevel - 1] ?? 0;
+  const label = t('skills.perCharacterLevel', { value: percentNumber(perLevel) });
   if (!interactive || characterLevel === undefined) return <span className={interactive ? highlight : 'font-extrabold'}>{label}</span>;
 
-  const skillLevel = Math.max(1, level);
-  const total = Math.round(((skill.effect.xp?.[skillLevel - 1] ?? 0) + perLevel * characterLevel) * 100);
+  const total = percentNumber((skill.effect.xp?.[skillLevel - 1] ?? 0) + perLevel * characterLevel);
   return (
     <Tooltip
       label={label}

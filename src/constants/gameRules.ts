@@ -46,33 +46,33 @@ export const WHEEL_SEGMENTS: { prize: WheelPrize; size: number }[] = [
 export const TASK_GROUPS: TaskGroup[] = ['quick', 'main', 'heavy'];
 
 // Rewards scale with time and effort (0.75 pleasant, 1 normal, 1.3 physical or unpleasant, 1.5 heavy,
-// 1.8 hardest): XP ~ 1 per minute x effort (halved from 2/min so levelling feels earned, min 5);
-// gold ~ 1.2 per minute x effort, rounded to 5 (min 5).
+// 1.8 hardest): XP ~ 1 per minute x effort (halved from 2/min so levelling feels earned, min 5).
+// Gold: small quests ~ 1.2 per minute x effort (min 5); quests worth 30+ gold pay about 1 gold per XP (v1.9).
 export const DEFAULT_TASKS: Task[] = [
   // Quick tasks: up to 10 XP
   { id: 'beds', nameKey: 'task.beds', names: { en: 'Make the Bed', vi: 'Dọn giường' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
   { id: 'feedPet', nameKey: 'task.feedPet', names: { en: 'Feed Pet', vi: 'Cho thú cưng ăn' }, xp: 5, gold: 5, category: 'general', group: 'quick', enabled: true },
   { id: 'trash', nameKey: 'task.trash', names: { en: 'Take Out Trash', vi: 'Đổ rác' }, xp: 5, gold: 10, category: 'general', group: 'quick', enabled: true },
-  { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 8, gold: 8, category: 'laundry', group: 'quick', enabled: true },
-  { id: 'collectClothes', nameKey: 'task.collectClothes', names: { en: 'Collect Dried Clothes', vi: 'Thu quần áo' }, xp: 8, gold: 8, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'laundry', nameKey: 'task.laundry', names: { en: 'Wash Clothes', vi: 'Giặt quần áo' }, xp: 8, gold: 10, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'collectClothes', nameKey: 'task.collectClothes', names: { en: 'Collect Dried Clothes', vi: 'Thu quần áo' }, xp: 8, gold: 10, category: 'laundry', group: 'quick', enabled: true },
   { id: 'cleanLitter', nameKey: 'task.cleanLitter', names: { en: 'Clean Litter Box', vi: 'Dọn khay cát thú cưng' }, xp: 8, gold: 10, category: 'general', group: 'quick', enabled: true },
-  { id: 'dryClothes', nameKey: 'task.dryClothes', names: { en: 'Hang / Dry Clothes', vi: 'Phơi quần áo' }, xp: 10, gold: 10, category: 'laundry', group: 'quick', enabled: true },
+  { id: 'dryClothes', nameKey: 'task.dryClothes', names: { en: 'Hang / Dry Clothes', vi: 'Phơi quần áo' }, xp: 10, gold: 12, category: 'laundry', group: 'quick', enabled: true },
   { id: 'groceryDaily', nameKey: 'task.groceryDaily', names: { en: 'Daily Grocery Shopping', vi: 'Đi chợ hằng ngày' }, xp: 10, gold: 10, category: 'shopping', group: 'quick', enabled: true },
   // Moderate tasks: 11-40 XP
-  { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 13, gold: 15, category: 'laundry', group: 'main', enabled: true },
+  { id: 'changeSheets', nameKey: 'task.changeSheets', names: { en: 'Change Bed Sheets', vi: 'Thay ga giường' }, xp: 13, gold: 17, category: 'laundry', group: 'main', enabled: true },
   { id: 'cleanFridge', nameKey: 'task.cleanFridge', names: { en: 'Clean Fridge', vi: 'Lau dọn tủ lạnh' }, xp: 15, gold: 15, category: 'cleaning', group: 'main', enabled: true },
   { id: 'sweep', nameKey: 'task.sweep', names: { en: 'Sweep House', vi: 'Quét nhà' }, xp: 15, gold: 20, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 28, gold: 30, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 28, gold: 30, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesLunch', nameKey: 'task.dishesLunch', names: { en: 'Lunch Dishwashing', vi: 'Rửa bát bữa trưa' }, xp: 28, gold: 28, category: 'cleaning', group: 'main', enabled: true },
+  { id: 'dishesDinner', nameKey: 'task.dishesDinner', names: { en: 'Dinner Dishwashing', vi: 'Rửa bát bữa tối' }, xp: 28, gold: 28, category: 'cleaning', group: 'main', enabled: true },
   { id: 'dustFurniture', nameKey: 'task.dustFurniture', names: { en: 'Dust Furniture', vi: 'Lau bụi bàn ghế & kệ' }, xp: 20, gold: 20, category: 'cleaning', group: 'main', enabled: true },
-  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
-  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
-  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 40, gold: 42, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookLunch', nameKey: 'task.cookLunch', names: { en: 'Cook Lunch', vi: 'Nấu bữa trưa' }, xp: 40, gold: 40, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cooking', nameKey: 'task.cooking', names: { en: 'Cook Dinner', vi: 'Nấu bữa tối' }, xp: 40, gold: 40, category: 'cooking', group: 'main', enabled: true },
+  { id: 'cookPetFood', nameKey: 'task.cookPetFood', names: { en: "Cook Pet's Food", vi: 'Nấu đồ ăn cho thú cưng' }, xp: 40, gold: 40, category: 'cooking', group: 'main', enabled: true },
   // Heavy tasks: 41+ XP
   { id: 'vacuum', nameKey: 'task.vacuum', names: { en: 'Vacuum House', vi: 'Hút bụi nhà' }, xp: 42, gold: 42, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 45, gold: 50, category: 'shopping', group: 'heavy', enabled: true },
-  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 42, gold: 45, category: 'cleaning', group: 'heavy', enabled: true },
-  { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 55, gold: 65, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'grocery', nameKey: 'task.grocery', names: { en: 'Supermarket Shopping', vi: 'Đi siêu thị' }, xp: 45, gold: 45, category: 'shopping', group: 'heavy', enabled: true },
+  { id: 'mop', nameKey: 'task.mop', names: { en: 'Mop House', vi: 'Lau nhà' }, xp: 42, gold: 42, category: 'cleaning', group: 'heavy', enabled: true },
+  { id: 'bathroom', nameKey: 'task.bathroom', names: { en: 'Clean Bathroom', vi: 'Cọ rửa nhà vệ sinh' }, xp: 55, gold: 60, category: 'cleaning', group: 'heavy', enabled: true },
 ];
 
 /** Effort group from a quest's XP: Quick up to 10, Moderate 11-40, Heavy 41+ (used for defaults and new quests). */
@@ -116,12 +116,31 @@ const V18_REBALANCE: Rebalance = {
 };
 
 /**
+ * v1.9 rebalance: laundry quests +2 gold; quests worth 30+ gold -5 gold, but never below their XP (Vacuum House
+ * is already at its XP, so it stays 42 / 42).
+ */
+const V19_REBALANCE: Rebalance = {
+  laundry: { from: [8, 8, 'quick'], to: [8, 10, 'quick'] },
+  collectClothes: { from: [8, 8, 'quick'], to: [8, 10, 'quick'] },
+  dryClothes: { from: [10, 10, 'quick'], to: [10, 12, 'quick'] },
+  changeSheets: { from: [13, 15, 'main'], to: [13, 17, 'main'] },
+  dishesLunch: { from: [28, 30, 'main'], to: [28, 28, 'main'] },
+  dishesDinner: { from: [28, 30, 'main'], to: [28, 28, 'main'] },
+  cookLunch: { from: [40, 42, 'main'], to: [40, 40, 'main'] },
+  cooking: { from: [40, 42, 'main'], to: [40, 40, 'main'] },
+  cookPetFood: { from: [40, 42, 'main'], to: [40, 40, 'main'] },
+  grocery: { from: [45, 50, 'heavy'], to: [45, 45, 'heavy'] },
+  mop: { from: [42, 45, 'heavy'], to: [42, 42, 'heavy'] },
+  bathroom: { from: [55, 65, 'heavy'], to: [55, 60, 'heavy'] },
+};
+
+/**
  * Built-in quests still on the values of an earlier version are moved to the current defaults, one rebalance at
- * a time (v0.2 -> v1.0 -> v1.5 -> v1.8). Quests a moderator has edited are left alone.
+ * a time (v0.2 -> v1.0 -> v1.5 -> v1.8 -> v1.9). Quests a moderator has edited are left alone.
  */
 export function rebalanceTask<T extends Pick<Task, 'id' | 'xp' | 'gold' | 'group'>>(task: T): T {
   let current = task;
-  for (const step of [V1_REBALANCE, V15_REBALANCE, V18_REBALANCE]) {
+  for (const step of [V1_REBALANCE, V15_REBALANCE, V18_REBALANCE, V19_REBALANCE]) {
     const change = step[current.id];
     if (!change) continue;
     const [xp, gold, group] = change.from;
@@ -182,7 +201,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.masterChef.desc',
     icon: 'chef',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['cooking'], xp: levels(0.09, 0.18, 0.27, 0.36), gold: levels(0.09, 0.18, 0.27, 0.36) },
+    effect: { kind: 'category', categories: ['cooking'], xp: levels(0.14, 0.28, 0.42, 0.56), gold: levels(0.14, 0.28, 0.42, 0.56) },
   },
   {
     id: 'gold-doubler',
@@ -190,7 +209,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldDoubler.desc',
     icon: 'coins',
     maxLevel: 4,
-    effect: { kind: 'all', gold: levels(0.06, 0.12, 0.18, 0.24) },
+    effect: { kind: 'all', gold: levels(0.07, 0.14, 0.21, 0.28) },
   },
   {
     id: 'quick-hands',
@@ -198,7 +217,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.quickHands.desc',
     icon: 'zap',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'quick', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.1, 0.2, 0.3, 0.4) },
+    effect: { kind: 'group', group: 'quick', xp: levels(0.15, 0.25, 0.35, 0.45), gold: levels(0.15, 0.25, 0.35, 0.45) },
   },
   {
     id: 'team-player',
@@ -206,7 +225,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.teamPlayer.desc',
     icon: 'hearts',
     maxLevel: 4,
-    effect: { kind: 'together', xp: levels(0.15, 0.3, 0.45, 0.6), gold: levels(0.15, 0.3, 0.45, 0.6) },
+    effect: { kind: 'together', xp: levels(0.2, 0.4, 0.6, 0.8), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
     id: 'iron-will',
@@ -214,7 +233,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.ironWill.desc',
     icon: 'shirt',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.2, 0.3, 0.4, 0.5), gold: levels(0.2, 0.4, 0.6, 0.8) },
+    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.25, 0.45, 0.65, 0.85), gold: levels(0.25, 0.45, 0.65, 0.85) },
   },
   {
     // Errand Runner (was Shop Savvy, which covered shopping only); the id is kept so learned levels carry over.
@@ -223,7 +242,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.shopSavvy.desc',
     icon: 'cart',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['shopping', 'general'], xp: levels(0.15, 0.3, 0.45, 0.6), gold: levels(0.15, 0.3, 0.45, 0.6) },
+    effect: { kind: 'category', categories: ['shopping', 'general'], xp: levels(0.25, 0.4, 0.55, 0.7), gold: levels(0.25, 0.4, 0.55, 0.7) },
   },
   {
     id: 'zen-housekeeper',
@@ -231,8 +250,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.zenHousekeeper.desc',
     icon: 'lightbulb',
     maxLevel: 4,
-    // XP grows with the character: 30/45/60/75% plus 1% per character level.
-    effect: { kind: 'all', xp: levels(0.3, 0.45, 0.6, 0.75), xpPerCharacterLevel: 0.01 },
+    // XP grows with the character: 16/24/32/40% plus 0.5/1/1.5/2% (by skill level) per character level.
+    effect: { kind: 'all', xp: levels(0.16, 0.24, 0.32, 0.4), xpPerCharacterLevel: levels(0.005, 0.01, 0.015, 0.02) },
   },
   {
     id: 'raid-master',
@@ -240,7 +259,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.raidMaster.desc',
     icon: 'shield',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'heavy', xp: levels(0.1, 0.2, 0.3, 0.4), gold: levels(0.2, 0.3, 0.4, 0.5) },
+    effect: { kind: 'group', group: 'heavy', xp: levels(0.15, 0.3, 0.45, 0.6), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
     id: 'steady-worker',
@@ -248,7 +267,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.steadyWorker.desc',
     icon: 'clock',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'main', xp: levels(0.1, 0.15, 0.2, 0.25), gold: levels(0.1, 0.15, 0.2, 0.25) },
+    effect: { kind: 'group', group: 'main', xp: levels(0.09, 0.18, 0.27, 0.36), gold: levels(0.09, 0.18, 0.27, 0.36) },
   },
   {
     id: 'fortunes-favor',
@@ -256,9 +275,9 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.fortunesFavor.desc',
     icon: 'ticket',
     maxLevel: 4,
-    // `values`: Normal Tickets at each chronicle start and each level-up; `gold`: extra gold on Wheel of Fortune
-    // prizes won with a Normal Ticket.
-    effect: { kind: 'chronicle_tickets', values: levels(1, 2, 3, 4), gold: levels(0.2, 0.4, 0.6, 0.8) },
+    // `values`: Normal Tickets at each level-up (v1.9: 2 at every level, none at a new chronicle); `gold`: extra
+    // gold on Wheel of Fortune prizes won with a Normal Ticket.
+    effect: { kind: 'chronicle_tickets', values: levels(2, 2, 2, 2), gold: levels(0.2, 0.4, 0.6, 0.8) },
   },
   {
     id: 'gold-interest',
@@ -266,7 +285,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldInterest.desc',
     icon: 'trending',
     maxLevel: 4,
-    effect: { kind: 'daily_interest', values: levels(0.02, 0.03, 0.04, 0.05), caps: levels(15, 30, 45, 60) },
+    effect: { kind: 'daily_interest', values: levels(0.01, 0.02, 0.03, 0.04), caps: levels(12, 20, 28, 36) },
   },
   {
     // Tag Team (was Synergistic Streak). Done alone, the quest also pays the spouse's streak bonus gold and keeps their
@@ -276,7 +295,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.synergy.desc',
     icon: 'link',
     maxLevel: 4,
-    effect: { kind: 'spouse_streak', gold: levels(0.15, 0.3, 0.45, 0.6) },
+    effect: { kind: 'spouse_streak', gold: levels(0.25, 0.5, 0.75, 1) },
   },
   {
     id: 'hall-of-fame',
@@ -286,6 +305,15 @@ export const SKILL_POOL: SkillDefinition[] = [
     maxLevel: 4,
     // Golden Tickets at every 3rd MVP day.
     effect: { kind: 'mvp_tickets', values: levels(1, 2, 3, 4) },
+  },
+  {
+    // Seesaw: behind (or tied) in chronicle gold before the quest -> more gold; leading -> more XP instead.
+    id: 'seesaw',
+    nameKey: 'skill.seesaw.name',
+    descriptionKey: 'skill.seesaw.desc',
+    icon: 'seesaw',
+    maxLevel: 4,
+    effect: { kind: 'gold_position', gold: levels(0.06, 0.12, 0.18, 0.24), xp: levels(0.1, 0.2, 0.3, 0.4) },
   },
 ];
 
@@ -320,7 +348,7 @@ export const SKILL_MIGRATIONS: Record<string, string> = {
   'lucky-charm': 'steady-worker',
 };
 
-/** Normal Tickets Fortune's Favor gives this character at each new chronicle and each level-up (0 if not learned). */
+/** Normal Tickets Fortune's Favor gives this character at each level-up (0 if not learned). */
 export function fortunesFavorTickets(character: Pick<Character, 'skills'>): number {
   const favor = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor');
   return favor ? skillEffectValue(favor, skillLevel(character, favor.id)) : 0;

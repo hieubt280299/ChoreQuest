@@ -1,23 +1,16 @@
-import { Download } from 'pixelarticons/react';
-import { useSyncExternalStore } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
-import { canInstall, promptInstall, subscribeInstallPrompt } from '../../utils/installPrompt';
-import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Icon } from '../ui/Icon';
+import { InstallButton, useInstallButton } from '../ui/InstallButton';
 
+/** Settings card for "Get the app": same button and rules as the top bar and menus (hidden in the installed app). */
 export function InstallAppCard() {
   const { t } = useLanguage();
-  const installable = useSyncExternalStore(subscribeInstallPrompt, canInstall);
-  if (!installable) return null;
+  if (!useInstallButton()) return null;
 
   return (
     <Card tone="moss" className="flex flex-wrap items-center gap-4">
       <p className="min-w-48 flex-1 text-lg font-bold">{t('settings.installHint')}</p>
-      <Button variant="moss" onClick={() => void promptInstall()}>
-        <Icon as={Download} size={24} />
-        {t('settings.install')}
-      </Button>
+      <InstallButton variant="card" />
     </Card>
   );
 }

@@ -16,6 +16,12 @@ export interface Character {
   /** Player-chosen display name (max 16 letters/digits/spaces); unset = show the role. */
   customName?: string;
   xp: number;
+  /**
+   * XP owed after a fixed entry took back more XP than the character's level holds while that level's skill points
+   * were spent: the level is kept (`xp` sits at its start) and this much new XP pays it back first. Shown as negative
+   * XP ("-10 XP"). Absent when 0.
+   */
+  xpDebt?: number;
   /** Gold earned this chronicle (quests, wheel, interest); decides the payout split. */
   gold: number;
   skills: CharacterSkill[];
@@ -56,7 +62,8 @@ export interface SkillDefinition {
     | 'ticket'
     | 'trending'
     | 'link'
-    | 'trophy';
+    | 'trophy'
+    | 'seesaw';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -73,8 +80,10 @@ export type SkillEffectKind =
   | 'together'
   /** Quests the spouse currently has an active streak (3+ days) on (Tag Team). */
   | 'spouse_streak'
-  /** Extra wheel tickets at the start of each chronicle (`values`). */
+  /** Extra Normal Tickets at each level-up (`values`) and more gold on Normal Ticket spins (`gold`) (Fortune's Favor). */
   | 'chronicle_tickets'
+  /** Behind or tied in chronicle gold before the quest: `gold` bonus; leading: `xp` bonus instead (Seesaw). */
+  | 'gold_position'
   /** Daily interest on current gold (`values`, fractions), up to `caps` gold a day. */
   | 'daily_interest'
   /** Extra wheel tickets at every 3rd MVP day of a chronicle (`values`). */
@@ -90,8 +99,8 @@ export interface SkillEffect {
   values?: number[];
   /** Most gold a day at levels 1-4 (Gold Interest). */
   caps?: number[];
-  /** Extra XP bonus per character level on top of `xp` (Fast Learner: +1% per level). */
-  xpPerCharacterLevel?: number;
+  /** Extra XP bonus per character level on top of `xp`, at skill levels 1-4 (Fast Learner: 0.5 / 1 / 1.5 / 2%). */
+  xpPerCharacterLevel?: number[];
   /** Quest categories a `category` skill covers (Errand Runner covers two). */
   categories?: TaskCategory[];
   group?: TaskGroup;
@@ -147,6 +156,8 @@ export interface TaskLog {
   late?: boolean;
   /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
   intensity?: TaskIntensity;
+  /** The day's Lucky Quest, done on time: `baseGold` is already doubled (`luckyBase`), so re-assigning keeps it. */
+  lucky?: boolean;
   /**
    * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going, one day
    * shorter (covering every day runs the streak down instead of farming it).

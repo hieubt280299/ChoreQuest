@@ -136,7 +136,8 @@ export const SPOUSE_STREAK_MIN_DAYS = 3;
 
 /**
  * Multiplies a reward by the character's skill bonuses for this task (category, group, co-op, the spouse's
- * streak). `partnerStreak` is the spouse's current streak on this quest, in days.
+ * streak, the gold position). `partnerStreak` is the spouse's current streak on this quest, in days; `behind`
+ * says whether the character has no more chronicle gold than the spouse before this quest (Seesaw).
  */
 export function applySkillBonuses(
   baseXp: number,
@@ -146,6 +147,7 @@ export function applySkillBonuses(
   character: Character,
   skillPool: SkillDefinition[],
   partnerStreak = 0,
+  behind = true,
 ): { xp: number; gold: number } {
   let xpMult = 1;
   let goldMult = 1;
@@ -169,11 +171,17 @@ export function applySkillBonuses(
       case 'spouse_streak':
         applies = partnerStreak >= SPOUSE_STREAK_MIN_DAYS;
         break;
+      case 'gold_position':
+        // Seesaw: gold while behind or tied, XP while leading, never both.
+        if (behind) goldMult += effect.gold?.[owned.level - 1] ?? 0;
+        else xpMult += effect.xp?.[owned.level - 1] ?? 0;
+        break;
       default:
         break;
     }
     if (!applies) continue;
-    xpMult += (effect.xp?.[owned.level - 1] ?? 0) + (effect.xpPerCharacterLevel ?? 0) * getLevelFromXp(character.xp);
+    const perCharacterLevel = effect.xpPerCharacterLevel?.[owned.level - 1] ?? 0;
+    xpMult += (effect.xp?.[owned.level - 1] ?? 0) + perCharacterLevel * getLevelFromXp(character.xp);
     goldMult += effect.gold?.[owned.level - 1] ?? 0;
   }
 
@@ -302,7 +310,9 @@ export function computeRewardBreakdown(
   for (const id of recipients) {
     const baseXp = base.xp * share;
     const baseGold = base.gold * share;
-    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0);
+    // Seesaw compares chronicle gold before this quest's rewards (a tie counts as behind).
+    const behind = characters[id].gold <= characters[spouseOf(id)].gold;
+    const withSkills = applySkillBonuses(baseXp, baseGold, base, completer, characters[id], skillPool, partnerStreaks[id] ?? 0, behind);
     const days = streakDays[id] ?? 0;
     const streakGold = streakBonusGold(days);
     const partnerDays = partnerStreaks[id] ?? 0;
@@ -376,7 +386,10 @@ export function grantRewards(
     if (gained.xp <= 0 && gained.gold <= 0) return;
     const prev = next[id];
     const from = getLevelFromXp(prev.xp);
-    const xp = prev.xp + gained.xp;
+    // XP below the kept level (`xpDebt`, see revokeRewards) is paid back first.
+    const debt = prev.xpDebt ?? 0;
+    const repaid = Math.min(debt, Math.max(0, gained.xp));
+    const xp = prev.xp + gained.xp - repaid;
     const to = getLevelFromXp(xp);
     const bonusGold = goldForLevelRange(from, to);
     const levelsPaid = Math.max(0, to - Math.max(from, prev.ticketLevel));
@@ -393,9 +406,11 @@ export function grantRewards(
         skillPoints: skillPointsEarned(to) - skillPointsEarned(from),
       });
     }
+    const { xpDebt: _xpDebt, ...rest } = prev;
     next[id] = {
-      ...prev,
+      ...rest,
       xp,
+      ...(debt - repaid > 0 ? { xpDebt: debt - repaid } : {}),
       gold: prev.gold + gained.gold + bonusGold,
       tickets: prev.tickets + tickets,
       goldenTickets: prev.goldenTickets + goldenTickets,
@@ -405,25 +420,53 @@ export function grantRewards(
   return { characters: next, levelUps };
 }
 
+/** Total XP at the start of a level (level 1 = 0). */
+export function xpAtLevelStart(level: number): number {
+  return XP_CURVE.slice(0, Math.max(0, Math.min(level, MAX_LEVEL) - 1)).reduce((sum, cost) => sum + cost, 0);
+}
+
 /**
- * Takes back a log's rewards, including bonus gold of any levels it granted. Fails if the lost
- * levels' skill points were already spent, since un-spending skills isn't supported.
+ * Takes back a log's rewards (undo or re-assign), including bonus gold of any levels it granted. Never refuses:
+ * if losing the XP would drop a level whose skill points are already spent, the character keeps the level and the
+ * missing XP is owed instead (`xpDebt`: level 7 with 10 XP losing 20 becomes level 7 with -10 XP). New XP pays the
+ * debt back first (`grantRewards`).
  */
 export function revokeRewards(
   characters: Record<CharacterId, Character>,
   xpAwarded: Record<CharacterId, number>,
   goldAwarded: Record<CharacterId, number>,
-): { ok: true; characters: Record<CharacterId, Character> } | { ok: false; characterId: CharacterId } {
+): Record<CharacterId, Character> {
   const next = { ...characters };
   for (const id of ['husband', 'wife'] as CharacterId[]) {
-    const prev = next[id];
-    const xp = Math.max(0, prev.xp - (xpAwarded[id] ?? 0));
+    const { xpDebt = 0, ...prev } = next[id];
+    // The XP the character really has, which can be below the start of the level it keeps.
+    const remaining = prev.xp - xpDebt - (xpAwarded[id] ?? 0);
     const fromLevel = getLevelFromXp(prev.xp);
-    const toLevel = getLevelFromXp(xp);
     const allocated = prev.skills.reduce((sum, skill) => sum + skill.level, 0);
-    if (allocated > skillPointsEarned(toLevel)) return { ok: false, characterId: id };
+    const dropped = getLevelFromXp(Math.max(0, remaining));
+    const keepLevel = dropped < fromLevel && allocated > skillPointsEarned(dropped);
+    const toLevel = keepLevel ? fromLevel : dropped;
+    const xp = keepLevel ? xpAtLevelStart(fromLevel) : Math.max(0, remaining);
+    const debt = keepLevel ? xp - remaining : 0;
     const lostBonus = goldForLevelRange(toLevel, fromLevel);
-    next[id] = { ...prev, xp, gold: Math.max(0, prev.gold - (goldAwarded[id] ?? 0) - lostBonus) };
+    next[id] = {
+      ...prev,
+      xp,
+      ...(debt > 0 ? { xpDebt: debt } : {}),
+      gold: Math.max(0, prev.gold - (goldAwarded[id] ?? 0) - lostBonus),
+    };
   }
-  return { ok: true, characters: next };
+  return next;
+}
+
+/**
+ * A character's progress through their level for display: XP owed after a fixed entry (`xpDebt`) shows as negative
+ * XP in text ("-10 / 780 XP"), while bars and rings show it as empty.
+ */
+export function characterXpProgress(character: Pick<Character, 'xp' | 'xpDebt'>): ReturnType<typeof getXpProgress> {
+  const progress = getXpProgress(character.xp);
+  const debt = character.xpDebt ?? 0;
+  if (debt <= 0 || !progress.needed) return progress;
+  const currentInLevel = progress.currentInLevel - debt;
+  return { ...progress, currentInLevel, percent: Math.max(0, (currentInLevel / progress.needed) * 100) };
 }

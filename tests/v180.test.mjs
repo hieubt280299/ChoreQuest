@@ -25,41 +25,23 @@ const running = (logs, settledOn = day(-21), extra = {}) => ({
 });
 
 // --- Skill rebalance ----------------------------------------------------------
-check('skill values (v1.8.0)', () => {
-  const both = (id) => [skill(id).effect.xp, skill(id).effect.gold];
-  assert.deepEqual(both('speed-cleaner'), [[0.08, 0.16, 0.24, 0.32], [0.08, 0.16, 0.24, 0.32]]);
-  assert.deepEqual(both('master-chef'), [[0.09, 0.18, 0.27, 0.36], [0.09, 0.18, 0.27, 0.36]]);
-  assert.deepEqual(both('iron-will'), [[0.2, 0.3, 0.4, 0.5], [0.2, 0.4, 0.6, 0.8]]);
-  assert.deepEqual(both('shop-savvy'), [[0.15, 0.3, 0.45, 0.6], [0.15, 0.3, 0.45, 0.6]]);
-  assert.deepEqual(both('quick-hands'), [[0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4]]);
-  assert.deepEqual(both('raid-master'), [[0.1, 0.2, 0.3, 0.4], [0.2, 0.3, 0.4, 0.5]]);
-  assert.deepEqual(both('team-player'), [[0.15, 0.3, 0.45, 0.6], [0.15, 0.3, 0.45, 0.6]]);
-  assert.deepEqual(both('steady-worker'), [[0.1, 0.15, 0.2, 0.25], [0.1, 0.15, 0.2, 0.25]], 'unchanged');
-  assert.deepEqual(skill('gold-doubler').effect.gold, [0.06, 0.12, 0.18, 0.24], 'unchanged');
-  assert.deepEqual(skill('zen-housekeeper').effect.xp, [0.3, 0.45, 0.6, 0.75]);
-  assert.equal(skill('zen-housekeeper').effect.xpPerCharacterLevel, 0.01);
-  assert.deepEqual(skill('fortunes-favor').effect.gold, [0.2, 0.4, 0.6, 0.8]);
-  assert.deepEqual(skill('gold-interest').effect.values, [0.02, 0.03, 0.04, 0.05]);
-  assert.deepEqual(skill('gold-interest').effect.caps, [15, 30, 45, 60]);
-  assert.equal(m.HALL_OF_FAME_EVERY, 3);
-  assert.deepEqual(skill('synergistic-streak').effect, { kind: 'spouse_streak', gold: [0.15, 0.3, 0.45, 0.6] }, 'Tag Team: no XP');
-});
-
 check('Errand Runner covers Shopping and General quests', () => {
   const s = withChar(m.createInitialState(today), 'wife', { skills: [{ skillId: 'shop-savvy', level: 2 }] });
   const gain = (category) => m.computeRewardBreakdown({ xp: 100, gold: 100, category, group: 'quick' }, 'wife', s.characters, m.SKILL_POOL).wife;
-  close(gain('shopping').gold, 130);
-  close(gain('general').xp, 130);
+  const bonus = skill('shop-savvy').effect.gold[1];
+  close(gain('shopping').gold, 100 * (1 + bonus));
+  close(gain('general').xp, 100 * (1 + bonus));
   close(gain('cleaning').gold, 100);
   assert.ok(m.skillCoversQuest(skill('shop-savvy'), { category: 'general', group: 'heavy' }));
   assert.ok(m.matchesSkillFilter(skill('shop-savvy'), 'shopping') && !m.matchesSkillFilter(skill('shop-savvy'), 'general'));
 });
 
 check('Gold Interest stops at the level\'s daily cap', () => {
-  for (const [level, cap] of [[1, 15], [2, 30], [3, 45], [4, 60]]) {
+  for (const [level, cap] of skill('gold-interest').effect.caps.map((value, index) => [index + 1, value])) {
     let s = m.createInitialState(day(-3));
     s = { ...s, chronicle: { ...s.chronicle, startDate: day(-3), endDate: day(20) } };
-    s = withChar(s, 'husband', { skills: [{ skillId: 'gold-interest', level }], gold: 10000, interestOn: day(-1) });
+    // A quest yesterday, so today pays (v1.9).
+    s = withChar({ ...s, logs: [log(day(-1), 'husband')] }, 'husband', { skills: [{ skillId: 'gold-interest', level }], gold: 10000, interestOn: day(-1) });
     const paid = m.applyDailyInterest(s, today).events.filter((event) => event.type === 'interest');
     assert.deepEqual(paid.map((event) => event.gold), [cap], `level ${level}`);
   }
@@ -73,11 +55,10 @@ check('Hall of Fame pays at every 3rd MVP day', () => {
   assert.equal(m.advanceDays(s, today).characters.wife.goldenTickets, 4, '3rd and 6th MVP days, 2 each');
 });
 
-check('Mop House is 42 XP / 45 gold; saved v1.5 values move, edited ones stay', () => {
+check('Mop House: saved v1.5 values move to the default, edited ones stay', () => {
   const mop = m.DEFAULT_TASKS.find((task) => task.id === 'mop');
-  assert.deepEqual([mop.xp, mop.gold, mop.group], [42, 45, 'heavy']);
   const moved = m.rebalanceTask({ id: 'mop', xp: 45, gold: 50, group: 'heavy' });
-  assert.deepEqual([moved.xp, moved.gold], [42, 45]);
+  assert.deepEqual([moved.xp, moved.gold, moved.group], [mop.xp, mop.gold, mop.group]);
   const edited = { id: 'mop', xp: 60, gold: 50, group: 'heavy' };
   assert.equal(m.rebalanceTask(edited), edited);
 });
@@ -116,17 +97,18 @@ check('older saves are refunded when the days are settled; new games never are',
 check('Tag Team: done alone on the spouse\'s 3+ day streak quest, +% gold plus that streak\'s bonus, no XP bonus', () => {
   const s = withChar(m.createInitialState(today), 'husband', { skills: [{ skillId: 'synergistic-streak', level: 4 }] });
   const base = { xp: 40, gold: 50, category: 'cleaning', group: 'heavy' };
+  const tag = 1 + skill('synergistic-streak').effect.gold[3];
   const solo = m.computeRewardBreakdown(base, 'husband', s.characters, m.SKILL_POOL, { husband: 1 }, { husband: 6 }).husband;
   close(solo.xp, 40);
-  assert.equal(solo.coverGold, 3, "the wife's 6-day streak pays 3");
+  assert.equal(solo.coverGold, m.streakBonusGold(6), "the wife's 6-day streak bonus");
   assert.equal(solo.coveredFor, 'wife');
-  close(solo.gold, 50 * 1.6 + 3);
+  close(solo.gold, 50 * tag + m.streakBonusGold(6));
   close(solo.baseGold + solo.skillGold + solo.streakGold, solo.gold);
   const together = m.computeRewardBreakdown(base, 'both', s.characters, m.SKILL_POOL, {}, { husband: 6 }).husband;
-  close(together.gold, 25 * 1.6);
+  close(together.gold, 25 * tag);
   assert.equal(together.coveredFor, undefined, 'together, the spouse keeps their own streak');
   const late = m.lateRewardBreakdown({ husband: solo, wife: null }).husband;
-  assert.equal(late.gold, Math.floor((50 * 1.6) / 2), 'late: no streak gold');
+  assert.equal(late.gold, Math.floor((50 * tag) / 2), 'late: no streak gold');
   assert.equal(late.coveredFor, 'wife', 'but the streak is still kept');
   const short = m.computeRewardBreakdown(base, 'husband', s.characters, m.SKILL_POOL, {}, { husband: 2 }).husband;
   assert.equal(short.coveredFor, undefined);
@@ -157,8 +139,8 @@ check('Tag Team can\'t be farmed: covering every day runs the spouse\'s streak d
     coverGold.push(part.coverGold ?? 0);
     logs.push(log(day(d), 'husband', task.id, part.coveredFor ? { coveredFor: part.coveredFor } : {}));
   }
-  // The wife's 10-day streak pays 21, then 13, 8, 5… as each cover takes a day off; below 3 days it stops.
-  assert.deepEqual(coverGold, [21, 13, 8, 5, 3, 2, 1, 1, 0, 0, 0]);
+  // The wife's 10-day streak pays its bonus, then less as each cover takes a day off; below 3 days it stops.
+  assert.deepEqual(coverGold, [10, 9, 8, 7, 6, 5, 4, 3, 0, 0, 0].map((days) => m.streakBonusGold(days)));
   assert.equal(m.currentStreak(m.buildStreakIndex(logs), task.id, 'wife', day(-9)).days, 0, 'and then it breaks');
 });
 

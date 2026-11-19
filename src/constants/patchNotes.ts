@@ -17,6 +17,46 @@ export interface VersionConfig {
  */
 export const PATCH_NOTES: VersionConfig[] = [
   {
+    version: '1.9.0',
+    date: '2026-11-25',
+    notes: {
+      features: {
+        en: [
+          'New "Get the app" button: install ChoreQuest in one tap.',
+          'New skill Seesaw: behind? Bonus gold. Ahead? Bonus XP.',
+          'Lucky Quest: one quest a day pays x2 gold. Find the star!',
+          'Both of you can fix any quest. Late quests: until noon.',
+          'Fixing a quest never fails. You keep your level, even with negative XP.',
+        ],
+        vi: [
+          'Nút "Tải ứng dụng" mới: cài ChoreQuest chỉ với một chạm.',
+          'Kỹ năng mới Bập bênh: bị dẫn thì thêm vàng, dẫn trước thì thêm EXP.',
+          'Nhiệm vụ may mắn: mỗi ngày một nhiệm vụ x2 vàng. Tìm ngôi sao nhé!',
+          'Cả hai đều sửa được mọi nhiệm vụ. Nhiệm vụ trễ: sửa được đến 12h trưa.',
+          'Sửa nhiệm vụ không bao giờ bị chặn. Vẫn giữ cấp, kể cả khi EXP bị âm.',
+        ],
+      },
+      balance: {
+        en: [
+          'Buffs: Golden Touch, Quick Hands, Errand Runner, Laundry Pro, Heavy Lifter, Master Chef, Team Player, Steady Worker, Tag Team.',
+          'Nerfs: Gold Interest, Fast Learner, Fortune’s Favor.',
+          'Gold Interest only pays after a day with a quest.',
+          'Fortune’s Favor: +2 tickets every level up.',
+          'Streak gold = streak days (max 10).',
+          'Laundry quests: +2 gold. Big quests: a bit less gold.',
+        ],
+        vi: [
+          'Buff: Bàn tay vàng, Nhanh tay, Việc vặt, Chuyên gia giặt giũ, Lực sĩ việc nặng, Đầu bếp chính, Đồng đội, Chăm chỉ, Tiếp sức.',
+          'Nerf: Tích tiểu thành đại, Học nhanh, Kiếm vé may mắn.',
+          'Tích tiểu thành đại chỉ trả lãi sau ngày có làm nhiệm vụ.',
+          'Kiếm vé may mắn: +2 vé mỗi lần lên cấp.',
+          'Vàng chuỗi = số ngày chuỗi (tối đa 10).',
+          'Nhiệm vụ giặt giũ: +2 vàng. Nhiệm vụ lớn: bớt chút vàng.',
+        ],
+      },
+    },
+  },
+  {
     version: '1.8.1',
     date: '2026-11-17',
     notes: {

@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { GoogleLogo } from '../ui/GoogleLogo';
 import { Icon } from '../ui/Icon';
+import { InstallButton } from '../ui/InstallButton';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { PasswordInput } from '../ui/PasswordInput';
 import { TEXT_ACTION } from '../ui/textAction';
@@ -43,6 +44,8 @@ export function AuthScreen() {
         </h1>
         <p className="px-subtitle mt-4 text-xl">{t('app.tagline')}</p>
       </div>
+      {/* First thing under the title, so first-time visitors see it before signing in (hidden in the installed app). */}
+      <InstallButton variant="banner" />
       <div className="px-panel px-panel-wood p-2">
         <CabinScene />
       </div>

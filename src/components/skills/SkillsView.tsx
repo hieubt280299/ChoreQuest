@@ -44,22 +44,26 @@ export function TierPips({ level, skill }: { level: number; skill?: SkillDefinit
       content={
         <span className="block space-y-0.5">
           <span className="block font-extrabold">{t('skills.table.title')}</span>
-          {skillLevelTable(skill).map((row) => (
-            <span key={row.label} className="block">
-              <span className="text-wood-700">{t(row.label)}: </span>
-              {skillLevelValues(skill, row.field).map((value, index) => (
-                <Fragment key={index}>
-                  {index > 0 && ' / '}
-                  {index + 1 === level ? <strong className="font-extrabold text-brick-600">{value}</strong> : value}
-                </Fragment>
-              ))}
-            </span>
-          ))}
-          {skill.effect.xpPerCharacterLevel ? (
-            <span className="block text-wood-700">
-              {t('skills.perCharacterLevel', { value: Math.round(skill.effect.xpPerCharacterLevel * 100) })}
-            </span>
-          ) : null}
+          {skillLevelTable(skill).map((row) => {
+            const values = skillLevelValues(skill, row.field);
+            // The same at every level (Fortune's Favor's 2 tickets): shown once, not "2 / 2 / 2 / 2".
+            const same = values.every((value) => value === values[0]);
+            return (
+              <span key={row.label} className="block">
+                <span className="text-wood-700">{t(row.label)}: </span>
+                {same
+                  ? level > 0
+                    ? <strong className="font-extrabold text-brick-600">{values[0]}</strong>
+                    : values[0]
+                  : values.map((value, index) => (
+                      <Fragment key={index}>
+                        {index > 0 && ' / '}
+                        {index + 1 === level ? <strong className="font-extrabold text-brick-600">{value}</strong> : value}
+                      </Fragment>
+                    ))}
+              </span>
+            );
+          })}
         </span>
       }
     />

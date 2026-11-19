@@ -12,24 +12,21 @@ const withSkills = (state, id, skills, extra = {}) => ({
 // Total XP that puts a character at `level`.
 const xpForLevel = (level) => m.XP_CURVE.slice(0, level - 1).reduce((sum, value) => sum + value, 0);
 
-check('skill tables (v1.8.0)', () => {
-  assert.deepEqual(skill('speed-cleaner').xp, [0.08, 0.16, 0.24, 0.32]);
-  assert.deepEqual(skill('speed-cleaner').gold, [0.08, 0.16, 0.24, 0.32]);
-  assert.deepEqual(skill('shop-savvy').xp, [0.15, 0.3, 0.45, 0.6]);
-  assert.deepEqual(skill('shop-savvy').gold, [0.15, 0.3, 0.45, 0.6]);
-  assert.deepEqual(skill('zen-housekeeper').xp, [0.3, 0.45, 0.6, 0.75]);
+check('skill tables have 4 levels; Fast Learner is XP only (values: v190)', () => {
+  for (const def of m.SKILL_POOL) {
+    for (const field of ['xp', 'gold', 'values', 'caps', 'xpPerCharacterLevel']) {
+      if (def.effect[field]) assert.equal(def.effect[field].length, 4, `${def.id} ${field}`);
+    }
+  }
   assert.equal(skill('zen-housekeeper').gold, undefined, 'Fast Learner is XP only');
-  assert.equal(skill('zen-housekeeper').xpPerCharacterLevel, 0.01);
-  assert.deepEqual(skill('fortunes-favor').values, [1, 2, 3, 4]); // v1.4.0
-  assert.deepEqual(skill('fortunes-favor').gold, [0.2, 0.4, 0.6, 0.8]);
-  assert.deepEqual(skill('hall-of-fame').values, [1, 2, 3, 4]); // v1.4.0: Golden Tickets
 });
 
-check('Fast Learner: character lv5 + skill lv2 = 50% more XP, no gold', () => {
+check('Fast Learner grows with the character level, no gold', () => {
   const s = withSkills(m.createInitialState(today), 'wife', [{ skillId: 'zen-housekeeper', level: 2 }], { xp: xpForLevel(5) });
   assert.equal(m.getLevelFromXp(s.characters.wife.xp), 5);
   const r = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'wife', s.characters, m.SKILL_POOL);
-  close(r.wife.xp, 150);
+  const { xp, xpPerCharacterLevel } = skill('zen-housekeeper');
+  close(r.wife.xp, 100 * (1 + xp[1] + xpPerCharacterLevel[1] * 5));
   close(r.wife.gold, 100);
 });
 

@@ -10,31 +10,35 @@ const withSkills = (state, id, skills, extra = {}) => ({
 });
 
 // --- Skills ---------------------------------------------------------------
-check('Steady Worker: 10/15/20/25% XP and gold on Moderate quests', () => {
+check('Steady Worker: XP and gold on Moderate quests only (values: v190)', () => {
   const effect = m.SKILL_POOL.find((s) => s.id === 'steady-worker').effect;
-  assert.deepEqual(effect.xp, [0.1, 0.15, 0.2, 0.25]);
-  assert.deepEqual(effect.gold, [0.1, 0.15, 0.2, 0.25]);
   const s = withSkills(m.createInitialState(today), 'wife', [{ skillId: 'steady-worker', level: 4 }]);
   const r = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'main' }, 'wife', s.characters, m.SKILL_POOL);
-  assert.equal(Math.round(r.wife.xp), 125);
-  assert.equal(Math.round(r.wife.gold), 125);
+  assert.equal(Math.round(r.wife.xp), Math.round(100 * (1 + effect.xp[3])));
+  assert.equal(Math.round(r.wife.gold), Math.round(100 * (1 + effect.gold[3])));
   const quick = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'general', group: 'quick' }, 'wife', s.characters, m.SKILL_POOL);
   assert.equal(Math.round(quick.wife.gold), 100, 'not on Quick quests');
 });
 
-check('Gold Interest: capped per level (60 gold a day at level 4), never on day 1', () => {
+check('Gold Interest: capped per level, never on day 1', () => {
+  const { values, caps } = m.SKILL_POOL.find((d) => d.id === 'gold-interest').effect;
   let s = m.createInitialState(day(-3));
   s = { ...s, chronicle: { ...s.chronicle, startDate: day(-3), endDate: day(20) } };
-  // 5% (level 4) of 5000 = 250, capped to 60 per day (v1.8); days -2, -1 and today pay (day -3 is the chronicle's day 1).
-  s = withSkills(s, 'husband', [{ skillId: 'gold-interest', level: 4 }], { gold: 5000, interestOn: day(-4) });
+  // A quest every day, so every day can pay (v1.9: interest only after a day with a quest).
+  const logs = [-4, -3, -2, -1].map((d) => ({
+    id: `q${d}`, taskId: 'beds', date: day(d), completedBy: 'husband', timestamp: 0,
+    xpAwarded: { husband: 0, wife: 0 }, goldAwarded: { husband: 0, wife: 0 },
+  }));
+  // Level 4's rate of 5000 is far above the cap; days -2, -1 and today pay (day -3 is the chronicle's day 1).
+  s = withSkills({ ...s, logs }, 'husband', [{ skillId: 'gold-interest', level: 4 }], { gold: 5000, interestOn: day(-4) });
   const next = m.applyDailyInterest(s, today);
   const paid = next.events.filter((e) => e.type === 'interest' && e.characterId === 'husband');
   assert.deepEqual(paid.map((e) => e.date).sort(), [day(-2), day(-1), day(0)]);
-  assert.ok(paid.every((e) => e.gold === 60));
-  assert.equal(next.characters.husband.gold, 5180);
-  // Below the cap the percentage applies as before: level 4 = 5% (v1.5) of 500 = 25.
+  assert.ok(paid.every((e) => e.gold === caps[3]));
+  assert.equal(next.characters.husband.gold, 5000 + 3 * caps[3]);
+  // Below the cap the percentage applies: level 4's rate of 500.
   const small = m.applyDailyInterest(withSkills(s, 'husband', [{ skillId: 'gold-interest', level: 4 }], { gold: 500, interestOn: day(-1) }), today);
-  assert.equal(small.characters.husband.gold, 525);
+  assert.equal(small.characters.husband.gold, 500 + Math.round(500 * values[3]));
 });
 
 // --- Sync: ops, idempotency, transactions ---------------------------------

@@ -9,7 +9,7 @@ import {
   dayCount,
   formatDateRange,
   formatDay,
-  getXpProgress,
+  characterXpProgress,
   localDateKey,
   parseDateKey,
 } from '../../utils/calculations';
@@ -181,7 +181,7 @@ export function CalendarView() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {(['husband', 'wife'] as CharacterId[]).map((id) => {
             const character = state.characters[id];
-            const progress = getXpProgress(character.xp);
+            const progress = characterXpProgress(character);
             return (
               <div key={id} className="px-slot flex items-center gap-3 p-3 min-[360px]:gap-4">
                 {/* Portrait with the level circle overlapping its corner, Dota-style */}
@@ -189,6 +189,7 @@ export function CalendarView() {
                   <CharacterAvatar id={id} scale={3} className="w-[66px] min-[360px]:w-[84px]" />
                   <LevelRing
                     xp={character.xp}
+                    xpDebt={character.xpDebt}
                     size={36}
                     className="absolute bottom-0 left-0"
                     label={`${t('character.level', { level: progress.level })} · ${

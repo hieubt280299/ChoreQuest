@@ -15,33 +15,20 @@ const withSkills = (state, id, skills, extra = {}) => ({
   characters: { ...state.characters, [id]: { ...state.characters[id], skills, ...extra } },
 });
 
-check('caps: 8 skill slots, 24 points, 14 skills', () => {
+check('caps: 8 skill slots, 24 points, 15 skills', () => {
   assert.equal(m.MAX_SKILLS_PER_CHARACTER, 8);
   assert.equal(m.MAX_SKILL_POINTS, 24);
-  assert.equal(m.SKILL_POOL.length, 14);
+  assert.equal(m.SKILL_POOL.length, 15);
 });
 
-check('Speed Cleaner lv3 + Fast Learner lv2 (v1.8.0 values) at character level 1', () => {
+check('Speed Cleaner lv3 + Fast Learner lv2 at character level 1 add up (values: v190)', () => {
   const s = withSkills(m.createInitialState(today), 'husband', [{ skillId: 'speed-cleaner', level: 3 }, { skillId: 'zen-housekeeper', level: 2 }]);
   const r = m.computeRewardBreakdown({ xp: 100, gold: 100, category: 'cleaning', group: 'main' }, 'husband', s.characters, m.SKILL_POOL);
-  // XP: +24% cleaning, +45% +1% (character level 1) all; gold: +24% cleaning only
-  close(r.husband.xp, 170);
-  close(r.husband.gold, 124);
-});
-
-check('Master Chef 9..36, Heavy Lifter 20..50 gold / 10..40 XP, Quick Hands 10..40, Team Player 15..60 (v1.8.0)', () => {
-  const chef = m.SKILL_POOL.find((s) => s.id === 'master-chef').effect;
-  assert.deepEqual(chef.gold, [0.09, 0.18, 0.27, 0.36]);
-  assert.deepEqual(chef.xp, [0.09, 0.18, 0.27, 0.36]);
-  const heavy = m.SKILL_POOL.find((s) => s.id === 'raid-master').effect;
-  assert.deepEqual(heavy.gold, [0.2, 0.3, 0.4, 0.5]);
-  assert.deepEqual(heavy.xp, [0.1, 0.2, 0.3, 0.4]);
-  const quick = m.SKILL_POOL.find((s) => s.id === 'quick-hands').effect;
-  assert.deepEqual(quick.gold, [0.1, 0.2, 0.3, 0.4]);
-  assert.deepEqual(quick.xp, [0.1, 0.2, 0.3, 0.4]);
-  const team = m.SKILL_POOL.find((s) => s.id === 'team-player').effect;
-  assert.deepEqual(team.xp, [0.15, 0.3, 0.45, 0.6]);
-  assert.deepEqual(team.gold, [0.15, 0.3, 0.45, 0.6]);
+  const cleaner = m.SKILL_POOL.find((d) => d.id === 'speed-cleaner').effect;
+  const learner = m.SKILL_POOL.find((d) => d.id === 'zen-housekeeper').effect;
+  // XP: the cleaning bonus, plus Fast Learner's bonus and its per-character-level bonus (level 1); gold: cleaning only
+  close(r.husband.xp, 100 * (1 + cleaner.xp[2] + learner.xp[1] + learner.xpPerCharacterLevel[1] * 1));
+  close(r.husband.gold, 100 * (1 + cleaner.gold[2]));
 });
 
 check('Tag Team only when the spouse has a 3+ day streak on that quest', () => {
@@ -50,15 +37,17 @@ check('Tag Team only when the spouse has a 3+ day streak on that quest', () => {
   const off = m.computeRewardBreakdown(base, 'wife', s.characters, m.SKILL_POOL, {}, { wife: 2 });
   close(off.wife.gold, 100);
   const on = m.computeRewardBreakdown(base, 'wife', s.characters, m.SKILL_POOL, {}, { wife: 3 });
-  // +30% gold, plus the 3-day streak's bonus (1 gold) since it was done alone; no XP bonus any more.
-  close(on.wife.gold, 131);
+  // The level-2 gold bonus, plus the 3-day streak's bonus since it was done alone; no XP bonus.
+  const bonus = m.SKILL_POOL.find((d) => d.id === 'synergistic-streak').effect.gold[1];
+  close(on.wife.gold, 100 * (1 + bonus) + m.streakBonusGold(3));
   close(on.wife.xp, 100);
 });
 
 check('quest rebalance: v0.2 built-ins migrate, edited quests are kept', () => {
+  const cooking = m.DEFAULT_TASKS.find((t) => t.id === 'cooking');
   assert.deepEqual(
     [m.rebalanceTask({ id: 'cooking', xp: 45, gold: 55, group: 'main' })].map((t) => [t.xp, t.gold, t.group])[0],
-    [40, 42, 'main'], // through the v1.0 and v1.5 rebalances
+    [cooking.xp, cooking.gold, cooking.group], // through every later rebalance, to today's default
   );
   assert.deepEqual(m.rebalanceTask({ id: 'trash', xp: 5, gold: 5, group: 'quick' }).gold, 10);
   const edited = { id: 'cooking', xp: 60, gold: 55, group: 'main' };
