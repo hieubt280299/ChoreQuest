@@ -9,7 +9,7 @@ _Last revised: 2026-11-18 (v1.9.0 built)._
 
 ---
 
-## ✅ Built: v1.9.0 (merge from 2026-11-19)
+## ✅ Built: v1.9.0 (release planned 2026-11-25)
 
 Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
 

@@ -2,7 +2,7 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
-## [1.9.0] - 2026-11-19
+## [1.9.0] - 2026-11-25
 
 Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
 

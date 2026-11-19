@@ -213,4 +213,4 @@ Unchanged: Speed Cleaner, Hall of Fame.
     * Lucky Quest: the pick (stable, order-independent, enabled only) and the doubled base gold.
 * **Docs:** AGENT_GUIDE (skill values, Seesaw, streak rule, Fast Learner example) and README (Fibonacci streaks).
 * **Release:** CHANGELOG, `package.json` version, a What's New entry in `patchNotes.ts` (EN + VI, short and simple), and ROADMAP statuses.
-* **Merge** no earlier than 2026-11-19 (two weeks after v1.8.0).
+* **Release** planned for 2026-11-25 (allowed from 2026-11-19, two weeks after v1.8.0).

@@ -18,7 +18,7 @@ export interface VersionConfig {
 export const PATCH_NOTES: VersionConfig[] = [
   {
     version: '1.9.0',
-    date: '2026-11-19',
+    date: '2026-11-25',
     notes: {
       features: {
         en: [
