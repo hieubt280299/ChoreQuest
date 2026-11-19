@@ -21,29 +21,29 @@ const quest = { xp: 100, gold: 100, category: 'general', group: 'quick' };
 check('skill values (v1.9.0)', () => {
   const both = (id) => [skill(id).effect.xp, skill(id).effect.gold];
   assert.deepEqual(skill('gold-interest').effect.values, [0.01, 0.02, 0.03, 0.04]);
-  assert.deepEqual(skill('gold-interest').effect.caps, [15, 25, 35, 45]);
+  assert.deepEqual(skill('gold-interest').effect.caps, [12, 20, 28, 36]);
   assert.deepEqual(skill('fortunes-favor').effect.values, [2, 2, 2, 2]);
   assert.deepEqual(skill('fortunes-favor').effect.gold, [0.2, 0.4, 0.6, 0.8], 'spin bonus unchanged');
-  assert.deepEqual(skill('zen-housekeeper').effect.xp, [0.25, 0.3, 0.35, 0.4]);
-  assert.deepEqual(skill('zen-housekeeper').effect.xpPerCharacterLevel, [0.01, 0.015, 0.02, 0.025]);
+  assert.deepEqual(skill('zen-housekeeper').effect.xp, [0.16, 0.24, 0.32, 0.4]);
+  assert.deepEqual(skill('zen-housekeeper').effect.xpPerCharacterLevel, [0.005, 0.01, 0.015, 0.02]);
   assert.deepEqual(both('quick-hands'), [[0.15, 0.25, 0.35, 0.45], [0.15, 0.25, 0.35, 0.45]]);
-  assert.deepEqual(both('shop-savvy'), [[0.3, 0.4, 0.5, 0.6], [0.3, 0.4, 0.5, 0.6]]);
-  assert.deepEqual(both('iron-will'), [[0.3, 0.45, 0.6, 0.75], [0.3, 0.45, 0.6, 0.75]]);
+  assert.deepEqual(both('shop-savvy'), [[0.25, 0.4, 0.55, 0.7], [0.25, 0.4, 0.55, 0.7]]);
+  assert.deepEqual(both('iron-will'), [[0.25, 0.45, 0.65, 0.85], [0.25, 0.45, 0.65, 0.85]]);
   assert.deepEqual(both('raid-master'), [[0.15, 0.3, 0.45, 0.6], [0.2, 0.4, 0.6, 0.8]]);
-  assert.deepEqual(both('master-chef'), [[0.12, 0.24, 0.36, 0.48], [0.12, 0.24, 0.36, 0.48]]);
+  assert.deepEqual(both('master-chef'), [[0.14, 0.28, 0.42, 0.56], [0.14, 0.28, 0.42, 0.56]]);
   assert.deepEqual(both('team-player'), [[0.2, 0.4, 0.6, 0.8], [0.2, 0.4, 0.6, 0.8]]);
-  assert.deepEqual(both('steady-worker'), [[0.1, 0.16, 0.22, 0.28], [0.1, 0.16, 0.22, 0.28]]);
+  assert.deepEqual(both('steady-worker'), [[0.09, 0.18, 0.27, 0.36], [0.09, 0.18, 0.27, 0.36]]);
   assert.deepEqual(skill('synergistic-streak').effect, { kind: 'spouse_streak', gold: [0.25, 0.5, 0.75, 1] });
   // Unchanged.
   assert.deepEqual(both('speed-cleaner'), [[0.08, 0.16, 0.24, 0.32], [0.08, 0.16, 0.24, 0.32]]);
-  assert.deepEqual(skill('gold-doubler').effect.gold, [0.06, 0.12, 0.18, 0.24]);
+  assert.deepEqual(skill('gold-doubler').effect.gold, [0.07, 0.14, 0.21, 0.28]);
   assert.deepEqual(skill('hall-of-fame').effect.values, [1, 2, 3, 4]);
   assert.equal(m.SKILL_REFUND_VERSION, '1.8.0', 'no new refund');
 });
 
-check('Fast Learner: +1 / 1.5 / 2 / 2.5% per character level, by skill level', () => {
+check('Fast Learner: +0.5 / 1 / 1.5 / 2% per character level, by skill level', () => {
   const xpForLevel = (level) => m.XP_CURVE.slice(0, level - 1).reduce((sum, value) => sum + value, 0);
-  for (const [skillLevel, expected] of [[1, 130], [2, 137.5], [3, 145], [4, 152.5]]) {
+  for (const [skillLevel, expected] of [[1, 118.5], [2, 129], [3, 139.5], [4, 150]]) {
     const s = withChar(m.createInitialState(today), 'wife', { skills: [{ skillId: 'zen-housekeeper', level: skillLevel }], xp: xpForLevel(5) });
     const r = m.computeRewardBreakdown(quest, 'wife', s.characters, m.SKILL_POOL).wife;
     close(r.xp, expected);

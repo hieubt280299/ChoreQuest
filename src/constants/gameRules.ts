@@ -201,7 +201,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.masterChef.desc',
     icon: 'chef',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['cooking'], xp: levels(0.12, 0.24, 0.36, 0.48), gold: levels(0.12, 0.24, 0.36, 0.48) },
+    effect: { kind: 'category', categories: ['cooking'], xp: levels(0.14, 0.28, 0.42, 0.56), gold: levels(0.14, 0.28, 0.42, 0.56) },
   },
   {
     id: 'gold-doubler',
@@ -209,7 +209,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldDoubler.desc',
     icon: 'coins',
     maxLevel: 4,
-    effect: { kind: 'all', gold: levels(0.06, 0.12, 0.18, 0.24) },
+    effect: { kind: 'all', gold: levels(0.07, 0.14, 0.21, 0.28) },
   },
   {
     id: 'quick-hands',
@@ -233,7 +233,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.ironWill.desc',
     icon: 'shirt',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.3, 0.45, 0.6, 0.75), gold: levels(0.3, 0.45, 0.6, 0.75) },
+    effect: { kind: 'category', categories: ['laundry'], xp: levels(0.25, 0.45, 0.65, 0.85), gold: levels(0.25, 0.45, 0.65, 0.85) },
   },
   {
     // Errand Runner (was Shop Savvy, which covered shopping only); the id is kept so learned levels carry over.
@@ -242,7 +242,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.shopSavvy.desc',
     icon: 'cart',
     maxLevel: 4,
-    effect: { kind: 'category', categories: ['shopping', 'general'], xp: levels(0.3, 0.4, 0.5, 0.6), gold: levels(0.3, 0.4, 0.5, 0.6) },
+    effect: { kind: 'category', categories: ['shopping', 'general'], xp: levels(0.25, 0.4, 0.55, 0.7), gold: levels(0.25, 0.4, 0.55, 0.7) },
   },
   {
     id: 'zen-housekeeper',
@@ -250,8 +250,8 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.zenHousekeeper.desc',
     icon: 'lightbulb',
     maxLevel: 4,
-    // XP grows with the character: 25/30/35/40% plus 1/1.5/2/2.5% (by skill level) per character level.
-    effect: { kind: 'all', xp: levels(0.25, 0.3, 0.35, 0.4), xpPerCharacterLevel: levels(0.01, 0.015, 0.02, 0.025) },
+    // XP grows with the character: 16/24/32/40% plus 0.5/1/1.5/2% (by skill level) per character level.
+    effect: { kind: 'all', xp: levels(0.16, 0.24, 0.32, 0.4), xpPerCharacterLevel: levels(0.005, 0.01, 0.015, 0.02) },
   },
   {
     id: 'raid-master',
@@ -267,7 +267,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.steadyWorker.desc',
     icon: 'clock',
     maxLevel: 4,
-    effect: { kind: 'group', group: 'main', xp: levels(0.1, 0.16, 0.22, 0.28), gold: levels(0.1, 0.16, 0.22, 0.28) },
+    effect: { kind: 'group', group: 'main', xp: levels(0.09, 0.18, 0.27, 0.36), gold: levels(0.09, 0.18, 0.27, 0.36) },
   },
   {
     id: 'fortunes-favor',
@@ -285,7 +285,7 @@ export const SKILL_POOL: SkillDefinition[] = [
     descriptionKey: 'skill.goldInterest.desc',
     icon: 'trending',
     maxLevel: 4,
-    effect: { kind: 'daily_interest', values: levels(0.01, 0.02, 0.03, 0.04), caps: levels(15, 25, 35, 45) },
+    effect: { kind: 'daily_interest', values: levels(0.01, 0.02, 0.03, 0.04), caps: levels(12, 20, 28, 36) },
   },
   {
     // Tag Team (was Synergistic Streak). Done alone, the quest also pays the spouse's streak bonus gold and keeps their

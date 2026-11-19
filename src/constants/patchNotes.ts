@@ -36,7 +36,7 @@ export const PATCH_NOTES: VersionConfig[] = [
       },
       balance: {
         en: [
-          'Many skills got stronger: Quick Hands, Errand Runner, Laundry Pro, Heavy Lifter, Master Chef, Team Player, Steady Worker and Tag Team.',
+          'Many skills got stronger: Golden Touch, Quick Hands, Errand Runner, Laundry Pro, Heavy Lifter, Master Chef, Team Player, Steady Worker and Tag Team.',
           'Gold Interest, Fast Learner and Fortune’s Favor are a little weaker.',
           'Gold Interest now only pays after a day you did a quest.',
           'Fortune’s Favor now gives 2 tickets every time you level up.',
@@ -44,7 +44,7 @@ export const PATCH_NOTES: VersionConfig[] = [
           'Laundry quests give 2 more gold. Big quests give a little less gold.',
         ],
         vi: [
-          'Nhiều kỹ năng mạnh hơn: Nhanh tay, Việc vặt, Chuyên gia giặt giũ, Lực sĩ việc nặng, Đầu bếp chính, Đồng đội, Chăm chỉ và Tiếp sức.',
+          'Nhiều kỹ năng mạnh hơn: Bàn tay vàng, Nhanh tay, Việc vặt, Chuyên gia giặt giũ, Lực sĩ việc nặng, Đầu bếp chính, Đồng đội, Chăm chỉ và Tiếp sức.',
           'Tích tiểu thành đại, Học nhanh và Kiếm vé may mắn yếu đi một chút.',
           'Tích tiểu thành đại giờ chỉ trả lãi sau ngày bạn có làm nhiệm vụ.',
           'Kiếm vé may mắn giờ tặng 2 vé mỗi lần lên cấp.',

@@ -78,19 +78,20 @@ All values in `SKILL_POOL` (`constants/gameRules.ts`).
 
 | Skill | v1.8 | v1.9.0 |
 | --- | --- | --- |
-| Gold Interest | 2 / 3 / 4 / 5% a day, cap 15 / 30 / 45 / 60 | **1 / 2 / 3 / 4%**, cap **15 / 25 / 35 / 45**, **active days only** (below) |
+| Gold Interest | 2 / 3 / 4 / 5% a day, cap 15 / 30 / 45 / 60 | **1 / 2 / 3 / 4%**, cap **12 / 20 / 28 / 36**, **active days only** (below) |
 | Fortune's Favor | 1 / 2 / 3 / 4 Normal Tickets per new Chronicle and per level-up; spin bonus 20 / 40 / 60 / 80% | **2 Normal Tickets per level-up at every level, none per Chronicle**; spin bonus unchanged |
-| Fast Learner | 30 / 45 / 60 / 75% XP, +1% per character level | **25 / 30 / 35 / 40%** XP, **+1 / 1.5 / 2 / 2.5%** per character level (by skill level) |
+| Fast Learner | 30 / 45 / 60 / 75% XP, +1% per character level | **16 / 24 / 32 / 40%** XP, **+0.5 / 1 / 1.5 / 2%** per character level (by skill level) |
 | Quick Hands | 10 / 20 / 30 / 40% XP and gold | **15 / 25 / 35 / 45%** |
-| Errand Runner | 15 / 30 / 45 / 60% XP and gold | **30 / 40 / 50 / 60%** |
-| Laundry Pro | XP 20 / 30 / 40 / 50%, gold 20 / 40 / 60 / 80% | **30 / 45 / 60 / 75%** XP and gold |
+| Errand Runner | 15 / 30 / 45 / 60% XP and gold | **25 / 40 / 55 / 70%** |
+| Laundry Pro | XP 20 / 30 / 40 / 50%, gold 20 / 40 / 60 / 80% | **25 / 45 / 65 / 85%** XP and gold |
 | Heavy Lifter | XP 10 / 20 / 30 / 40%, gold 20 / 30 / 40 / 50% | XP **15 / 30 / 45 / 60%**, gold **20 / 40 / 60 / 80%** |
-| Master Chef | 9 / 18 / 27 / 36% XP and gold | **12 / 24 / 36 / 48%** |
+| Master Chef | 9 / 18 / 27 / 36% XP and gold | **14 / 28 / 42 / 56%** |
 | Team Player | 15 / 30 / 45 / 60% XP and gold | **20 / 40 / 60 / 80%** |
-| Steady Worker | 10 / 15 / 20 / 25% XP and gold | **10 / 16 / 22 / 28%** |
+| Steady Worker | 10 / 15 / 20 / 25% XP and gold | **9 / 18 / 27 / 36%** |
+| Golden Touch | 6 / 12 / 18 / 24% gold | **7 / 14 / 21 / 28%** |
 | Tag Team | 15 / 30 / 45 / 60% gold | **25 / 50 / 75 / 100%** gold |
 
-Unchanged: Golden Touch, Speed Cleaner, Hall of Fame.
+Unchanged: Speed Cleaner, Hall of Fame.
 
 #### Gold Interest: active days only
 
@@ -108,8 +109,8 @@ Unchanged: Golden Touch, Speed Cleaner, Hall of Fame.
 
 #### Fast Learner
 
-* `xpPerCharacterLevel` becomes per skill level: `levels(0.01, 0.015, 0.02, 0.025)`, read at the owned level in `applySkillBonuses`. Update the type.
-* Update the `{{levelBonus}}` text, the tier pips and `FastLearnerTooltip` (e.g. character lv. 5, skill lv. 2 → 37.5%). Show half percents with one decimal.
+* `xpPerCharacterLevel` becomes per skill level: `levels(0.005, 0.01, 0.015, 0.02)`, read at the owned level in `applySkillBonuses`. Update the type.
+* Update the `{{levelBonus}}` text, the tier pips and `FastLearnerTooltip` (e.g. character lv. 5, skill lv. 2 → 29%; skill lv. 1 → 18.5%). Show half percents with one decimal.
 
 #### Laundry Pro
 

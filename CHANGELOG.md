@@ -23,16 +23,17 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
 
   | Skill | v1.8 | v1.9 |
   | --- | --- | --- |
-  | Gold Interest | 2 / 3 / 4 / 5%, cap 15 / 30 / 45 / 60 | 1 / 2 / 3 / 4%, cap 15 / 25 / 35 / 45, active days only |
+  | Gold Interest | 2 / 3 / 4 / 5%, cap 15 / 30 / 45 / 60 | 1 / 2 / 3 / 4%, cap 12 / 20 / 28 / 36, active days only |
   | Fortune's Favor | 1 / 2 / 3 / 4 Normal Tickets per Chronicle and per level-up | 2 per level-up at every level, none per Chronicle |
-  | Fast Learner | 30 / 45 / 60 / 75% XP + 1% per character level | 25 / 30 / 35 / 40% + 1 / 1.5 / 2 / 2.5% per character level |
+  | Fast Learner | 30 / 45 / 60 / 75% XP + 1% per character level | 16 / 24 / 32 / 40% + 0.5 / 1 / 1.5 / 2% per character level |
   | Quick Hands | 10 / 20 / 30 / 40% | 15 / 25 / 35 / 45% |
-  | Errand Runner | 15 / 30 / 45 / 60% | 30 / 40 / 50 / 60% |
-  | Laundry Pro | XP 20–50%, gold 20–80% | 30 / 45 / 60 / 75% both |
+  | Errand Runner | 15 / 30 / 45 / 60% | 25 / 40 / 55 / 70% |
+  | Laundry Pro | XP 20–50%, gold 20–80% | 25 / 45 / 65 / 85% both |
   | Heavy Lifter | XP 10–40%, gold 20–50% | XP 15 / 30 / 45 / 60%, gold 20 / 40 / 60 / 80% |
-  | Master Chef | 9 / 18 / 27 / 36% | 12 / 24 / 36 / 48% |
+  | Master Chef | 9 / 18 / 27 / 36% | 14 / 28 / 42 / 56% |
   | Team Player | 15 / 30 / 45 / 60% | 20 / 40 / 60 / 80% |
-  | Steady Worker | 10 / 15 / 20 / 25% | 10 / 16 / 22 / 28% |
+  | Steady Worker | 10 / 15 / 20 / 25% | 9 / 18 / 27 / 36% |
+  | Golden Touch | 6 / 12 / 18 / 24% gold | 7 / 14 / 21 / 28% gold |
   | Tag Team | 15 / 30 / 45 / 60% gold | 25 / 50 / 75 / 100% gold |
 
   - **Gold Interest, active days only** (`applyDailyInterest`): a day pays only if the player finished an on-time quest (alone or Both) the day before. Late quests don't count, since they can be logged after the day was settled.

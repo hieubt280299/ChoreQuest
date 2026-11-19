@@ -99,7 +99,7 @@ export interface SkillEffect {
   values?: number[];
   /** Most gold a day at levels 1-4 (Gold Interest). */
   caps?: number[];
-  /** Extra XP bonus per character level on top of `xp`, at skill levels 1-4 (Fast Learner: 1 / 1.5 / 2 / 2.5%). */
+  /** Extra XP bonus per character level on top of `xp`, at skill levels 1-4 (Fast Learner: 0.5 / 1 / 1.5 / 2%). */
   xpPerCharacterLevel?: number[];
   /** Quest categories a `category` skill covers (Errand Runner covers two). */
   categories?: TaskCategory[];
