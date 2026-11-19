@@ -293,6 +293,44 @@ check('either player can fix any entry: today\'s, and late ones while the late w
   assert.equal(m.translations.en['tasks.error.skillsSpent'], undefined);
 });
 
+// --- Lucky Quest of the Day -------------------------------------------------------------------
+check('Lucky Quest: one enabled quest a day, the same on every device, whatever the list order', () => {
+  const tasks = m.DEFAULT_TASKS;
+  const id = m.luckyQuestId(tasks, '2026-11-19');
+  assert.ok(tasks.some((task) => task.id === id && task.enabled));
+  assert.equal(m.luckyQuestId([...tasks].reverse(), '2026-11-19'), id, 'order does not matter');
+  assert.equal(m.luckyQuestId(tasks, '2026-11-19'), id, 'stable');
+  const off = tasks.map((task) => (task.id === id ? { ...task, enabled: false } : task));
+  assert.notEqual(m.luckyQuestId(off, '2026-11-19'), id, 'never a disabled quest');
+  assert.equal(m.luckyQuestId([], '2026-11-19'), null);
+  // Over two months it moves around the list.
+  const picks = new Set(Array.from({ length: 60 }, (_, i) => m.luckyQuestId(tasks, m.addDays('2026-11-01', i))));
+  assert.ok(picks.size >= 10, `${picks.size} different quests`);
+});
+
+check('Lucky Quest doubles the base gold (not XP) before skills, streaks and the Both split', () => {
+  const task = { xp: 40, gold: 40, category: 'cooking', group: 'main' };
+  assert.deepEqual(m.luckyBase(task, true), { ...task, gold: 80 });
+  assert.equal(m.luckyBase(task, false), task);
+  let s = withChar(m.createInitialState(today), 'wife', { skills: [{ skillId: 'master-chef', level: 1 }] });
+  const r = m.computeRewardBreakdown(m.luckyBase(task, true), 'both', s.characters, m.SKILL_POOL, { wife: 3 });
+  close(r.wife.baseGold, 40);
+  close(r.wife.gold, 40 * (1 + skill('master-chef').effect.gold[0]) + m.streakBonusGold(3));
+  close(r.wife.xp, 20 * (1 + skill('master-chef').effect.xp[0]));
+});
+
+check('Lucky Quest: on-time completions only, stored on the log; shown on the quest and the Today card', () => {
+  const ctx = source('src/context/GameContext.tsx');
+  assert.match(ctx, /const lucky = !late && luckyQuestId\(current\.tasks, date\) === task\.id;/);
+  assert.match(ctx, /const base = luckyBase\(intensityBase\(task, intensity\), lucky\);/);
+  assert.match(ctx, /\.\.\.\(lucky \? \{ lucky: true \} : \{\}\)/);
+  assert.match(ctx, /luckyBase\(intensityBase\(task, options\?\.intensity\), lucky\)/, 'the reward preview shows it');
+  assert.match(source('src/components/tasks/TasksView.tsx'), /lucky=\{!showingYesterday && task\.id === luckyTaskId\}/);
+  assert.match(source('src/components/tasks/TaskCard.tsx'), /lucky \? task\.gold \* LUCKY_GOLD_MULTIPLIER/);
+  assert.match(source('src/components/dashboard/TodayCard.tsx'), /t\('today\.lucky', \{ quest: taskName\(lucky, language\) \}\)/);
+  for (const language of ['en', 'vi']) for (const key of ['lucky.title', 'lucky.help', 'today.lucky']) assert.ok(m.translations[language][key], `${language} ${key}`);
+});
+
 // --- Release -------------------------------------------------------------------------------
 check("version and What's New are 1.9.0", () => {
   assert.equal(m.APP_VERSION, '1.9.0');

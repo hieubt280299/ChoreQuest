@@ -1,6 +1,6 @@
 # UPDATE v1.9.0 Specification
 
-Minor version: a new button, a new skill, a skill and quest rebalance, and simpler Fix entry rules. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
+Minor version: a new button, a new skill, a skill and quest rebalance, simpler Fix entry rules, and a Lucky Quest of the Day. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
 
 ---
 
@@ -182,7 +182,26 @@ Unchanged: Speed Cleaner, Hall of Fame.
 
 ---
 
-### 6. ✅ Release Checklist
+### 6. 🍀 Lucky Quest of the Day
+
+* **The pick** (`utils/lucky.ts`, `luckyQuestId`):
+    * One enabled quest a day, the same for both players.
+    * Chosen from the date with a stable hash over the enabled quest ids (sorted), so every device agrees and the list's order doesn't matter.
+    * Any enabled quest can be picked.
+* **The reward:**
+    * Done **on time** that day, it pays double **base gold** (`luckyBase`, ×2 `LUCKY_GOLD_MULTIPLIER`). XP is unchanged.
+    * The doubling happens after Effort levels and before skills, streaks and the "Both" split, so gold skills grow with it.
+    * Late quests are never lucky.
+* **The log** stores `lucky: true` and the doubled `baseGold`, so re-assigning keeps it and undo takes back what was paid.
+* **Shown:**
+    * A "★ x2" chip on the quest's card, with a tooltip, and its gold shown doubled. Not in the Yesterday view.
+    * A Today card row: "Lucky Quest: {quest} pays double gold today", struck through once done. New players see it below their First steps too.
+    * The "Who did it?" preview includes it (`previewReward`).
+* **ROADMAP:** Lucky Quest → Done (v1.9.0).
+
+---
+
+### 7. ✅ Release Checklist
 
 * **Tests:** `v100`, `v120`, `v180` and `streaks` pin v1.8 values. Update them to check behaviour only, and put the new values in `tests/v190.test.mjs`. That suite also covers:
     * Seesaw: behind, tied, leading, Both, late, undo.
@@ -191,6 +210,7 @@ Unchanged: Speed Cleaner, Hall of Fame.
     * The quest rebalance step.
     * The streak table.
     * Fix an entry: keeping a level with negative XP, paying it back, the unchanged level drop, save and load, and who can fix what.
+    * Lucky Quest: the pick (stable, order-independent, enabled only) and the doubled base gold.
 * **Docs:** AGENT_GUIDE (skill values, Seesaw, streak rule, Fast Learner example) and README (Fibonacci streaks).
 * **Release:** CHANGELOG, `package.json` version, a What's New entry in `patchNotes.ts` (EN + VI, short and simple), and ROADMAP statuses.
 * **Merge** no earlier than 2026-11-19 (two weeks after v1.8.0).

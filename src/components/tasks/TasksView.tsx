@@ -64,6 +64,7 @@ export function TasksView() {
     undoLog,
     reassignLog,
     getTodayLog,
+    luckyTaskId,
     getStreak,
     yesterdayOpen,
     yesterdayQuests,
@@ -190,6 +191,7 @@ export function TasksView() {
         log={log}
         yesterday={showingYesterday}
         streaks={[getStreak(task.id, 'husband'), getStreak(task.id, 'wife')]}
+        lucky={!showingYesterday && task.id === luckyTaskId}
         editing={editMode && canEditSettings && !showingYesterday}
         canPlay={canPlay}
         canFix={!!log && canManageLog(log)}

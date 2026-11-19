@@ -12,6 +12,7 @@ export { RECONNECT_AFTER_HIDDEN_MS, shouldReconnect } from '../src/services/fire
 export * from '../src/utils/invite';
 export * from '../src/utils/today';
 export * from '../src/utils/installGuide';
+export * from '../src/utils/lucky';
 export * from '../src/utils/skillFilters';
 export { needsReload } from '../src/utils/appUpdate';
 export * from '../src/utils/savesInFlight';

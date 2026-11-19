@@ -51,6 +51,7 @@ import { heartSentOn, sendHeartOnState } from '../utils/hearts';
 import { notifyPartnerOfHeart } from '../utils/push';
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
+import { luckyBase, luckyQuestId } from '../utils/lucky';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
 import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
 import { trackSave } from '../utils/savesInFlight';
@@ -167,6 +168,8 @@ interface GameContextValue {
   upgradeSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   isTaskDoneToday: (taskId: string) => boolean;
   getTodayLog: (taskId: string) => TaskLog | undefined;
+  /** Today's Lucky Quest (double gold when done on time), the same for both players; null with no quests. */
+  luckyTaskId: string | null;
   /** A character's live streak on a quest. */
   getStreak: (taskId: string, characterId: CharacterId) => Streak;
   /** Exact reward breakdown completing a quest today would give, per character (null = not a recipient). */
@@ -462,7 +465,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (current.logs.some((log) => log.taskId === taskId && log.date === date)) return 'tasks.alreadyDone';
           // Effort (intensity-enabled Moderate quests) scales the base first; skills and streaks build on it.
           const intensity = intensityApplies(task) ? (options?.intensity ?? 'normal') : 'normal';
-          const base = intensityBase(task, intensity);
+          // The day's Lucky Quest doubles the (effort-scaled) base gold; late quests are never lucky.
+          const lucky = !late && luckyQuestId(current.tasks, date) === task.id;
+          const base = luckyBase(intensityBase(task, intensity), lucky);
           const index = buildStreakIndex(current.logs, undefined, current.freezes);
           const full = computeRewardBreakdown(
             base,
@@ -492,6 +497,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ...coverField(breakdown, completer),
             ...(late ? { late: true } : {}),
             ...(intensity !== 'normal' ? { intensity } : {}),
+            ...(lucky ? { lucky: true } : {}),
           };
           Object.assign(outcome, { task, log, levelUps });
           return { ...current, characters, logs: [log, ...current.logs] };
@@ -859,13 +865,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }),
       isTaskDoneToday: (taskId) => state.logs.some((log) => log.taskId === taskId && log.date === today),
       getTodayLog: (taskId) => state.logs.find((log) => log.taskId === taskId && log.date === today),
+      luckyTaskId: luckyQuestId(state.tasks, today),
       getStreak: (taskId, characterId) => currentStreak(streakIndex, taskId, characterId, today),
       previewReward: (taskId, completer, options) => {
         const task = state.tasks.find((item) => item.id === taskId);
         if (!task) return null;
         const date = options?.late ? addDays(today, -1) : today;
+        const lucky = !options?.late && luckyQuestId(state.tasks, today) === task.id;
         const full = computeRewardBreakdown(
-          intensityBase(task, options?.intensity),
+          luckyBase(intensityBase(task, options?.intensity), lucky),
           completer,
           state.characters,
           SKILL_POOL,

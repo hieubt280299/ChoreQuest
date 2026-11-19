@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Fire, Heart, Sword, TreePine } from 'pixelarticons/react';
+import { Check, ChevronRight, Fire, Heart, Star, Sword, TreePine } from 'pixelarticons/react';
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -6,6 +6,7 @@ import { prefersReducedMotion } from '../../hooks/useQuality';
 import type { AppView } from '../../types';
 import { addDays } from '../../utils/calculations';
 import type { TranslationKey } from '../../utils/i18n';
+import { taskName } from '../../utils/taskNames';
 import { firstSteps, todayStatus } from '../../utils/today';
 import { Card } from '../ui/Card';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
@@ -46,8 +47,8 @@ const scrollToWheel = () =>
  * each one tap away. A new player sees a three-step checklist here instead.
  */
 export function TodayCard({ onNavigate }: { onNavigate: (view: AppView) => void }) {
-  const { t } = useLanguage();
-  const { state, today, activeCharacter, getTodayLog, getStreak, claimDailyTicket, freezesLeft } = useGame();
+  const { t, language } = useLanguage();
+  const { state, today, activeCharacter, getTodayLog, getStreak, claimDailyTicket, freezesLeft, luckyTaskId } = useGame();
   const [error, setError] = useState<TranslationKey | null>(null);
   const character = state.characters[activeCharacter];
   const status = todayStatus(character, state.tasks, today, (taskId) => !!getTodayLog(taskId), (taskId) => getStreak(taskId, activeCharacter));
@@ -56,6 +57,7 @@ export function TodayCard({ onNavigate }: { onNavigate: (view: AppView) => void 
   const heart = state.hearts.find((item) => item.to === activeCharacter && item.date === today);
   const frozeYesterday = state.freezes.some((freeze) => freeze.characterId === activeCharacter && freeze.date === addDays(today, -1));
   const freezes = freezesLeft(activeCharacter);
+  const lucky = state.tasks.find((task) => task.id === luckyTaskId);
 
   const claim = () => {
     const result = claimDailyTicket(activeCharacter);
@@ -99,6 +101,15 @@ export function TodayCard({ onNavigate }: { onNavigate: (view: AppView) => void 
             />
           )}
         </>
+      )}
+      {/* New players see it too: a double-gold first quest is a good start. */}
+      {lucky && (
+        <Row
+          icon={<Icon as={Star} size={24} />}
+          label={t('today.lucky', { quest: taskName(lucky, language) })}
+          done={!!getTodayLog(lucky.id)}
+          onClick={() => onNavigate('tasks')}
+        />
       )}
       {heart && (
         <Note icon={<Icon as={Heart} size={24} />}>

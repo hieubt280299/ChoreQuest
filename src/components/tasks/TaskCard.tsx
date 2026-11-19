@@ -1,4 +1,4 @@
-import { Check, Fire, Home, Pencil, Shirt, ShoppingCart, Sparkles, Undo } from 'pixelarticons/react';
+import { Check, Fire, Home, Pencil, Shirt, ShoppingCart, Sparkles, Star, Undo } from 'pixelarticons/react';
 import { memo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Streak, Task, TaskCategory, TaskLog } from '../../types';
@@ -10,6 +10,8 @@ import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { GoldCounter } from '../ui/GoldCounter';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
+import { Tooltip } from '../ui/Tooltip';
+import { LUCKY_GOLD_MULTIPLIER } from '../../utils/lucky';
 import { StreakBadge } from './StreakBadge';
 
 export const CATEGORY_ICONS: Record<TaskCategory, typeof Home> = {
@@ -31,6 +33,8 @@ interface TaskCardProps {
   yesterday: boolean;
   /** Each player's live streak on this quest. */
   streaks: [Streak, Streak];
+  /** Today's Lucky Quest (double gold when done on time); never in yesterday's view. */
+  lucky: boolean;
   /** Edit mode: the row's action opens the quest editor instead. */
   editing: boolean;
   canPlay: boolean;
@@ -49,7 +53,7 @@ const sameStreak = (a: Streak, b: Streak) => a.days === b.days && a.bonusGold ==
  * render, so they're compared by value).
  */
 export const TaskCard = memo(
-  function TaskCard({ task, log, yesterday, streaks, editing, canPlay, canFix, onEdit, onComplete, onFix }: TaskCardProps) {
+  function TaskCard({ task, log, yesterday, streaks, lucky, editing, canPlay, canFix, onEdit, onComplete, onFix }: TaskCardProps) {
     const { t, language } = useLanguage();
     const done = !!log;
     return (
@@ -64,6 +68,20 @@ export const TaskCard = memo(
             <p className={`min-w-0 text-lg font-extrabold leading-tight [overflow-wrap:anywhere] ${done ? 'text-wood-700 line-through decoration-2' : ''}`}>
               {taskName(task, language)}
             </p>
+            {lucky && (
+              <Tooltip
+                align="right"
+                label={
+                  <>
+                    <Icon as={Star} size={12} />
+                    <span className="font-arcade text-[9px]">x{LUCKY_GOLD_MULTIPLIER}</span>
+                    <span className="sr-only">{t('lucky.title')}</span>
+                  </>
+                }
+                content={t('lucky.help')}
+                triggerClassName="px-hit inline-flex items-center gap-1 bg-ember-400 px-1 py-0.5 leading-none text-ink shadow-[0_0_0_2px_#2b1a12]"
+              />
+            )}
             {streaks.map((streak) => (
               <StreakBadge key={streak.characterId} streak={streak} showAvatar />
             ))}
@@ -92,7 +110,7 @@ export const TaskCard = memo(
             <div className="mt-0.5 flex min-w-0 items-center gap-x-2.5">
               {/* Late: no XP and half the (base) gold, as the reward preview details. */}
               <span className={`shrink-0 font-arcade text-[10px] ${yesterday ? 'text-wood-600' : 'text-moss-700'}`}>{yesterday ? '0XP' : `+${task.xp}XP`}</span>
-              <GoldCounter amount={yesterday ? Math.floor(task.gold / 2) : task.gold} />
+              <GoldCounter amount={yesterday ? Math.floor(task.gold / 2) : lucky ? task.gold * LUCKY_GOLD_MULTIPLIER : task.gold} />
               <span className="min-w-0 truncate text-sm font-bold uppercase text-wood-600">
                 {t(`group.short.${task.group}`)} · {t(`category.${task.category}` as TranslationKey)}
               </span>
@@ -122,6 +140,7 @@ export const TaskCard = memo(
     prev.task === next.task &&
     prev.log === next.log &&
     prev.yesterday === next.yesterday &&
+    prev.lucky === next.lucky &&
     prev.editing === next.editing &&
     prev.canPlay === next.canPlay &&
     prev.canFix === next.canFix &&

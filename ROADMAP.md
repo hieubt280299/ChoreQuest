@@ -15,14 +15,14 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
 
 1. **Get the App button** (S)
 2. **Seesaw** skill (S)
-3. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
+3. **Lucky Quest of the Day** (S)
+4. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
 
 ## ⭐ Suggested next: v1.10.0
 
-v1.8.0 shipped hearts, Streak Freezes, reminders and the skill rebalance. Next, these give tickets and gold real-world meaning and add daily variety. Both are S–M.
+v1.9.0 shipped the Lucky Quest of the Day. Next, the reward shop gives tickets and gold real-world meaning.
 
 1. **Reward shop** (M)
-2. **Lucky Quest of the Day** (S)
 
 Then the **Weekly Boss Raid** as the headline of the version after.
 
@@ -45,12 +45,12 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
-| **Lucky Quest of the Day** | S | Idea | One random quest pays double gold today, highlighted on the Today card. |
+| **Lucky Quest of the Day** | S | Done (v1.9.0) | One quest a day, the same for both players, pays double base gold when done on time; a star on the quest and a row on the Today card. |
 | **Household events** | M | Idea | Rotating modifiers: "Rainy week: laundry +50% XP", "Guests are coming: cleaning pays more". Vietnamese seasons: a **Tết cleaning week** with double XP, lanterns in the cabin for **Trung thu**. |
 | **Combos** | S | Idea | Finish 3 quests within an hour for a combo bonus. An "Early bird" badge for quests done before 9am. |
 
 **To decide:**
-- **Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?
+- ~~**Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?~~ Yes (v1.9.0).
 - **Events:** chosen by the moderator, or automatic on the calendar?
 
 ## 🏆 Long-term goals

@@ -156,6 +156,8 @@ export interface TaskLog {
   late?: boolean;
   /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
   intensity?: TaskIntensity;
+  /** The day's Lucky Quest, done on time: `baseGold` is already doubled (`luckyBase`), so re-assigning keeps it. */
+  lucky?: boolean;
   /**
    * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going, one day
    * shorter (covering every day runs the streak down instead of farming it).
