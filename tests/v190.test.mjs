@@ -516,6 +516,87 @@ check('demo: "Finish this Chronicle" plays a sample month and ends it, so its re
   assert.match(source('src/context/GameContext.tsx'), /demo\s*\? done\(commit\(\{ id: newOpId\(\), update: \(current\) => finishDemoChronicle\(current, localDateKey\(\)\) \}\)\.result\)\s*: fail\('household\.error\.notAllowed'\)/);
 });
 
+// --- Level curve ---------------------------------------------------------------------------
+check('levels: the v1.9 XP curve; saved XP moves to it once, keeping level and progress', () => {
+  assert.deepEqual([...m.XP_CURVE], [
+    250, 400, 550, 800, 850, 925, 1050, 1150, 1225, 1300, 1375, 1450, 1525, 1600, 1675, 1750, 1825, 1900, 2000, 2200,
+    2400, 2600, 2800, 3000, 4000, 5000, 6000, 7000, 8000,
+  ]);
+  assert.equal(m.xpAtLevelStart(30), 66600);
+  const old = m.XP_CURVE_V18;
+  const share = (xp, curve) => {
+    const level = m.getLevelFromXp(xp, curve);
+    return [level, (xp - m.xpAtLevelStart(level, curve)) / curve[level - 1]];
+  };
+  // Level and share of it kept, at a level start, mid-level, just below the next level, and past level 30.
+  for (const xp of [0, 600, 3886.365, 6466.62, m.xpAtLevelStart(9, old) - 0.001, 26620, 54120 + 123]) {
+    const moved = m.convertXp(xp, old, m.XP_CURVE);
+    const [level, done] = share(xp, old);
+    assert.equal(m.getLevelFromXp(moved), level, `${xp}: level kept`);
+    if (level < 30) assert.ok(Math.abs(share(moved, m.XP_CURVE)[1] - done) < 0.001, `${xp}: progress kept`);
+  }
+  assert.equal(m.convertXp(54120 + 123, old, m.XP_CURVE), 66600 + 123, 'XP past level 30 is kept as it is');
+
+  // An older household: moved once on load, with the time and each player's gain recorded.
+  const fresh = m.createInitialState(today);
+  assert.deepEqual(fresh.xpRescale, { version: '1.9.0', at: 0, delta: { husband: 0, wife: 0 } }, 'a new game starts on the new curve');
+  assert.equal(m.rescaleXp(fresh), fresh);
+  const { xpRescale: _marker, ...older } = withChar(withChar(fresh, 'wife', { xp: 6466.62 }), 'husband', { xp: m.xpAtLevelStart(7, old), xpDebt: 10 });
+  const moved = m.rescaleXp(older, 1234);
+  assert.equal(m.getLevelFromXp(moved.characters.wife.xp), 11);
+  assert.equal(moved.characters.husband.xp, m.xpAtLevelStart(7), 'a level start stays a level start');
+  assert.equal(moved.characters.husband.xpDebt, 10, 'owed XP stays owed');
+  assert.equal(moved.xpRescale.at, 1234);
+  assert.equal(moved.xpRescale.delta.wife, moved.characters.wife.xp - 6466.62);
+  assert.equal(m.rescaleXp(moved), moved, 'once');
+  const loaded = m.parseGameState(JSON.parse(JSON.stringify(older)), today);
+  assert.equal(m.getLevelFromXp(loaded.characters.wife.xp), 11, 'moved on load');
+  assert.equal(loaded.xpRescale.version, '1.9.0');
+  assert.deepEqual(m.fromHouseholdDoc(m.toHouseholdSections(moved), today, false).xpRescale, moved.xpRescale, 'saved');
+});
+
+check('levels: a gold race across the XP move still adds up', () => {
+  // 2,000 XP before the move (levels 1 -> 5 on the old curve: 4 level-ups), then 50 XP after it.
+  const result = { startDate: '2026-11-01', endDate: '2026-11-02' };
+  const at = Date.parse('2026-11-02T08:00:00');
+  const s = m.rescaleXp(withChar({ ...m.createInitialState(today), xpRescale: undefined }, 'wife', { xp: 2000 }), at);
+  const log = (date, time, xp) => ({ id: `${date}-${xp}`, taskId: 'dishes', date, completedBy: 'wife', timestamp: Date.parse(`${date}T${time}`), xpAwarded: { husband: 0, wife: xp }, goldAwarded: { husband: 0, wife: 0 } });
+  const logs = [log('2026-11-01', '12:00:00', 2000), log('2026-11-02', '12:00:00', 50)];
+  const xpNow = { husband: 0, wife: s.characters.wife.xp + 50 };
+  assert.deepEqual(m.goldRace(result, logs, [], xpNow, s.xpRescale).wife, [200, 200]);
+  assert.deepEqual(m.goldRace(result, logs, [], xpNow).wife, [150, 150], 'without the record it would be off');
+  // A move before the chronicle began: all on the new curve.
+  assert.deepEqual(m.goldRace({ startDate: '2026-11-03', endDate: '2026-11-03' }, [], [], xpNow, s.xpRescale).wife, [0]);
+});
+
+check('daily XP: +3 for claiming the daily ticket and for sending a heart, recorded for the gold race', () => {
+  assert.equal(m.DAILY_TICKET_XP, 3);
+  assert.equal(m.HEART_SENT_XP, 3);
+  const s = m.createInitialState(today);
+  const now = Date.parse(`${today}T09:00:00`);
+  const claimed = m.claimDailyTicketOnState(s, 'wife', today, now);
+  assert.equal(claimed.characters.wife.xp, 3);
+  assert.equal(claimed.characters.wife.tickets, s.characters.wife.tickets + 1);
+  assert.deepEqual(claimed.events[0], { id: `xp-ticket-wife-${today}`, type: 'xp', characterId: 'wife', date: today, timestamp: now, source: 'ticket', xp: 3, gold: 0 });
+  assert.equal(m.claimDailyTicketOnState(claimed, 'wife', today, now), 'wheel.error.claimed', 'once a day');
+  const hearted = m.sendHeartOnState(claimed, 'husband', today, now + 1);
+  assert.equal(hearted.characters.husband.xp, 3, 'the sender gets the XP');
+  assert.equal(hearted.characters.wife.xp, 3, 'the receiver gets the ticket, not XP');
+  assert.equal(hearted.characters.wife.tickets, claimed.characters.wife.tickets + m.HEART_TICKETS);
+  assert.equal(hearted.events[0].source, 'heart');
+  // Like quest XP: owed XP is paid back first, and a level-up pays its gold.
+  const owing = m.claimDailyTicketOnState(withChar(s, 'wife', { xp: m.XP_CURVE[0], xpDebt: 5 }), 'wife', today, now);
+  assert.equal(owing.characters.wife.xpDebt, 2);
+  const leveled = m.claimDailyTicketOnState(withChar(s, 'wife', { xp: m.XP_CURVE[0] - 1 }), 'wife', today, now);
+  assert.equal(m.getLevelFromXp(leveled.characters.wife.xp), 2);
+  assert.equal(leveled.characters.wife.gold, m.getLevelUpGold(2));
+  // Saved, and replayed by the race: the level-up gold shows on the day it happened.
+  const back = m.fromHouseholdDoc(m.toHouseholdSections(hearted), today, false);
+  assert.deepEqual(back.events.slice(0, 2), hearted.events.slice(0, 2));
+  const race = m.goldRace({ startDate: today, endDate: today }, leveled.logs, leveled.events, { husband: 0, wife: leveled.characters.wife.xp });
+  assert.equal(race.wife[0], leveled.characters.wife.gold);
+});
+
 // --- Release -------------------------------------------------------------------------------
 check("version and What's New are 1.9.0", () => {
   assert.equal(m.APP_VERSION, '1.9.0');
@@ -530,8 +611,9 @@ check("version and What's New are 1.9.0", () => {
   assert.ok(notes.skills.vi.some((line) => line.startsWith('Tăng sức mạnh:')) && notes.skills.vi.some((line) => line.startsWith('Giảm sức mạnh:')));
   assert.ok(!notes.skills.vi.some((line) => /\b(Buff|Nerf)\b/.test(line)));
   assert.ok(notes.quests.en.includes('Streak gold for days 3 to 10: now 3/4/5/6/7/8/9/10 instead of 1/1/2/3/5/8/13/21.'));
-  assert.deepEqual(m.BALANCE_PARTS, ['skills', 'quests']);
-  for (const language of ['en', 'vi']) for (const part of ['skills', 'quests']) assert.ok(m.translations[language][`patch.section.${part}`]);
+  assert.deepEqual(m.BALANCE_PARTS, ['levels', 'skills', 'quests']);
+  assert.equal(notes.levels.en[0], 'Leveling now needs more XP.');
+  for (const language of ['en', 'vi']) for (const part of m.BALANCE_PARTS) assert.ok(m.translations[language][`patch.section.${part}`]);
   assert.match(source('src/components/settings/PatchNotesModal.tsx'), /BALANCE_PARTS\.filter/);
   assert.match(source('CHANGELOG.md'), /## \[1\.9\.0\] - \d{4}-\d{2}-\d{2}\r?\n\r?\nSpec: \[UPDATE_v1\.9\.0\.md\]/);
   assert.ok(existsSync(new URL('../UPDATE_v1.9.0.md', import.meta.url)));

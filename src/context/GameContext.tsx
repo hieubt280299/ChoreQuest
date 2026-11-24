@@ -47,6 +47,7 @@ import {
   resetLevelsAndSkills,
   resetQuestList,
 } from '../utils/gameState';
+import { claimDailyTicketOnState } from '../utils/bonusXp';
 import { heartSentOn, sendHeartOnState } from '../utils/hearts';
 import { notifyPartnerOfHeart } from '../utils/push';
 import { normalizeCharacterName } from '../utils/characterName';
@@ -502,19 +503,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (characterId: CharacterId): ActionResult => {
       if (!canActAs(characterId)) return fail('household.error.ownCharacter');
       const date = localDateKey();
-      return done(
-        commit({
-          id: newOpId(),
-          update: (current) => {
-            const character = current.characters[characterId];
-            if (character.ticketClaimedOn === date) return 'wheel.error.claimed';
-            return {
-              ...current,
-              characters: { ...current.characters, [characterId]: { ...character, tickets: character.tickets + 1, ticketClaimedOn: date } },
-            };
-          },
-        }).result,
-      );
+      const now = Date.now();
+      return done(commit({ id: newOpId(), update: (current) => claimDailyTicketOnState(current, characterId, date, now) }).result);
     },
     [canActAs, commit],
   );

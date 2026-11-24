@@ -1,5 +1,6 @@
 import { Check, ChevronRight, Fire, Heart, Star, Sword, TreePine } from 'pixelarticons/react';
 import { useState, type ReactNode } from 'react';
+import { DAILY_TICKET_XP } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { prefersReducedMotion } from '../../hooks/useQuality';
@@ -71,7 +72,7 @@ export function TodayCard({ onNavigate }: { onNavigate: (view: AppView) => void 
       {newPlayer ? (
         <>
           <Row icon={<Icon as={Sword} size={24} />} label={t('today.stepQuest')} done={steps.quest} onClick={() => onNavigate('tasks')} />
-          <Row icon={ticketIcon} label={t('today.ticket')} done={steps.ticket} onClick={claim} />
+          <Row icon={ticketIcon} label={t('today.ticket', { xp: DAILY_TICKET_XP })} done={steps.ticket} onClick={claim} />
           <Row icon={<Icon as={TreePine} size={24} />} label={t('today.stepSkill')} onClick={() => onNavigate('skills')} />
         </>
       ) : (
@@ -89,7 +90,7 @@ export function TodayCard({ onNavigate }: { onNavigate: (view: AppView) => void 
               onClick={() => onNavigate('tasks')}
             />
           )}
-          {status.ticketReady && <Row icon={ticketIcon} label={t('today.ticket')} onClick={claim} />}
+          {status.ticketReady && <Row icon={ticketIcon} label={t('today.ticket', { xp: DAILY_TICKET_XP })} onClick={claim} />}
           {status.tickets > 0 && (
             <Row icon={ticketIcon} label={status.tickets === 1 ? t('today.spinOne') : t('today.spin', { count: status.tickets })} onClick={scrollToWheel} />
           )}

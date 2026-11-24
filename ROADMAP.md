@@ -19,6 +19,7 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
 4. **Chronicle results** (M): awards, story and gold race chart in the results pop-up (reopen from History), a Champion crown and wins count, the winner picks a theme or 2 Golden Tickets in a reward dialog of its own
 5. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
 6. **Simpler Fix entry** (S): either player can fix any entry, late entries until noon, levels kept with negative XP
+7. **Steeper level curve** (S): every level from 2 to 30 needs more XP; saved XP is converted once so nobody loses a level. +3 XP for the daily ticket and for sending a heart
 
 ## ⭐ Suggested next: v1.10.0
 

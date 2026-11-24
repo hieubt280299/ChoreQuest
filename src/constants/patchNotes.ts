@@ -1,12 +1,12 @@
 import type { LanguageCode } from '../types';
 
-export type PatchSection = 'features' | 'balance' | 'skills' | 'quests' | 'fixes' | 'performance';
-/** Every section a release's notes may use. `skills` and `quests` are shown inside "Balance adjustments". */
-export const PATCH_SECTIONS: PatchSection[] = ['features', 'balance', 'skills', 'quests', 'fixes', 'performance'];
+export type PatchSection = 'features' | 'balance' | 'levels' | 'skills' | 'quests' | 'fixes' | 'performance';
+/** Every section a release's notes may use. `levels`, `skills` and `quests` are shown inside "Balance adjustments". */
+export const PATCH_SECTIONS: PatchSection[] = ['features', 'balance', 'levels', 'skills', 'quests', 'fixes', 'performance'];
 /** The sections shown as headings, in order. */
 export const PATCH_HEADINGS: PatchSection[] = ['features', 'balance', 'fixes', 'performance'];
 /** Sub-sections of "Balance adjustments", after its general notes (if any). */
-export const BALANCE_PARTS: PatchSection[] = ['skills', 'quests'];
+export const BALANCE_PARTS: PatchSection[] = ['levels', 'skills', 'quests'];
 
 /** One release's "What's New" notes, in plain language for players (empty sections aren't shown). */
 export interface VersionConfig {
@@ -44,6 +44,10 @@ export const PATCH_NOTES: VersionConfig[] = [
           'Cả hai đều sửa được mọi nhiệm vụ. Nhiệm vụ trễ: sửa được đến 12h trưa.',
           'Sửa nhiệm vụ không bao giờ bị chặn. Vẫn giữ cấp, kể cả khi EXP bị âm.',
         ],
+      },
+      levels: {
+        en: ['Leveling now needs more XP.', 'Claim your daily ticket or send a heart: +3 XP each.'],
+        vi: ['Lên cấp giờ cần nhiều EXP hơn.', 'Nhận vé hằng ngày hoặc gửi tim: +3 EXP mỗi lần.'],
       },
       skills: {
         en: [

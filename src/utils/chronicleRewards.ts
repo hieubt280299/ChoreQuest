@@ -134,9 +134,9 @@ export interface ChronicleSummary {
 
 export function chronicleSummary(
   result: ChronicleResult,
-  state: Partial<Pick<GameState, 'logs' | 'hearts' | 'freezes' | 'events' | 'characters' | 'prizeHistory'>> = {},
+  state: Partial<Pick<GameState, 'logs' | 'hearts' | 'freezes' | 'events' | 'characters' | 'prizeHistory' | 'xpRescale'>> = {},
 ): ChronicleSummary {
-  const stats = chronicleStats(result, state.logs ?? [], state.hearts ?? [], state.freezes ?? [], state.events, state.characters);
+  const stats = chronicleStats(result, state.logs ?? [], state.hearts ?? [], state.freezes ?? [], state.events, state.characters, state.xpRescale);
   const { husband, wife } = result.goldSnapshot;
   const total = result.payout.husband + result.payout.wife;
   const previous = (state.prizeHistory ?? []).find((entry) => entry.chronicleId === result.chronicleId - 1) ?? null;

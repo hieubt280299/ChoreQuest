@@ -313,7 +313,20 @@ export interface InterestEvent {
   gold: number;
 }
 
-export type GameEvent = WheelSpinEvent | InterestEvent;
+/** XP for a daily action that isn't a quest: claiming the daily ticket or sending a heart (since v1.9). */
+export interface BonusXpEvent {
+  id: string;
+  type: 'xp';
+  characterId: CharacterId;
+  date: string;
+  timestamp: number;
+  source: 'ticket' | 'heart';
+  xp: number;
+  /** Always 0: level-up gold from this XP is worked out from the XP, like a quest's. */
+  gold: number;
+}
+
+export type GameEvent = WheelSpinEvent | InterestEvent | BonusXpEvent;
 
 /** A heart one player sent the other (one a day each); the recipient got a Normal Ticket. */
 export interface Heart {
@@ -419,6 +432,19 @@ export interface GameState {
   freezesSettledOn?: string;
   /** Version whose one-time skill point refund has been applied (`SKILL_REFUND_VERSION`). */
   skillsRefundedIn?: string;
+  /** The one-time move of saved XP to the v1.9 level curve (`rescaleXp`); missing until it's done. */
+  xpRescale?: XpRescale;
+}
+
+/**
+ * When saved XP was moved to the current level curve, and the XP each player gained by it (levels kept). Gold races
+ * use it: before `at`, levels follow the old curve; the gain isn't quest XP and pays no level-up gold.
+ */
+export interface XpRescale {
+  version: string;
+  /** Time of the move (ms); 0 for a household started on the current curve. */
+  at: number;
+  delta: Record<CharacterId, number>;
 }
 
 export interface HouseholdUser {
@@ -477,5 +503,6 @@ export interface HouseholdDoc {
     freezes?: StreakFreeze[];
     freezesSettledOn?: string;
     skillsRefundedIn?: string;
+    xpRescale?: XpRescale;
   };
 }

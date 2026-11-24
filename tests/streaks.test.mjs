@@ -145,7 +145,7 @@ test('history: per-player counts, both counts for each, partner comparison, chro
 test('level-up gold: standard, high tier, mastery at 30; grant pays it', () => {
   assert.deepEqual([2, 24, 25, 29, 30, 31].map(m.getLevelUpGold), [50, 50, 300, 300, 2000, 0]);
   const s = m.createInitialState('2026-10-01');
-  const xpFor = (level) => { let xp = 0; for (let l = 1; l < level; l++) xp += [230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100, 2350, 2600, 3500, 4500, 5500, 6500, 7500][l - 1]; return xp; };
+  const xpFor = (level) => m.xpAtLevelStart(level);
   s.characters.wife.xp = xpFor(30) - 10;
   assert.equal(m.getLevelFromXp(s.characters.wife.xp), 29);
   const { characters, levelUps } = m.grantRewards(s.characters, { husband: { xp: 0, gold: 0 }, wife: { xp: 20, gold: 5 } });

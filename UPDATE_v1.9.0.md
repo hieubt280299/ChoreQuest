@@ -1,6 +1,6 @@
 # UPDATE v1.9.0 Specification
 
-Minor version: a new button, a new skill, a skill and quest rebalance, simpler Fix entry rules, a Lucky Quest of the Day, and richer Chronicle results. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
+Minor version: a new button, a new skill, a skill and quest rebalance, simpler Fix entry rules, a Lucky Quest of the Day, richer Chronicle results, a steeper level curve, and XP for the daily ticket and hearts. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
 
 ---
 
@@ -249,7 +249,44 @@ Unchanged: Speed Cleaner, Hall of Fame.
 
 ---
 
-### 8. ✅ Release Checklist
+### 8. 📈 Level Curve
+
+XP needed to reach each level (`XP_CURVE`; the old one stays as `XP_CURVE_V18`). Every level from 2 to 30 needs more:
+
+| Level | Before | Now | | Level | Before | Now |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | 230 | 250 | | 17 | 1,000 | 1,750 |
+| 3 | 370 | 400 | | 18 | 1,000 | 1,825 |
+| 4 | 480 | 550 | | 19 | 1,500 | 1,900 |
+| 5 | 580 | 800 | | 20 | 1,590 | 2,000 |
+| 6 | 600 | 850 | | 21 | 1,600 | 2,200 |
+| 7 | 720 | 925 | | 22 | 1,850 | 2,400 |
+| 8 | 750 | 1,050 | | 23 | 2,100 | 2,600 |
+| 9 | 780 | 1,150 | | 24 | 2,350 | 2,800 |
+| 10 | 810 | 1,225 | | 25 | 2,600 | 3,000 |
+| 11 | 840 | 1,300 | | 26 | 3,500 | 4,000 |
+| 12 | 870 | 1,375 | | 27 | 4,500 | 5,000 |
+| 13 | 1,000 | 1,450 | | 28 | 5,500 | 6,000 |
+| 14 | 1,000 | 1,525 | | 29 | 6,500 | 7,000 |
+| 15 | 1,000 | 1,600 | | 30 | 7,500 | 8,000 |
+| 16 | 1,000 | 1,675 | | | | |
+
+* **Totals:** level 10 now takes 7,200 XP (was 5,320), level 24 (the last new skill point) 33,600 (was 24,020), level 30 66,600 (was 54,120).
+* **Nobody loses a level** (`rescaleXp`, once per household, first step after the skill refund in `advanceDays`): saved XP moves to the new curve keeping the level and the share of it done (`convertXp`; 40% through level 9 stays 40% through level 9). XP past level 30 is kept as it is, and XP owed after a fixed entry stays owed. No level-ups, level-up gold or tickets come from the move.
+    * On the household's real data: husband level 8 (3,886 → 5,056 XP), wife level 11 (6,467 → 8,985 XP).
+* **Gold races still add up:** the move is recorded (`GameState.xpRescale`: time and each player's XP gain). A race across it follows the old curve before the move, and the gain counts as neither quest XP nor a level-up. On the real Chronicle 2 the race still ends at each player's gold (without the record it would be 50 and 100 gold off, and the chart hidden).
+* New games start on the new curve (`xpRescale.at` = 0).
+
+#### XP for daily actions
+
+* **+3 XP** for claiming the daily Normal Ticket (`DAILY_TICKET_XP`, `claimDailyTicketOnState`) and **+3 XP** to the sender of the daily heart (`HEART_SENT_XP`, `sendHeartOnState`; the receiver still gets the Normal Ticket, no XP).
+* Given like quest XP (`grantBonusXp` → `grantRewards`): owed XP is paid back first, and a level-up pays its gold, tickets and skill point.
+* Recorded as an `xp` event (`BonusXpEvent`: source `ticket` / `heart`, gold 0), so the gold race replays it with the quests in time order and its level-ups land on the right day.
+* The Today card's ticket row reads "Claim your daily ticket (+3 XP)".
+
+---
+
+### 9. ✅ Release Checklist
 
 * **Tests:** `v100`, `v120`, `v180` and `streaks` pin v1.8 values. Update them to check behaviour only, and put the new values in `tests/v190.test.mjs`. That suite also covers:
     * Seesaw: behind, tied, leading, Both, late, undo.
@@ -260,6 +297,8 @@ Unchanged: Speed Cleaner, Hall of Fame.
     * Fix an entry: keeping a level with negative XP, paying it back, the unchanged level drop, save and load, and who can fix what.
     * Lucky Quest: the pick (stable, order-independent, enabled only) and the doubled base gold.
     * Chronicle results: the rebuilt race, the snapshot, wins, the theme-or-tickets reward, the reigning champion and the summary story.
+    * Level curve: the new values, the one-time move (level and progress kept, once, saved, on load) and a gold race across it.
+    * Daily XP: the ticket and heart XP, once a day, debt and level-ups, saved, and replayed by the race.
 * **Docs:** AGENT_GUIDE (skill values, Seesaw, streak rule, Fast Learner example) and README (Fibonacci streaks).
 * **Release:** CHANGELOG, `package.json` version, a What's New entry in `patchNotes.ts` (EN + VI, short and simple), and ROADMAP statuses.
 * **Release** planned for 2026-11-25 (allowed from 2026-11-19, two weeks after v1.8.0).

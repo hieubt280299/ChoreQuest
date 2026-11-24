@@ -94,11 +94,11 @@ test('grant then revoke restores characters (incl. level-up bonus gold)', () => 
 
 test('revoke keeps the level when its skill point was spent, and owes the XP (v1.9)', () => {
   const s = calc.createInitialState('2026-10-01');
-  s.characters.wife.xp = 230; // level 2, 0 XP into it
+  s.characters.wife.xp = calc.XP_CURVE[0]; // level 2, 0 XP into it
   s.characters.wife.skills = [{ skillId: 'zen-housekeeper', level: 2 }];
   const r = calc.revokeRewards(s.characters, { husband: 0, wife: 30 }, { husband: 0, wife: 0 });
   assert.equal(calc.getLevelFromXp(r.wife.xp), 2);
-  assert.equal(r.wife.xp, 230);
+  assert.equal(r.wife.xp, calc.XP_CURVE[0]);
   assert.equal(r.wife.xpDebt, 30);
 });
 

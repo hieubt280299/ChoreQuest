@@ -73,6 +73,10 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
   - Today's entries can be fixed, and so can yesterday's late entries while the late window is open; yesterday's on-time entries stay locked. The Yesterday view shows Fix on late entries and stays available while there are any.
   - Fixing no longer refuses when a level's skill points are spent: the player keeps the level and owes the missing XP (`Character.xpDebt`, `revokeRewards`). For example, level 7 with 10 XP losing 20 XP becomes level 7 with −10 XP.
   - New XP pays the debt first (`grantRewards`). The text shows negative XP; bars and level rings show it as empty (`characterXpProgress`).
+- **Level curve** (`XP_CURVE`): every level from 2 to 30 needs more XP, e.g. level 2 250 (was 230), level 10 1,225 (was 810), level 30 8,000 (was 7,500). Level 30 now takes 66,600 XP in total (was 54,120).
+  - Saved XP moves to the new curve once per household (`rescaleXp`, `convertXp`), keeping each player's level and progress through it; no level-up rewards come from it.
+  - The move is recorded (`GameState.xpRescale`) so a gold race across it still matches the final gold.
+- **XP for daily actions:** +3 XP for claiming the daily ticket (`DAILY_TICKET_XP`) and +3 XP to the sender of a heart (`HEART_SENT_XP`), given like quest XP (debt first, level-ups pay) and recorded as `xp` events (`BonusXpEvent`) that the gold race replays.
 - **Tests:** older suites now read skill and quest values from the code instead of pinning v1.8 numbers; the new values are pinned in `tests/v190.test.mjs`.
 
 ## [1.8.1] - 2026-11-17

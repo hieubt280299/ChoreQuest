@@ -1,9 +1,19 @@
 import type { Character, CharacterId, SkillDefinition, Task, TaskCategory, TaskGroup, TaskIntensity, WheelPrize } from '../types';
 
+/** XP needed to go from each level to the next: index 0 is level 1 -> 2, the last is level 29 -> 30 (since v1.9). */
 export const XP_CURVE = [
+  250, 400, 550, 800, 850, 925, 1050, 1150, 1225, 1300, 1375, 1450, 1525, 1600, 1675, 1750, 1825, 1900, 2000, 2200, 2400,
+  2600, 2800, 3000, 4000, 5000, 6000, 7000, 8000,
+] as const;
+
+/** The curve before v1.9, kept to convert saved XP once (`rescaleXp`) and to rebuild gold races from before it. */
+export const XP_CURVE_V18 = [
   230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100,
   2350, 2600, 3500, 4500, 5500, 6500, 7500,
 ] as const;
+
+/** Version of the XP curve change; a household's XP is converted to it once (`GameState.xpRescale`). */
+export const XP_CURVE_VERSION = '1.9.0';
 
 export const MAX_LEVEL = 30;
 export const MAX_SKILLS_PER_CHARACTER = 8;
@@ -364,6 +374,9 @@ export function dailyInterestCap(level: number): number {
 export const STREAK_FREEZES_PER_CHRONICLE = 3;
 /** Normal Tickets a heart gives the player who receives it. */
 export const HEART_TICKETS = 1;
+/** XP for claiming the daily Normal Ticket, and for sending the daily heart (since v1.9). */
+export const DAILY_TICKET_XP = 3;
+export const HEART_SENT_XP = 3;
 /** Golden Tickets a chronicle winner can take instead of a new theme (from Day 1 of the next chronicle). */
 export const WINNER_GOLDEN_TICKETS = 2;
 /**

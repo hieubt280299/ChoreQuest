@@ -20,10 +20,11 @@ import type {
 } from '../types';
 import { streakBonusGold } from './streaks';
 
-export function getLevelFromXp(xp: number): number {
+/** A level from total XP, on the current curve (or another one, e.g. the curve before v1.9). */
+export function getLevelFromXp(xp: number, curve: readonly number[] = XP_CURVE): number {
   let remaining = Math.max(0, xp);
   let level = 1;
-  for (const cost of XP_CURVE) {
+  for (const cost of curve) {
     if (remaining >= cost) {
       remaining -= cost;
       level += 1;
@@ -420,9 +421,22 @@ export function grantRewards(
   return { characters: next, levelUps };
 }
 
-/** Total XP at the start of a level (level 1 = 0). */
-export function xpAtLevelStart(level: number): number {
-  return XP_CURVE.slice(0, Math.max(0, Math.min(level, MAX_LEVEL) - 1)).reduce((sum, cost) => sum + cost, 0);
+/** Total XP at the start of a level (level 1 = 0), on the current curve or another one. */
+export function xpAtLevelStart(level: number, curve: readonly number[] = XP_CURVE): number {
+  return curve.slice(0, Math.max(0, Math.min(level, MAX_LEVEL) - 1)).reduce((sum, cost) => sum + cost, 0);
+}
+
+/**
+ * Total XP moved from one curve to another, keeping the level and the share of it done (40% through level 9 stays
+ * 40% through level 9). XP past the last level is kept as it is. Never lands on the next level through rounding.
+ */
+export function convertXp(xp: number, from: readonly number[], to: readonly number[]): number {
+  const level = getLevelFromXp(xp, from);
+  const into = Math.max(0, xp) - xpAtLevelStart(level, from);
+  if (level >= MAX_LEVEL) return xpAtLevelStart(MAX_LEVEL, to) + into;
+  const start = xpAtLevelStart(level, to);
+  const converted = Math.round((start + (into / from[level - 1]) * to[level - 1]) * 100) / 100;
+  return Math.min(converted, start + to[level - 1] - 0.01);
 }
 
 /**

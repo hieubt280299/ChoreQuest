@@ -12,6 +12,9 @@ import {
   skillEffectValue,
   skillLevel,
   STREAK_FREEZES_PER_CHRONICLE,
+  XP_CURVE,
+  XP_CURVE_V18,
+  XP_CURVE_VERSION,
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { nameFromProfile, normalizeCharacterName } from './characterName';
@@ -34,10 +37,12 @@ import type {
   Task,
   TaskLog,
   WheelPrize,
+  XpRescale,
 } from '../types';
 import {
   addDays,
   calculatePayout,
+  convertXp,
   daysInMonth,
   defaultChronicle,
   endOfDayMs,
@@ -82,6 +87,7 @@ function parseEvents(raw: unknown): GameEvent[] {
     if (!event || typeof event.id !== 'string' || !isDateKey(event.date)) return false;
     if (event.characterId !== 'husband' && event.characterId !== 'wife') return false;
     if (typeof event.gold !== 'number' || typeof event.timestamp !== 'number') return false;
+    if (event.type === 'xp') return (event.source === 'ticket' || event.source === 'heart') && typeof event.xp === 'number' && event.xp > 0;
     return event.type === 'interest' || (event.type === 'spin' && WHEEL_PRIZE_IDS.includes(event.prize as WheelPrize));
   });
 }
@@ -134,8 +140,9 @@ export function createInitialState(today = localDateKey()): GameState {
     hearts: [],
     freezes: [],
     freezesSettledOn: addDays(today, -1),
-    // A new game has nothing to refund.
+    // A new game has nothing to refund, and starts on the current level curve.
     skillsRefundedIn: SKILL_REFUND_VERSION,
+    xpRescale: { version: XP_CURVE_VERSION, at: 0, delta: { husband: 0, wife: 0 } },
   };
 }
 
@@ -337,6 +344,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     freezes: parseFreezes(data.freezes),
     ...(isDateKey(data.freezesSettledOn) ? { freezesSettledOn: data.freezesSettledOn } : {}),
     ...(typeof data.skillsRefundedIn === 'string' ? { skillsRefundedIn: data.skillsRefundedIn } : {}),
+    ...parseXpRescale(data.xpRescale),
   };
   return advance ? advanceDays(state, today) : state;
 }
@@ -399,6 +407,31 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
   return changed ? { ...state, characters, events } : state;
 }
 
+function parseXpRescale(raw: unknown): Pick<GameState, 'xpRescale'> {
+  const value = raw as Partial<XpRescale> | undefined;
+  if (!value || typeof value.version !== 'string' || typeof value.at !== 'number' || !value.delta) return {};
+  const delta = { husband: Number(value.delta.husband) || 0, wife: Number(value.delta.wife) || 0 };
+  return { xpRescale: { version: value.version, at: value.at, delta } };
+}
+
+/**
+ * The one-time move of saved XP to the v1.9 level curve (`XP_CURVE_VERSION`): each player keeps their level and the
+ * share of it done, so nobody drops a level or levels up from it (XP owed after a fixed entry stays owed). The time
+ * and each player's XP gain are kept (`xpRescale`) so gold races still add up. Marked done: once per household.
+ */
+export function rescaleXp(state: GameState, now = Date.now()): GameState {
+  if (state.xpRescale) return state;
+  const delta: Record<CharacterId, number> = { husband: 0, wife: 0 };
+  const characters = { ...state.characters };
+  for (const id of ['husband', 'wife'] as CharacterId[]) {
+    const character = characters[id];
+    const xp = convertXp(character.xp, XP_CURVE_V18, XP_CURVE);
+    delta[id] = xp - character.xp;
+    characters[id] = { ...character, xp };
+  }
+  return { ...state, characters, xpRescale: { version: XP_CURVE_VERSION, at: now, delta } };
+}
+
 /**
  * The one-time skill point refund of a rebalance (`SKILL_REFUND_VERSION`): every learned skill is unlearned, so its
  * points can be spent again, and the players who had skills get a notice. Gold Interest's start marker goes too,
@@ -458,7 +491,7 @@ export function advanceDays(state: GameState, today = localDateKey()): GameState
   const yesterday = addDays(today, -1);
   const minDay = (a: string, b: string) => (a < b ? a : b);
   // Finished days of the running chronicle: their MVPs and freezes, then interest up to today (or its last day).
-  let settled = settleMvpDays(refundSkills(state), minDay(yesterday, state.chronicle.endDate));
+  let settled = settleMvpDays(rescaleXp(refundSkills(state)), minDay(yesterday, state.chronicle.endDate));
   settled = applyDailyInterest(settled, minDay(today, state.chronicle.endDate));
   settled = settleStreakFreezes(settled, minDay(yesterday, state.chronicle.endDate));
   const rolled = applyChronicleRollover(settled, today);
@@ -509,7 +542,7 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
   };
   // Save the archive stats now, while this chronicle's quest log is all still there (with the gold race).
   const xpNow = { husband: effectiveXp(state.characters.husband), wife: effectiveXp(state.characters.wife) };
-  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes, state.events, xpNow);
+  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes, state.events, xpNow, state.xpRescale);
   if (stats) result.stats = stats;
   const winners = chronicleWinners(result);
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
@@ -559,6 +592,7 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       freezes: state.freezes,
       ...(state.freezesSettledOn ? { freezesSettledOn: state.freezesSettledOn } : {}),
       ...(state.skillsRefundedIn ? { skillsRefundedIn: state.skillsRefundedIn } : {}),
+      ...(state.xpRescale ? { xpRescale: state.xpRescale } : {}),
     },
   };
 }

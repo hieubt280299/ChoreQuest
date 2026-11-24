@@ -1,4 +1,5 @@
 import type {
+  BonusXpEvent,
   Character,
   CharacterId,
   ChronicleAward,
@@ -8,8 +9,10 @@ import type {
   Heart,
   StreakFreeze,
   TaskLog,
+  XpRescale,
 } from '../types';
-import { addDays, dayCount, getLevelFromXp, goldForLevelRange } from './calculations';
+import { XP_CURVE, XP_CURVE_V18 } from '../constants/gameRules';
+import { addDays, dayCount, getLevelFromXp, goldForLevelRange, parseDateKey } from './calculations';
 import { dayMvp } from './mvp';
 import { buildStreakIndex, involves, longestStreak } from './streaks';
 
@@ -55,23 +58,44 @@ function leader(values: Record<CharacterId, number>): CharacterId | null {
  * Each player's gold at the end of each day of a chronicle: quest gold (with skills and streaks), wheel and interest
  * gold, and level-up bonus gold, rebuilt from the quest log and events. `xpNow` is each character's XP today (owed XP
  * taken off), so the XP at the chronicle's start is worked back from every log since then. Rounded to whole gold.
+ * With the v1.9 XP move (`rescale`) after the chronicle began, levels follow the old curve until then, and the XP it
+ * added is neither quest XP nor a level-up. XP for daily actions (`xp` events: daily ticket, heart sent) counts like
+ * quest XP.
  */
 export function goldRace(
   result: Pick<ChronicleResult, 'startDate' | 'endDate'>,
   allLogs: TaskLog[],
   allEvents: GameEvent[],
   xpNow: Record<CharacterId, number>,
+  rescale?: XpRescale,
 ): Record<CharacterId, number[]> {
-  const since = allLogs.filter((log) => log.date >= result.startDate);
+  const movedDuring = !!rescale && rescale.at >= parseDateKey(result.startDate).getTime();
   const race = { husband: [] as number[], wife: [] as number[] };
   for (const id of IDS) {
-    let xp = Math.max(0, xpNow[id] - since.reduce((sum, log) => sum + (log.xpAwarded[id] ?? 0), 0));
+    // Everything that gave this player XP since the chronicle began, in time order: quests and daily-action XP.
+    const gains = [
+      ...allLogs.map((log) => ({ date: log.date, timestamp: log.timestamp, xp: log.xpAwarded[id] ?? 0, gold: log.goldAwarded[id] ?? 0 })),
+      ...allEvents
+        .filter((event): event is BonusXpEvent => event.type === 'xp' && event.characterId === id)
+        .map((event) => ({ date: event.date, timestamp: event.timestamp, xp: event.xp, gold: 0 })),
+    ]
+      .filter((gain) => gain.date >= result.startDate)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    const moveXp = movedDuring ? rescale!.delta[id] : 0;
+    let xp = Math.max(0, xpNow[id] - moveXp - gains.reduce((sum, gain) => sum + gain.xp, 0));
+    let oldCurve = movedDuring;
     let gold = 0;
     for (let day = result.startDate; day <= result.endDate; day = addDays(day, 1)) {
-      const dayLogs = since.filter((log) => log.date === day);
-      const from = getLevelFromXp(xp);
-      xp += dayLogs.reduce((sum, log) => sum + (log.xpAwarded[id] ?? 0), 0);
-      gold += dayLogs.reduce((sum, log) => sum + (log.goldAwarded[id] ?? 0), 0) + goldForLevelRange(from, getLevelFromXp(xp));
+      for (const gain of gains.filter((entry) => entry.date === day)) {
+        if (oldCurve && gain.timestamp >= rescale!.at) {
+          xp += moveXp;
+          oldCurve = false;
+        }
+        const curve = oldCurve ? XP_CURVE_V18 : XP_CURVE;
+        const from = getLevelFromXp(xp, curve);
+        xp += gain.xp;
+        gold += gain.gold + goldForLevelRange(from, getLevelFromXp(xp, curve));
+      }
       gold += allEvents.filter((event) => event.date === day && event.characterId === id).reduce((sum, event) => sum + event.gold, 0);
       race[id].push(Math.round(gold));
     }
@@ -108,6 +132,7 @@ export function snapshotChronicle(
   allFreezes: StreakFreeze[],
   allEvents: GameEvent[] = [],
   xpNow?: Record<CharacterId, number>,
+  rescale?: XpRescale,
 ): ChronicleStatsSnapshot | null {
   const inPeriod = (item: { date: string }) => item.date >= result.startDate && item.date <= result.endDate;
   const logs = allLogs.filter(inPeriod);
@@ -156,7 +181,7 @@ export function snapshotChronicle(
   if (mvpLeader) awards.push({ kind: 'mvp', characterId: mvpLeader, days: mvp[mvpLeader] });
   const heartsLeader = leader({ husband: players.husband.hearts ?? 0, wife: players.wife.hearts ?? 0 });
   if (heartsLeader) awards.push({ kind: 'hearts', characterId: heartsLeader, count: players[heartsLeader].hearts ?? 0 });
-  const race = xpNow ? goldRace(result, allLogs, allEvents, xpNow) : null;
+  const race = xpNow ? goldRace(result, allLogs, allEvents, xpNow, rescale) : null;
   return {
     players,
     awards,
@@ -177,6 +202,7 @@ export function chronicleStats(
   allFreezes: StreakFreeze[] = [],
   allEvents?: GameEvent[],
   characters?: Record<CharacterId, Pick<Character, 'xp' | 'xpDebt'>>,
+  rescale?: XpRescale,
 ): ChronicleStats {
   const days = dayCount(result.startDate, result.endDate);
   const snapshot = result.stats ?? snapshotChronicle(result, allLogs, allHearts, allFreezes);
@@ -203,7 +229,7 @@ export function chronicleStats(
   const race =
     snapshot?.goldByDay ??
     (rebuildable
-      ? goldRace(result, allLogs, allEvents!, { husband: effectiveXp(characters!.husband), wife: effectiveXp(characters!.wife) })
+      ? goldRace(result, allLogs, allEvents!, { husband: effectiveXp(characters!.husband), wife: effectiveXp(characters!.wife) }, rescale)
       : null);
   const goldByDay = race && raceMatchesGold(race, result.goldSnapshot) ? race : null;
   return {
