@@ -15,7 +15,7 @@ import {
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { nameFromProfile, normalizeCharacterName } from './characterName';
-import { snapshotChronicle } from './chronicleStats';
+import { chronicleWinners, effectiveXp, snapshotChronicle } from './chronicleStats';
 import { dayMvp } from './mvp';
 import type {
   Character,
@@ -163,7 +163,11 @@ function parseCosmetics(raw: unknown): Cosmetics {
           !!reward &&
           typeof reward.chronicleId === 'number' &&
           (reward.characterId === 'husband' || reward.characterId === 'wife') &&
-          (reward.kind === 'theme' ? isThemeId(reward.item) : reward.kind === 'avatar' && AVATARS[reward.characterId].includes(reward.item as never)),
+          (reward.kind === 'theme'
+            ? isThemeId(reward.item)
+            : reward.kind === 'tickets'
+              ? reward.item === 'goldenTickets'
+              : reward.kind === 'avatar' && AVATARS[reward.characterId].includes(reward.item as never)),
       )
     : [];
   return {
@@ -197,6 +201,9 @@ function parseChronicle(raw: unknown, legacyMonth: unknown, today: string): Chro
 
 const isCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
+/** A character's `chronicleWins` field: only written once they have a win. */
+const withWins = (wins: number) => (wins > 0 ? { chronicleWins: wins } : {});
+
 /** A saved archive snapshot, if it has the expected shape. */
 function parseStats(raw: unknown): ChronicleStatsSnapshot | undefined {
   const data = raw as Partial<ChronicleStatsSnapshot> | undefined;
@@ -205,7 +212,13 @@ function parseStats(raw: unknown): ChronicleStatsSnapshot | undefined {
     const player = data.players?.[id];
     return !!player && isCount(player.quests) && isCount(player.bestStreak) && isCount(player.mvpDays);
   });
-  return ok ? (data as ChronicleStatsSnapshot) : undefined;
+  if (!ok) return undefined;
+  // A gold race that isn't two lists of numbers is dropped (the rest of the stats are kept).
+  const race = data.goldByDay;
+  const raceOk = !race || (['husband', 'wife'] as CharacterId[]).every((id) => Array.isArray(race[id]) && race[id].every((value) => typeof value === 'number'));
+  if (raceOk) return data as ChronicleStatsSnapshot;
+  const { goldByDay: _goldByDay, ...rest } = data as ChronicleStatsSnapshot;
+  return rest;
 }
 
 function parseHistory(raw: unknown): ChronicleResult[] {
@@ -272,7 +285,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
     // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
-    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, xpDebt, ...rest } = data
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, xpDebt, chronicleWins, ...rest } = data
       .characters![id] as Character & {
       interestGold?: unknown;
     };
@@ -296,6 +309,12 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       ...(isDateKey(interestOn) ? { interestOn } : {}),
       ...(refundNotice === true ? { refundNotice } : {}),
       ...(count(xpDebt) > 0 ? { xpDebt: count(xpDebt) } : {}),
+      // Saves from before v1.9 count their wins from the kept results; no wins, no field.
+      ...withWins(
+        isCount(chronicleWins)
+          ? Math.floor(chronicleWins as number)
+          : parseHistory(data.prizeHistory).filter((result) => chronicleWinners(result).includes(id)).length,
+      ),
     };
   };
   const state: GameState = {
@@ -488,13 +507,18 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
     payout: calculatePayout(state.prizePool, goldSnapshot.husband, goldSnapshot.wife),
     goldSnapshot,
   };
-  // Save the archive stats now, while this chronicle's quest log is all still there.
-  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes);
+  // Save the archive stats now, while this chronicle's quest log is all still there (with the gold race).
+  const xpNow = { husband: effectiveXp(state.characters.husband), wife: effectiveXp(state.characters.wife) };
+  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes, state.events, xpNow);
   if (stats) result.stats = stats;
+  const winners = chronicleWinners(result);
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
   // Gold (and interest) reset. Fortune's Favor pays its tickets at level-ups only (since v1.9).
-  const fresh = (id: CharacterId) => ({ ...state.characters[id], gold: 0, mvpDays: 0 });
+  const fresh = (id: CharacterId) => {
+    const character = state.characters[id];
+    return { ...character, gold: 0, mvpDays: 0, ...withWins((character.chronicleWins ?? 0) + (winners.includes(id) ? 1 : 0)) };
+  };
   return {
     ...state,
     chronicle: next,

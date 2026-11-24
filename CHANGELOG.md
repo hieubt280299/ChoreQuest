@@ -8,6 +8,26 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
 
 ### Added
 
+- **Richer Chronicle results** (`ChronicleSummaryModal`):
+  - **Shown:**
+    - Awards: quest champions, Streak Master, most MVP days, most hearts.
+    - The winning margin.
+    - Quests done together.
+    - Each player's gold change since the last Chronicle.
+    - Lucky Quests caught.
+    - A **gold race chart** (`GoldRaceChart`): both players' gold day by day, with a tap/hover crosshair and a screen-reader table. Its colors follow the theme (`--chart-husband` / `--chart-wife`), each pair validated for color-blind and normal-vision separation on that theme.
+  - **Reopen** any past Chronicle's results from History ("See results").
+  - **Demo:** "Finish this Chronicle" in Settings plays a sample month and ends it, to try the results right away (`finishDemoChronicle`). The sample month is the whole Chronicle (from 0 gold) and replaces an earlier run's days, so running it again doesn't count those quests twice.
+  - **The race always agrees with the results:** a race that doesn't end at each player's final gold is never saved or shown (`raceMatchesGold`).
+  - **Saved at rollover:** `totalQuests`, `lucky` and `goldByDay` in the Chronicle snapshot. The race (`goldRace`) is rebuilt from quests, spins, interest and level-up gold, and matches the final gold exactly.
+- **Winning matters more:**
+  - A "Champion" crown on the winner's character card for the whole next Chronicle (`reigningChampions`).
+  - A lasting Chronicle wins count (`Character.chronicleWins`, back-filled for older saves).
+  - The winner now picks a new theme **or 2 Golden Tickets** (`WINNER_GOLDEN_TICKETS`, `claimRewardOnState`). Only the tickets are offered once every theme is unlocked.
+    - Rewards have their own dialog (`RewardPickerModal`), apart from the Wardrobe, listing only what can be taken: the winner's "pick one" (locked themes, "OR", 2 Golden Tickets) and the locked avatars. The loser sees only avatars; with every theme unlocked, the winner sees only the tickets and avatars.
+    - Claiming a theme reads "Take {theme} as your prize".
+    - The Wardrobe only switches themes and avatars, with a "Choose reward" shortcut while a reward is waiting.
+- **What's New:** "Balance adjustments" can have **Skills** and **Quests** sub-sections (`skills` / `quests` notes, `BALANCE_PARTS`).
 - **Lucky Quest of the Day** (`utils/lucky.ts`):
   - One enabled quest a day, the same for both players, picked from the date (`luckyQuestId`).
   - Done on time, it pays double base gold, before skills, streaks and the Both split (`luckyBase`). The log stores `lucky` and the doubled base.

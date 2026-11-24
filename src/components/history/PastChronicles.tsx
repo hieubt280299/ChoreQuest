@@ -1,13 +1,15 @@
-import { ChevronDown, Crown, Fire, Heart, Script, Trophy } from 'pixelarticons/react';
+import { ChartLine, ChevronDown, Script, Trophy } from 'pixelarticons/react';
 import { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { CharacterId } from '../../types';
+import type { CharacterId, ChronicleResult } from '../../types';
 import { formatDateRange, formatGold } from '../../utils/calculations';
-import { chronicleStats, type ChronicleAward } from '../../utils/chronicleStats';
+import { chronicleStats } from '../../utils/chronicleStats';
 import type { TranslationKey } from '../../utils/i18n';
-import { taskName } from '../../utils/taskNames';
 import { Card } from '../ui/Card';
+import { ChronicleAwards } from '../chronicle/ChronicleAwards';
+import { ChronicleSummaryModal } from '../chronicle/ChronicleSummaryModal';
+import { Button } from '../ui/Button';
 import { CharacterAvatar } from '../ui/CharacterAvatar';
 import { CharacterName, NAME_SLOT, spliceName } from '../ui/CharacterName';
 import { Icon } from '../ui/Icon';
@@ -15,43 +17,13 @@ import { Vnd } from '../ui/Vnd';
 
 const IDS: CharacterId[] = ['husband', 'wife'];
 
-function Award({ award }: { award: ChronicleAward }) {
-  const { t, language } = useLanguage();
-  const { state } = useGame();
-  let title: string;
-  let icon = Trophy;
-  if (award.kind === 'champion') {
-    const task = state.tasks.find((item) => item.id === award.taskId);
-    title = t('archive.champion', { quest: task ? taskName(task, language) : t('history.removedQuest') });
-  } else if (award.kind === 'streak') {
-    title = t('archive.streakMaster', { days: award.days });
-    icon = Fire;
-  } else if (award.kind === 'hearts') {
-    title = award.count === 1 ? t('archive.mostLovedOne') : t('archive.mostLoved', { count: award.count });
-    icon = Heart;
-  } else {
-    title = t('archive.mvpKing', { days: award.days });
-    icon = Crown;
-  }
-  return (
-    <li className="px-slot flex items-center gap-2 px-2 py-1.5">
-      <Icon as={icon} size={24} className="shrink-0 text-ember-600" />
-      <span className="min-w-0 flex-1 text-base font-extrabold leading-tight">
-        {title}
-      </span>
-      <CharacterAvatar id={award.characterId} scale={1} framed={false} />
-      <span className="max-w-[7rem] truncate text-sm font-bold uppercase text-wood-700">
-        <CharacterName id={award.characterId} />
-      </span>
-    </li>
-  );
-}
-
-/** Finished chronicles, newest first: payouts, per-player stats and fun awards. */
+/** Finished chronicles, newest first: payouts, per-player stats and fun awards, and the results pop-up again. */
 export function PastChronicles() {
   const { t, locale } = useLanguage();
   const { state } = useGame();
   const [open, setOpen] = useState<number | null>(null);
+  // A chronicle's results pop-up, reopened from here.
+  const [results, setResults] = useState<ChronicleResult | null>(null);
   const entries = useMemo(
     () => state.prizeHistory.map((result) => ({ result, stats: chronicleStats(result, state.logs, state.hearts, state.freezes) })),
     [state.prizeHistory, state.logs, state.hearts, state.freezes],
@@ -129,25 +101,17 @@ export function PastChronicles() {
                       </div>
                     ))}
                 </div>
-                {stats.hasLog ? (
-                  stats.awards.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-sm font-extrabold uppercase text-brick-600">{t('archive.awards')}</p>
-                      <ul className="space-y-2">
-                        {stats.awards.map((award) => (
-                          <Award key={`${award.kind}-${award.kind === 'champion' ? award.taskId : ''}`} award={award} />
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                ) : (
-                  <p className="text-sm text-wood-600">{t('archive.noLog')}</p>
-                )}
+                {stats.hasLog ? <ChronicleAwards awards={stats.awards} /> : <p className="text-sm text-wood-600">{t('archive.noLog')}</p>}
+                <Button className="w-full" variant="secondary" onClick={() => setResults(result)}>
+                  <Icon as={ChartLine} size={24} />
+                  {t('archive.seeResults')}
+                </Button>
               </div>
             )}
           </Card>
         );
       })}
+      <ChronicleSummaryModal result={results} reopened onClose={() => setResults(null)} onOpenRewards={() => setResults(null)} />
     </section>
   );
 }

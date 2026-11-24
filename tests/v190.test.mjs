@@ -336,6 +336,186 @@ check('Lucky Quest: on-time completions only, stored on the log; shown on the qu
   for (const language of ['en', 'vi']) for (const key of ['lucky.title', 'lucky.help', 'today.lucky']) assert.ok(m.translations[language][key], `${language} ${key}`);
 });
 
+// --- Chronicle results ---------------------------------------------------------------------------
+/** A chronicle from day -12 to day -3 (10 days), finished, with two quests and a spin. */
+const ended = () => {
+  let s = m.createInitialState(day(-20));
+  s = { ...s, chronicle: { ...s.chronicle, id: 1, startDate: day(-12), endDate: day(-3) }, mvpSettledOn: day(-13), freezesSettledOn: day(-13) };
+  const xp = m.XP_CURVE[0]; // the wife's quest takes her from level 1 to 2: +50 level-up gold
+  s = withChar(s, 'wife', { xp, gold: 40 + 50 + 15 });
+  s = withChar(s, 'husband', { gold: 30 });
+  s = {
+    ...s,
+    logs: [
+      log(day(-12), 'husband', { taskId: 'trash', xpAwarded: { husband: 5, wife: 0 }, goldAwarded: { husband: 30, wife: 0 } }),
+      log(day(-10), 'wife', { taskId: 'cooking', xpAwarded: { husband: 0, wife: xp }, goldAwarded: { husband: 0, wife: 40 }, lucky: true }),
+    ],
+    events: [{ id: 'spin-1', type: 'spin', characterId: 'wife', date: day(-5), timestamp: 1, prize: 'big', gold: 15, ticket: 'normal' }],
+  };
+  return withChar(s, 'husband', { xp: 5 });
+};
+
+check('the gold race is rebuilt day by day, level-up gold included, and matches the final gold', () => {
+  const s = ended();
+  const race = m.goldRace(s.chronicle, s.logs, s.events, { husband: 5, wife: m.XP_CURVE[0] });
+  assert.equal(race.husband.length, 10);
+  assert.deepEqual(race.husband, [30, 30, 30, 30, 30, 30, 30, 30, 30, 30]);
+  assert.deepEqual(race.wife, [0, 0, 90, 90, 90, 90, 90, 105, 105, 105], 'quest gold + level-up gold on day 3, the spin on day 8');
+  assert.equal(race.wife.at(-1), s.characters.wife.gold);
+});
+
+check('the rollover saves the race, the quests done together and Lucky Quests, and counts the win', () => {
+  const next = m.advanceDays(ended(), today);
+  const stats = next.prizeHistory[0].stats;
+  assert.equal(stats.totalQuests, 2);
+  assert.equal(stats.players.wife.lucky, 1);
+  assert.equal(stats.players.husband.lucky, 0);
+  assert.deepEqual(stats.goldByDay.wife.at(-1), 105);
+  assert.equal(next.characters.wife.chronicleWins, 1, 'most gold wins');
+  assert.equal('chronicleWins' in next.characters.husband, false);
+  assert.deepEqual(m.chronicleWinners({ goldSnapshot: { husband: 5, wife: 5 } }), ['husband', 'wife'], 'a tie counts for both');
+  assert.deepEqual(m.chronicleWinners({ goldSnapshot: { husband: 0, wife: 0 } }), [], 'nobody earned gold');
+  // The race and the win survive a save and load.
+  const back = m.fromHouseholdDoc(m.toHouseholdSections(next), today);
+  assert.deepEqual(back.prizeHistory[0].stats.goldByDay, stats.goldByDay);
+  assert.equal(back.characters.wife.chronicleWins, 1);
+});
+
+check('saves from before v1.9 count their wins from the kept results', () => {
+  const s = m.createInitialState(day(-5));
+  const result = (chronicleId, husband, wife) => ({ chronicleId, startDate: day(-90), endDate: day(-61), prizePool: 1, payout: { husband: 0, wife: 0 }, goldSnapshot: { husband, wife } });
+  const raw = { ...s, prizeHistory: [result(3, 10, 20), result(2, 30, 30), result(1, 50, 10)] };
+  delete raw.characters.husband.chronicleWins;
+  const loaded = m.parseGameState(JSON.parse(JSON.stringify(raw)), today, false);
+  assert.equal(loaded.characters.husband.chronicleWins, 2, 'chronicle 1 and the tie in chronicle 2');
+  assert.equal(loaded.characters.wife.chronicleWins, 2, 'chronicle 3 and the tie');
+});
+
+check('the winner picks a theme or 2 Golden Tickets; only the tickets once every theme is unlocked', () => {
+  const s = m.advanceDays(ended(), today);
+  assert.equal(m.WINNER_GOLDEN_TICKETS, 2);
+  const offer = m.rewardOffer(s, 'wife');
+  assert.equal(offer.theme, true);
+  assert.equal(offer.tickets, true);
+  assert.equal(m.rewardOffer(s, 'husband').tickets, false, 'not the loser');
+  const before = s.characters.wife.goldenTickets;
+  const took = m.claimRewardOnState(s, 'wife', 'tickets');
+  assert.equal(took.characters.wife.goldenTickets, before + 2);
+  assert.equal(m.rewardOffer(took, 'wife').theme, false, 'tickets taken: no theme any more');
+  assert.equal(m.rewardOffer(took, 'wife').tickets, false);
+  assert.equal(m.claimRewardOnState(took, 'wife', 'tickets'), 'cosmetics.error.noReward', 'once');
+  const themed = m.claimRewardOnState(s, 'wife', 'theme', 'forest');
+  assert.equal(m.rewardOffer(themed, 'wife').tickets, false, 'theme taken: no tickets');
+  const allThemes = { ...s, cosmetics: { ...s.cosmetics, themes: m.THEMES.filter((t) => t !== m.DEFAULT_THEME) } };
+  assert.deepEqual([m.rewardOffer(allThemes, 'wife').theme, m.rewardOffer(allThemes, 'wife').tickets], [false, true]);
+  // The tickets reward survives a save and load.
+  const back = m.fromHouseholdDoc(m.toHouseholdSections(took), today);
+  assert.ok(back.cosmetics.rewards.some((reward) => reward.kind === 'tickets' && reward.item === 'goldenTickets'));
+});
+
+check('the reigning champion is crowned for the whole next chronicle', () => {
+  const s = m.advanceDays(ended(), today);
+  assert.deepEqual(m.reigningChampions(s), ['wife']);
+  assert.deepEqual(m.reigningChampions({ ...s, chronicle: { ...s.chronicle, id: s.chronicle.id + 1 } }), [], 'not the one after');
+  assert.deepEqual(m.reigningChampions(m.createInitialState(today)), []);
+});
+
+check('the results tell the story: margin, quests together, change since last time, Lucky Quests, awards, race', () => {
+  const s = m.advanceDays(ended(), today);
+  const previous = { chronicleId: 0, startDate: day(-60), endDate: day(-31), prizePool: 1, payout: { husband: 0, wife: 0 }, goldSnapshot: { husband: 60, wife: 50 } };
+  const result = s.prizeHistory[0];
+  const summary = m.chronicleSummary(result, { ...s, prizeHistory: [result, previous] });
+  assert.equal(summary.winner, 'wife');
+  assert.equal(summary.margin, 75);
+  assert.equal(summary.totalQuests, 2);
+  assert.equal(summary.players.wife.lucky, 1);
+  assert.ok(summary.goldByDay);
+  assert.ok(Array.isArray(summary.awards));
+  assert.equal(summary.previousId, 0);
+  assert.equal(summary.players.husband.goldChange, 30 / 60 - 1);
+  assert.equal(summary.players.wife.goldChange, 105 / 50 - 1);
+  // A chronicle archived before v1.9 (no race saved) has its race rebuilt while its log is kept.
+  const { goldByDay: _race, ...oldStats } = result.stats;
+  const old = { ...result, stats: oldStats };
+  assert.deepEqual(m.chronicleSummary(old, s).goldByDay, result.stats.goldByDay);
+  assert.equal(m.chronicleSummary(old, { logs: [] }).goldByDay, null, 'no log: no race');
+});
+
+check('results pop-up: awards, story and race; reopened from History; crown and wins on the card; rewards in their own dialog', () => {
+  const modal = source('src/components/chronicle/ChronicleSummaryModal.tsx');
+  assert.match(modal, /<GoldRaceChart goldByDay=\{summary\.goldByDay\} \/>/);
+  assert.match(modal, /<ChronicleAwards awards=\{summary\.awards\} \/>/);
+  assert.match(modal, /t\('summary\.margin'/);
+  assert.match(modal, /t\('summary\.together'/);
+  assert.match(source('src/components/history/PastChronicles.tsx'), /<ChronicleSummaryModal result=\{results\} reopened /);
+  const card = source('src/components/dashboard/CharacterCard.tsx');
+  assert.match(card, /reigningChampions\(state\)\.includes\(id\)/);
+  assert.match(card, /t\('champion\.wins', \{ count: wins \}\)/);
+  // Rewards are picked in their own dialog, which lists only what can be taken; the Wardrobe just links to it.
+  const picker = source('src/components/cosmetics/RewardPickerModal.tsx');
+  assert.match(picker, /THEMES\.filter\(\(item\) => item !== DEFAULT_THEME && !cosmetics\.themes\.includes\(item\)\)/, 'locked themes only');
+  assert.match(picker, /AVATARS\[me\]\.filter\(\(item\) => item !== DEFAULT_AVATAR\[me\] && !cosmetics\.avatars\[me\]\.includes\(item\)\)/, 'locked avatars only');
+  assert.match(picker, /\{reward\.tickets && \([\s\S]*\{reward\.theme && \([\s\S]*\{reward\.avatar && \(/, 'each section only when it can be taken');
+  // The winner's prize reads as ONE choice: a "pick one" heading, the themes, OR, then the tickets.
+  assert.match(picker, /'cosmetics\.winnerPick'[\s\S]*lockedThemes\.map[\s\S]*t\('cosmetics\.or'\)[\s\S]*t\('cosmetics\.prizeTickets'/);
+  assert.match(picker, /take\('tickets'\)/);
+  assert.match(picker, /'cosmetics\.claimPrize'/, 'claiming a theme says it is the prize');
+  assert.doesNotMatch(picker.slice(picker.indexOf("t('cosmetics.or')") - 400, picker.indexOf("t('cosmetics.or')")), /font-arcade/, 'HOẶC needs a font with Vietnamese letters');
+  const wardrobe = source('src/components/cosmetics/CosmeticPicker.tsx');
+  assert.doesNotMatch(wardrobe, /claimReward|'pick'/, 'the Wardrobe claims nothing');
+  assert.match(wardrobe, /onClick=\{onOpenRewards\}/);
+  const app = source('src/App.tsx');
+  assert.match(app, /<RewardBanner onOpen=\{\(\) => setRewardsOpen\(true\)\} \/>/);
+  assert.match(app, /<StartupNotices onOpenRewards=\{\(\) => setRewardsOpen\(true\)\}/);
+  assert.match(app, /<RewardPickerModal open=\{rewardsOpen\}/);
+  const chart = source('src/components/chronicle/GoldRaceChart.tsx');
+  assert.match(chart, /husband: 'var\(--chart-husband\)', wife: 'var\(--chart-wife\)'/, 'series colors come from the theme');
+  // Each theme's pair, checked with the data-viz palette validator against that theme's parchment-50.
+  const pairs = { 'src/index.css': ['#b04a34', '#8a5a9c'], 'src/themes/mushroom/theme.css': ['#d82800', '#6844fc'], 'src/themes/cottage/theme.css': ['#a8435f', '#7a5cb8'], 'src/themes/forest/theme.css': ['#b0552c', '#8a6ad0'] };
+  for (const [file, [husband, wife]] of Object.entries(pairs)) {
+    const css = source(file);
+    assert.match(css, new RegExp(`--chart-husband: ${husband};`), file);
+    assert.match(css, new RegExp(`--chart-wife: ${wife};`), file);
+  }
+  assert.match(chart, /<FloatingBubble/);
+  assert.match(chart, /<table className="sr-only">/, 'a table view for screen readers');
+  const keys = ['summary.margin', 'summary.together', 'summary.lucky', 'summary.change', 'summary.race', 'summary.raceDay', 'summary.done', 'archive.seeResults', 'champion.reigning', 'champion.reigningHelp', 'champion.wins', 'cosmetics.takeTickets', 'cosmetics.rewardHintWinnerAll', 'cosmetics.rewardHintWinner', 'cosmetics.rewardHintAvatarTickets', 'cosmetics.rewardHintTickets', 'cosmetics.winnerPick', 'cosmetics.prizeTheme', 'cosmetics.prizeTickets', 'cosmetics.or', 'cosmetics.take', 'cosmetics.claimPrize', 'cosmetics.winnerPrize', 'cosmetics.avatarPrize'];
+  for (const language of ['en', 'vi']) for (const key of keys) assert.ok(m.translations[language][key], `${language} ${key}`);
+});
+
+check('demo: "Finish this Chronicle" plays a sample month and ends it, so its results can be tried', () => {
+  const s = m.createInitialState(today);
+  const next = m.finishDemoChronicle(s, today);
+  assert.equal(next.chronicle.id, 2);
+  assert.equal(next.chronicle.startDate, today, 'a new chronicle starts today');
+  const result = next.prizeHistory[0];
+  assert.equal(result.chronicleId, 1);
+  assert.equal(result.startDate, m.addDays(today, -m.DEMO_CHRONICLE_DAYS));
+  assert.equal(result.endDate, m.addDays(today, -1));
+  assert.ok(result.stats.totalQuests > 20, `${result.stats.totalQuests} sample quests`);
+  assert.equal(result.stats.goldByDay.husband.length, m.DEMO_CHRONICLE_DAYS);
+  assert.equal(result.stats.goldByDay.wife.at(-1), Math.round(result.goldSnapshot.wife), 'the race ends at the payout gold');
+  // Finishing again reuses the same days: the earlier sample month must not count twice.
+  const again = m.finishDemoChronicle(next, today).prizeHistory[0];
+  assert.equal(again.chronicleId, 2);
+  for (const id of ['husband', 'wife']) assert.equal(again.stats.goldByDay[id].at(-1), Math.round(again.goldSnapshot[id]), `${id}: race = gold`);
+  assert.ok(again.stats.totalQuests < result.stats.totalQuests * 1.5, 'quests of one month, not two');
+  // A race that doesn't end at the final gold is never shown.
+  const off = { ...result, goldSnapshot: { ...result.goldSnapshot, wife: result.goldSnapshot.wife / 2 } };
+  assert.equal(m.raceMatchesGold(result.stats.goldByDay, result.goldSnapshot), true);
+  assert.equal(m.chronicleSummary(off, next).goldByDay, null);
+  assert.ok(result.stats.players.husband.lucky + result.stats.players.wife.lucky > 0, 'Lucky Quests in the sample');
+  assert.ok(m.chronicleSummaryDue(next), 'the results pop-up is due');
+  const [winner] = m.chronicleWinners(result);
+  assert.equal(next.characters[winner].chronicleWins, 1);
+  assert.deepEqual(m.reigningChampions(next), [winner]);
+  assert.equal(m.rewardOffer(next, winner).tickets, true);
+  assert.deepEqual(m.finishDemoChronicle(s, today).prizeHistory[0].goldSnapshot, result.goldSnapshot, 'the same day gives the same month');
+  const settings = source('src/components/settings/SettingsView.tsx');
+  assert.match(settings, /\{demoMode && <FinishDemoChronicle \/>\}/, 'demo only');
+  assert.match(source('src/context/GameContext.tsx'), /demo\s*\? done\(commit\(\{ id: newOpId\(\), update: \(current\) => finishDemoChronicle\(current, localDateKey\(\)\) \}\)\.result\)\s*: fail\('household\.error\.notAllowed'\)/);
+});
+
 // --- Release -------------------------------------------------------------------------------
 check("version and What's New are 1.9.0", () => {
   assert.equal(m.APP_VERSION, '1.9.0');
@@ -345,6 +525,14 @@ check("version and What's New are 1.9.0", () => {
   assert.equal(lock.packages[''].version, '1.9.0');
   const { notes } = m.PATCH_NOTES[0];
   for (const section of Object.values(notes)) assert.equal(section.en.length, section.vi.length);
+  // Balance is split into Skills and Quests; Vietnamese says "Tăng/Giảm sức mạnh" for buffs and nerfs.
+  assert.equal(notes.balance, undefined);
+  assert.ok(notes.skills.vi.some((line) => line.startsWith('Tăng sức mạnh:')) && notes.skills.vi.some((line) => line.startsWith('Giảm sức mạnh:')));
+  assert.ok(!notes.skills.vi.some((line) => /\b(Buff|Nerf)\b/.test(line)));
+  assert.ok(notes.quests.en.includes('Streak gold for days 3 to 10: now 3/4/5/6/7/8/9/10 instead of 1/1/2/3/5/8/13/21.'));
+  assert.deepEqual(m.BALANCE_PARTS, ['skills', 'quests']);
+  for (const language of ['en', 'vi']) for (const part of ['skills', 'quests']) assert.ok(m.translations[language][`patch.section.${part}`]);
+  assert.match(source('src/components/settings/PatchNotesModal.tsx'), /BALANCE_PARTS\.filter/);
   assert.match(source('CHANGELOG.md'), /## \[1\.9\.0\] - \d{4}-\d{2}-\d{2}\r?\n\r?\nSpec: \[UPDATE_v1\.9\.0\.md\]/);
   assert.ok(existsSync(new URL('../UPDATE_v1.9.0.md', import.meta.url)));
 });

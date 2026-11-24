@@ -73,10 +73,10 @@ const finished = (husband, wife, extra = {}) => {
   return { ...s, prizeHistory: [result] };
 };
 
-check('chronicle rewards: both players unlock an avatar, the winner also a theme', () => {
+check('chronicle rewards: both players unlock an avatar, the winner also a theme (or Golden Tickets, v1.9)', () => {
   const s = finished(300, 100);
-  assert.deepEqual(m.rewardOffer(s, 'husband'), { chronicleId: 2, winner: true, avatar: true, theme: true });
-  assert.deepEqual(m.rewardOffer(s, 'wife'), { chronicleId: 2, winner: false, avatar: true, theme: false });
+  assert.deepEqual(m.rewardOffer(s, 'husband'), { chronicleId: 2, winner: true, avatar: true, theme: true, tickets: true });
+  assert.deepEqual(m.rewardOffer(s, 'wife'), { chronicleId: 2, winner: false, avatar: true, theme: false, tickets: false });
   const tie = finished(200, 200);
   assert.equal(m.rewardOffer(tie, 'husband').theme, true);
   assert.equal(m.rewardOffer(tie, 'wife').theme, true, 'ties: both are winners');
@@ -86,13 +86,13 @@ check('chronicle rewards: both players unlock an avatar, the winner also a theme
 check('each reward kind is claimed once; nothing left to unlock means no offer', () => {
   let s = finished(300, 100);
   s = { ...s, cosmetics: { ...s.cosmetics, rewards: [{ chronicleId: 2, characterId: 'husband', kind: 'avatar', item: m.AVATARS.husband[1] }] } };
-  assert.deepEqual(m.rewardOffer(s, 'husband'), { chronicleId: 2, winner: true, avatar: false, theme: true });
+  assert.deepEqual(m.rewardOffer(s, 'husband'), { chronicleId: 2, winner: true, avatar: false, theme: true, tickets: true });
   s = { ...s, cosmetics: { ...s.cosmetics, rewards: [...s.cosmetics.rewards, { chronicleId: 2, characterId: 'husband', kind: 'theme', item: 'forest' }] } };
   assert.equal(m.rewardOffer(s, 'husband'), null);
-  // Every theme already unlocked: the winner still gets the avatar.
+  // Every theme already unlocked: the winner still gets the avatar, and Golden Tickets instead of a theme (v1.9).
   const all = finished(300, 100);
   const themes = { ...all, cosmetics: { ...all.cosmetics, themes: m.THEMES.filter((t) => t !== m.DEFAULT_THEME) } };
-  assert.deepEqual(m.rewardOffer(themes, 'husband'), { chronicleId: 2, winner: true, avatar: true, theme: false });
+  assert.deepEqual(m.rewardOffer(themes, 'husband'), { chronicleId: 2, winner: true, avatar: true, theme: false, tickets: true });
   // Only while the next chronicle runs.
   assert.equal(m.rewardOffer({ ...all, chronicle: { ...all.chronicle, id: 4 } }, 'husband'), null);
 });
@@ -100,12 +100,12 @@ check('each reward kind is claimed once; nothing left to unlock means no offer',
 // --- Chronicle summary ------------------------------------------------------
 check('summary: winner, gold, MVP days and prize split by gold share', () => {
   const s = finished(300, 100, { stats: { players: { husband: { quests: 20, bestStreak: 4, mvpDays: 18 }, wife: { quests: 9, bestStreak: 2, mvpDays: 12 } }, awards: [] } });
-  const summary = m.chronicleSummary(s.prizeHistory[0], []);
+  const summary = m.chronicleSummary(s.prizeHistory[0]);
   assert.equal(summary.winner, 'husband');
-  assert.deepEqual(summary.players.husband, { gold: 300, mvpDays: 18, hearts: 0, payout: 750000, share: 0.75 });
-  assert.deepEqual(summary.players.wife, { gold: 100, mvpDays: 12, hearts: 0, payout: 250000, share: 0.25 });
+  assert.deepEqual(summary.players.husband, { gold: 300, mvpDays: 18, hearts: 0, lucky: 0, payout: 750000, share: 0.75, goldChange: null });
+  assert.deepEqual(summary.players.wife, { gold: 100, mvpDays: 12, hearts: 0, lucky: 0, payout: 250000, share: 0.25, goldChange: null });
   assert.equal(summary.mostHearts, null, 'no hearts before v1.8.0');
-  assert.equal(m.chronicleSummary(finished(200, 200).prizeHistory[0], []).winner, null, 'tie');
+  assert.equal(m.chronicleSummary(finished(200, 200).prizeHistory[0]).winner, null, 'tie');
 });
 
 check('summary is due any day of the new chronicle, from Chronicle 2 on', () => {

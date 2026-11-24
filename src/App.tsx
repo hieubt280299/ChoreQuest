@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { CosmeticPicker } from './components/cosmetics/CosmeticPicker';
 import { RewardBanner } from './components/cosmetics/RewardBanner';
+import { RewardPickerModal } from './components/cosmetics/RewardPickerModal';
 import { BottomNav, SideNav } from './components/auth/Navigation';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { ProfileSwitcher } from './components/auth/ProfileSwitcher';
@@ -47,6 +48,9 @@ export default function App() {
   };
   const [skillCharacter, setSkillCharacter] = useState<CharacterId | null>(null);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  // Chronicle rewards have their own dialog, apart from the Wardrobe.
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+  const closeRewards = useCallback(() => setRewardsOpen(false), []);
   // This player's theme (per device), applied to the whole page.
   const { theme } = useTheme();
   useApplyTheme(status === 'ready' || status === 'demo' ? theme : 'hearth');
@@ -79,7 +83,7 @@ export default function App() {
         <main className="min-w-0 flex-1 space-y-6">
           <OfflineBadge />
           <InviteBanner />
-          <RewardBanner onOpen={() => setWardrobeOpen(true)} />
+          <RewardBanner onOpen={() => setRewardsOpen(true)} />
           {view === 'dashboard' && <DashboardView onNavigate={setView} />}
           {view === 'tasks' && <TasksView />}
           {view === 'skills' && <SkillsView />}
@@ -100,10 +104,18 @@ export default function App() {
         }}
       />
       <SkillPickerModal open={!!skillCharacter} characterId={skillCharacter} onClose={() => setSkillCharacter(null)} />
-      <CosmeticPicker open={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
+      <CosmeticPicker
+        open={wardrobeOpen}
+        onClose={() => setWardrobeOpen(false)}
+        onOpenRewards={() => {
+          setWardrobeOpen(false);
+          setRewardsOpen(true);
+        }}
+      />
+      <RewardPickerModal open={rewardsOpen} onClose={closeRewards} />
       <SyncErrorToast />
       <HeartToast />
-      <StartupNotices onOpenWardrobe={() => setWardrobeOpen(true)} onOpenSkills={() => setView('skills')} />
+      <StartupNotices onOpenRewards={() => setRewardsOpen(true)} onOpenSkills={() => setView('skills')} />
     </div>
   );
 }

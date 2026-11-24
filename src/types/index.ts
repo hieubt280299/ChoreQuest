@@ -42,6 +42,8 @@ export interface Character {
   mvpDays: number;
   /** Skill points were refunded by a rebalance and this player hasn't read the notice yet. */
   refundNotice?: boolean;
+  /** Chronicles this character won (most gold; a tie counts for both), kept for good, even through a New Legend. */
+  chronicleWins?: number;
 }
 
 export interface SkillDefinition {
@@ -230,9 +232,16 @@ export type ChronicleAward =
 
 /** The parts of a chronicle's stats that need the quest log (gold and averages come from the record itself). */
 export interface ChronicleStatsSnapshot {
-  /** `hearts`: hearts received (absent for chronicles from before hearts). */
-  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number; hearts?: number }>;
+  /**
+   * `hearts`: hearts received (absent for chronicles from before hearts). `lucky`: Lucky Quests done on time (absent
+   * before v1.9).
+   */
+  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number; hearts?: number; lucky?: number }>;
   awards: ChronicleAward[];
+  /** Quests finished in the chronicle, a "Both" quest counted once (absent before v1.9). */
+  totalQuests?: number;
+  /** Each player's gold at the end of each day, rounded, for the gold race chart (absent before v1.9). */
+  goldByDay?: Record<CharacterId, number[]>;
 }
 
 export interface RewardToast {
@@ -365,8 +374,9 @@ export type AvatarId =
 export interface CosmeticReward {
   chronicleId: number;
   characterId: CharacterId;
-  kind: 'theme' | 'avatar';
-  item: ThemeId | AvatarId;
+  /** `tickets`: the winner took Golden Tickets instead of a theme (v1.9). */
+  kind: 'theme' | 'avatar' | 'tickets';
+  item: ThemeId | AvatarId | 'goldenTickets';
 }
 
 /**

@@ -8,6 +8,9 @@
    --------------------------------------------------------------------------- */
 :root,
 [data-theme='hearth'] {
+  /* Chart series (gold race): husband / wife, checked with the data-viz palette validator against this theme's parchment-50. */
+  --chart-husband: #b04a34;
+  --chart-wife: #8a5a9c;
   --c-ink: 43 26 18;
   --c-wood-950: 31 19 12;
   --c-wood-900: 43 26 18;

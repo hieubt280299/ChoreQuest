@@ -1,6 +1,10 @@
 /* cottage theme: palette and styles, loaded on demand with the theme module. */
 
 [data-theme='cottage'] {
+  /* Chart series (gold race): husband / wife, checked with the data-viz palette validator against this theme's parchment-50 (deeper than the
+     pastel brick/plum, which are too close to tell apart as lines). */
+  --chart-husband: #a8435f;
+  --chart-wife: #7a5cb8;
   --c-ink: 59 47 42;
   --c-wood-950: 46 38 24;
   --c-wood-900: 63 52 36;

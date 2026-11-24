@@ -364,6 +364,8 @@ export function dailyInterestCap(level: number): number {
 export const STREAK_FREEZES_PER_CHRONICLE = 3;
 /** Normal Tickets a heart gives the player who receives it. */
 export const HEART_TICKETS = 1;
+/** Golden Tickets a chronicle winner can take instead of a new theme (from Day 1 of the next chronicle). */
+export const WINNER_GOLDEN_TICKETS = 2;
 /**
  * The one-time skill point refund that came with the v1.8.0 rebalance: every learned skill is unlearned once, so
  * players can spend their points again on the new values.

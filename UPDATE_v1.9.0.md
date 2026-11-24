@@ -1,6 +1,6 @@
 # UPDATE v1.9.0 Specification
 
-Minor version: a new button, a new skill, a skill and quest rebalance, simpler Fix entry rules, and a Lucky Quest of the Day. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
+Minor version: a new button, a new skill, a skill and quest rebalance, simpler Fix entry rules, a Lucky Quest of the Day, and richer Chronicle results. No skill point refund (`SKILL_REFUND_VERSION` stays `1.8.0`).
 
 ---
 
@@ -201,7 +201,55 @@ Unchanged: Speed Cleaner, Hall of Fame.
 
 ---
 
-### 7. ✅ Release Checklist
+### 7. 🏆 Chronicle Results
+
+#### Results pop-up (`ChronicleSummaryModal`)
+
+* **Awards** from the archive (quest champions, Streak Master, most MVP days, most hearts) in the pop-up (shared `ChronicleAwards`).
+* **The story:**
+    * The winning margin: "Won by 183 gold".
+    * Quests done together: "Together you finished 220 quests" ("Both" counted once).
+    * Each player's gold change since the Chronicle before: "+12%".
+    * Each player's Lucky Quests.
+* **Gold race chart** (`GoldRaceChart`): each player's gold at the end of each day, as two stepped lines.
+    * Legend, direct end labels, a tap/hover crosshair with the day's gold (`FloatingBubble`), and a hidden table for screen readers.
+    * Series colors per theme (`--chart-husband` / `--chart-wife` in each theme's CSS), each pair checked with the data-viz palette validator against that theme's parchment-50:
+
+      | Theme | Husband | Wife |
+      | --- | --- | --- |
+      | Hearth | #B04A34 (brick) | #8A5A9C (plum) |
+      | Mushroom | #D82800 (brick) | #6844FC (plum) |
+      | Cottage | #A8435F (berry rose) | #7A5CB8 (violet) |
+      | Forest | #B0552C (autumn rust) | #8A6AD0 (plum) |
+
+      Cottage and forest get deeper shades of their hues: their own pastel or brown brick/plum fail as chart lines.
+* **Reopen it:** History → Past Chronicles → "See results" (`reopened`: a Close button, no rewards shortcut).
+* **Try it in the demo:** Settings → Chronicle → "Finish this Chronicle" (demo only, `finishDemoChronicle`). The sample month is the whole Chronicle, starting from 0 gold, and replaces anything dated on its days (an earlier run used the same days), so it can be run again and again.
+* **The race must match the results:** it's saved and shown only when each line ends at that player's final gold (`raceMatchesGold`, within rounding); otherwise the pop-up leaves the chart out.
+    * It fills the last 30 days with seeded sample quests for both players (normal rewards, Lucky Quests included).
+    * Then it ends the Chronicle through the usual rollover, which opens the results pop-up and gives the crown, wins and rewards.
+
+#### Saved data
+
+* The Chronicle snapshot (`ChronicleStatsSnapshot`, saved at rollover) adds `totalQuests`, per-player `lucky` and `goldByDay`.
+* `goldByDay` (`goldRace`) is rebuilt from the quest log, wheel and interest events and level-up gold. The XP at the start is worked back from today's XP. It matches the payout gold exactly (checked against a real Chronicle).
+* Chronicles archived before v1.9 get their race rebuilt from the log while it's kept.
+
+#### Winning matters more (no change to the money)
+
+* **Reigning champion** (`reigningChampions`): a crown chip on the winner's character card for the whole next Chronicle. A tie crowns both.
+* **Chronicle wins** (`Character.chronicleWins`): a lasting trophy count on the card. It's counted at rollover, kept through a New Legend, and back-filled from the kept results for older saves.
+* **The winner's reward** (`rewardOffer`, `claimRewardOnState`): a new theme **or** 2 Golden Tickets (`WINNER_GOLDEN_TICKETS`), from Day 1 of the next Chronicle. Only the tickets are offered once every theme is unlocked.
+    * Rewards are picked in their own dialog (`RewardPickerModal`), apart from the Wardrobe, and it shows only what can be taken:
+        * **Winner's prize: pick one:** the locked themes, then "OR", then a "2 Golden Tickets" card. Claiming a theme reads "Take {theme} as your prize". With every theme unlocked, only the tickets card is left.
+        * **Unlock 1 new avatar:** the locked avatars only (everyone, the loser too).
+        * It closes once nothing is left to take.
+    * It opens from the reward banner and the results pop-up. The Wardrobe (`CosmeticPicker`) only switches themes and avatars; a reward still to pick shows a "Choose reward" shortcut there.
+    * Saved as a `tickets` reward.
+
+---
+
+### 8. ✅ Release Checklist
 
 * **Tests:** `v100`, `v120`, `v180` and `streaks` pin v1.8 values. Update them to check behaviour only, and put the new values in `tests/v190.test.mjs`. That suite also covers:
     * Seesaw: behind, tied, leading, Both, late, undo.
@@ -211,6 +259,7 @@ Unchanged: Speed Cleaner, Hall of Fame.
     * The streak table.
     * Fix an entry: keeping a level with negative XP, paying it back, the unchanged level drop, save and load, and who can fix what.
     * Lucky Quest: the pick (stable, order-independent, enabled only) and the doubled base gold.
+    * Chronicle results: the rebuilt race, the snapshot, wins, the theme-or-tickets reward, the reigning champion and the summary story.
 * **Docs:** AGENT_GUIDE (skill values, Seesaw, streak rule, Fast Learner example) and README (Fibonacci streaks).
 * **Release:** CHANGELOG, `package.json` version, a What's New entry in `patchNotes.ts` (EN + VI, short and simple), and ROADMAP statuses.
 * **Release** planned for 2026-11-25 (allowed from 2026-11-19, two weeks after v1.8.0).

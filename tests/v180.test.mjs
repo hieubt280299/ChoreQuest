@@ -229,7 +229,7 @@ check('the Chronicle summary and archive show who got the most hearts', () => {
   assert.equal(result.stats.players.wife.hearts, 2);
   assert.equal(result.stats.players.husband.hearts, 0);
   assert.ok(result.stats.awards.some((award) => award.kind === 'hearts' && award.characterId === 'wife' && award.count === 2));
-  const summary = m.chronicleSummary(result, []);
+  const summary = m.chronicleSummary(result);
   assert.equal(summary.mostHearts, 'wife');
   assert.equal(summary.players.wife.hearts, 2);
 });

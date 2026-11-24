@@ -5,7 +5,7 @@ Ideas for future versions, to revise and pick from. Nothing here is promised. On
 **Size:** S = a few days · M = about a week · L = bigger, or needs a server.
 **Status:** Idea · Planned · Done · Parked.
 
-_Last revised: 2026-11-18 (v1.9.0 built)._
+_Last revised: 2026-11-24 (v1.9.0 built, with Chronicle results)._
 
 ---
 
@@ -16,11 +16,13 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
 1. **Get the App button** (S)
 2. **Seesaw** skill (S)
 3. **Lucky Quest of the Day** (S)
-4. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
+4. **Chronicle results** (M): awards, story and gold race chart in the results pop-up (reopen from History), a Champion crown and wins count, the winner picks a theme or 2 Golden Tickets in a reward dialog of its own
+5. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
+6. **Simpler Fix entry** (S): either player can fix any entry, late entries until noon, levels kept with negative XP
 
 ## ⭐ Suggested next: v1.10.0
 
-v1.9.0 shipped the Lucky Quest of the Day. Next, the reward shop gives tickets and gold real-world meaning.
+v1.9.0 added a daily surprise (Lucky Quest) and made the end of a Chronicle worth watching (results, crown, winner's prize). Next, the reward shop gives tickets and gold real-world meaning: the winner's Golden Tickets get something to buy.
 
 1. **Reward shop** (M)
 
@@ -60,6 +62,7 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | **Achievement book** | M | Idea | Pixel badges: "100 lần rửa bát", "Chuỗi 30 ngày", "Song kiếm hợp bích" (50 quests done together), plus a few hidden ones to discover. |
 | **The cat grows up** | M | Idea | The cabin cat reflects how the home is doing: happy and playful in a busy week, sleepy when quests pile up, never punishing. Feed it treats with gold. |
 | **Decorate the cabin** | L | Idea | Spend gold on furniture, plants and lights for the scene. Gives gold a use beyond the prize split, with a trade-off: decorate now, or keep your share. |
+| **Chronicle results** | M | Done (v1.9.0) | The results pop-up tells the story: awards, quests done together, how close it was and a gold race chart, reopened any time from History. The winner wears a Champion crown for the next Chronicle, keeps a trophy count, and picks a new theme or 2 Golden Tickets. |
 | **Chronicle reward track** | M | Idea | Each Chronicle gets a theme and a shared track of rewards (avatar frames, scene props, wheel skins) unlocked by combined XP. |
 
 **To decide:**
@@ -71,7 +74,7 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
 | **Reward shop** | M | Idea | The couple writes their own rewards, such as "Massage 15 phút", "Được chọn phim tối nay" or "Ngủ nướng Chủ nhật", and buys them with tickets. Turning game currency into real treats is the strongest motivator here. |
-| **Chronicle recap** | M | Idea | A "Wrapped"-style pixel card at the end of each Chronicle: "Bạn đã rửa 62 bộ bát", top chore, best streak. Easy to share on Zalo or Facebook, which also brings in new players. |
+| **Chronicle recap** | M | Idea | A "Wrapped"-style pixel card at the end of each Chronicle: "Bạn đã rửa 62 bộ bát", top chore, best streak. Easy to share on Zalo or Facebook, which also brings in new players. Builds on the v1.9.0 results pop-up (awards, gold race), so it's now mostly the shareable image. |
 
 **To decide:**
 - **Reward shop:** who sets the prices? Is there a confirmation that the reward was actually given?

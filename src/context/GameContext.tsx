@@ -23,7 +23,7 @@ import type {
   ThemeId,
   WheelSpinEvent,
 } from '../types';
-import { AVATARS, DEFAULT_AVATAR, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
+import { DEFAULT_AVATAR } from '../constants/cosmetics';
 import {
   addDays,
   computeRewardBreakdown,
@@ -51,9 +51,10 @@ import { heartSentOn, sendHeartOnState } from '../utils/hearts';
 import { notifyPartnerOfHeart } from '../utils/push';
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
+import { finishDemoChronicle } from '../utils/demoChronicle';
 import { luckyBase, luckyQuestId } from '../utils/lucky';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
-import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
+import { claimRewardOnState, rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
 import { trackSave } from '../utils/savesInFlight';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
 import { isFreshSpin, rollWheelPrize, spinOnState, spinRevealDelay, withoutSpins } from '../utils/wheel';
@@ -119,7 +120,8 @@ interface GameContextValue {
   /** The cosmetic unlocks this character may still claim for the previous chronicle, if any. */
   pendingReward: (characterId: CharacterId) => RewardOffer | null;
   /** Claim a chronicle reward: an avatar of your own (both players) or a theme (the winner). */
-  claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId) => ActionResult;
+  /** Claims a chronicle reward: an avatar, a theme, or (winners) Golden Tickets instead of a theme. */
+  claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar' | 'tickets', item?: ThemeId | AvatarId) => ActionResult;
   /** Switch your character's avatar to one the household has unlocked (shared with your spouse). */
   setAvatar: (characterId: CharacterId, avatar: AvatarId) => ActionResult;
   /**
@@ -164,6 +166,8 @@ interface GameContextValue {
   resetLevels: () => ActionResult;
   setPrizePool: (amount: number) => ActionResult;
   setChronicleEndDate: (date: string) => ActionResult;
+  /** Demo only: fill the last month with sample quests and end the chronicle, to try its results. */
+  finishDemoChronicle: () => ActionResult;
   unlockSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   upgradeSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   isTaskDoneToday: (taskId: string) => boolean;
@@ -364,37 +368,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const claimReward = useCallback(
-    (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId): ActionResult => {
+    (characterId: CharacterId, kind: 'theme' | 'avatar' | 'tickets', item?: ThemeId | AvatarId): ActionResult => {
       if (!canRename(characterId)) return fail('household.error.ownCharacter');
-      return done(
-        commit({
-          id: newOpId(),
-          update: (current) => {
-            const reward = rewardOffer(current, characterId);
-            if (!reward || !reward[kind]) return 'cosmetics.error.noReward';
-            const cosmetics = current.cosmetics;
-            if (kind === 'theme') {
-              if (!isThemeId(item) || item === DEFAULT_THEME || cosmetics.themes.includes(item)) return 'cosmetics.error.locked';
-            } else if (!AVATARS[characterId].includes(item as AvatarId) || cosmetics.avatars[characterId].includes(item as AvatarId)) {
-              return 'cosmetics.error.locked';
-            }
-            return {
-              ...current,
-              cosmetics: {
-                ...cosmetics,
-                themes: kind === 'theme' ? [...cosmetics.themes, item as ThemeId] : cosmetics.themes,
-                avatars:
-                  kind === 'avatar'
-                    ? { ...cosmetics.avatars, [characterId]: [...cosmetics.avatars[characterId], item as AvatarId] }
-                    : cosmetics.avatars,
-                // A new avatar is put on right away.
-                activeAvatar: kind === 'avatar' ? { ...cosmetics.activeAvatar, [characterId]: item as AvatarId } : cosmetics.activeAvatar,
-                rewards: [...cosmetics.rewards, { chronicleId: reward.chronicleId, characterId, kind, item }],
-              },
-            };
-          },
-        }).result,
-      );
+      return done(commit({ id: newOpId(), update: (current) => claimRewardOnState(current, characterId, kind, item) }).result);
     },
     [canRename, commit],
   );
@@ -819,6 +795,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
         withSettings((current) => ({ ...current, tasks: resetQuestList(current.tasks, options?.removeCustom) })),
       removeTask: (taskId) =>
         withSettings((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== taskId) })),
+      finishDemoChronicle: () =>
+        demo
+          ? done(commit({ id: newOpId(), update: (current) => finishDemoChronicle(current, localDateKey()) }).result)
+          : fail('household.error.notAllowed'),
       setPrizePool: (amount) =>
         withSettings((current) => ({ ...current, prizePool: Math.max(0, Math.round(Number.isFinite(amount) ? amount : 0)) })),
       setChronicleEndDate: (date) =>
@@ -912,6 +892,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       undoLog,
       reassignLog,
       withSettings,
+      commit,
       yesterdayOpen,
       yesterdayQuests,
       changeSkill,

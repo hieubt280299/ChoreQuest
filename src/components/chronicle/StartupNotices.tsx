@@ -25,7 +25,7 @@ function readSummarySeen(scope: string | null): number | null {
  * a rebalance refunded their skill points, then the last chronicle's summary the first time the app opens during
  * the new one, whichever day that is (once per household on this device).
  */
-export function StartupNotices({ onOpenWardrobe, onOpenSkills }: { onOpenWardrobe: () => void; onOpenSkills: () => void }) {
+export function StartupNotices({ onOpenRewards, onOpenSkills }: { onOpenRewards: () => void; onOpenSkills: () => void }) {
   const { state, activeCharacter, canActAs, dismissRefundNotice } = useGame();
   const scope = useThemeScope();
   const [patchOpen, setPatchOpen] = useState(patchNotesPending);
@@ -70,7 +70,7 @@ export function StartupNotices({ onOpenWardrobe, onOpenSkills }: { onOpenWardrob
         onClose={dismissSummary}
         onOpenRewards={() => {
           dismissSummary();
-          onOpenWardrobe();
+          onOpenRewards();
         }}
       />
     </>

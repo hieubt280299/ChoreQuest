@@ -1,4 +1,4 @@
-import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Sparkles } from 'pixelarticons/react';
+import { Calendar, Check, CircleInfo, Coins, Lock, Monitor, Pencil, Script, Sparkles, Trophy } from 'pixelarticons/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TASK_GROUPS } from '../../constants/gameRules';
@@ -60,8 +60,37 @@ function ModeratorOnlyNote() {
 }
 
 /** The chronicle's rules in one card: its end date and the prize pool. */
+/** Demo only: end the chronicle with a month of sample quests, to see its results right away. */
+function FinishDemoChronicle() {
+  const { t } = useLanguage();
+  const { finishDemoChronicle } = useGame();
+  const [error, setError] = useState<TranslationKey | null>(null);
+  return (
+    <div className="mt-5 space-y-2 border-t-2 border-ink/10 pt-4">
+      <p className="text-sm text-wood-600">{t('settings.demoFinishHint')}</p>
+      <Button
+        variant="secondary"
+        className="w-full"
+        onClick={() => {
+          const result = finishDemoChronicle();
+          setError(result.ok ? null : result.error);
+        }}
+      >
+        <Icon as={Trophy} size={24} />
+        {t('settings.demoFinish')}
+      </Button>
+      {error && (
+        <p className="text-base font-bold text-brick-600" role="alert">
+          {t(error)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ChronicleCard() {
   const { t, locale } = useLanguage();
+  const { demoMode } = useAuth();
   const { state, canEditSettings, setChronicleEndDate, setPrizePool } = useGame();
   const [error, setError] = useState<TranslationKey | null>(null);
   const { chronicle } = state;
@@ -136,6 +165,7 @@ function ChronicleCard() {
           aria-label={t('settings.prize')}
         />
       </div>
+      {demoMode && <FinishDemoChronicle />}
     </Card>
   );
 }
