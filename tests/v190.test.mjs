@@ -308,6 +308,12 @@ check('Lucky Quest: one enabled quest a day, the same on every device, whatever 
   const off = tasks.map((task) => (task.id === id ? { ...task, enabled: false } : task));
   assert.notEqual(m.luckyQuestId(off, '2026-11-19'), id, 'never a disabled quest');
   assert.equal(m.luckyQuestId([], '2026-11-19'), null);
+  // Once done as the day's Lucky Quest, it stays the pick even if the quest list changes.
+  const other = tasks.find((task) => task.enabled && task.id !== id).id;
+  const doneLog = [{ taskId: other, date: '2026-11-19', lucky: true }];
+  assert.equal(m.luckyQuestId(tasks, '2026-11-19', doneLog), other);
+  assert.equal(m.luckyQuestId(tasks, '2026-11-20', doneLog), m.luckyQuestId(tasks, '2026-11-20'), 'only on its own day');
+  assert.equal(m.luckyQuestId(tasks, '2026-11-19', [{ taskId: other, date: '2026-11-19' }]), id, 'a plain log changes nothing');
   // Over two months it moves around the list.
   const picks = new Set(Array.from({ length: 60 }, (_, i) => m.luckyQuestId(tasks, m.addDays('2026-11-01', i))));
   assert.ok(picks.size >= 10, `${picks.size} different quests`);
@@ -326,7 +332,7 @@ check('Lucky Quest doubles the base gold (not XP) before skills, streaks and the
 
 check('Lucky Quest: on-time completions only, stored on the log; shown on the quest and the Today card', () => {
   const ctx = source('src/context/GameContext.tsx');
-  assert.match(ctx, /const lucky = !late && luckyQuestId\(current\.tasks, date\) === task\.id;/);
+  assert.match(ctx, /const lucky = !late && luckyQuestId\(current\.tasks, date, current\.logs\) === task\.id;/);
   assert.match(ctx, /const base = luckyBase\(intensityBase\(task, intensity\), lucky\);/);
   assert.match(ctx, /\.\.\.\(lucky \? \{ lucky: true \} : \{\}\)/);
   assert.match(ctx, /luckyBase\(intensityBase\(task, options\?\.intensity\), lucky\)/, 'the reward preview shows it');
@@ -549,6 +555,10 @@ check('levels: the v1.9 XP curve; saved XP moves to it once, keeping level and p
   assert.equal(moved.xpRescale.at, 1234);
   assert.equal(moved.xpRescale.delta.wife, moved.characters.wife.xp - 6466.62);
   assert.equal(m.rescaleXp(moved), moved, 'once');
+  // Stamped just after the newest saved XP: a quest timed a moment before the save still counts after the move.
+  const withLog = { ...older, logs: [{ id: 'q', taskId: 'dishes', date: today, completedBy: 'wife', timestamp: 5000, xpAwarded: { husband: 0, wife: 10 }, goldAwarded: { husband: 0, wife: 0 } }] };
+  assert.equal(m.rescaleXp(withLog, 9000).xpRescale.at, 5001);
+  assert.equal(m.rescaleXp(withLog, 3000).xpRescale.at, 3000, 'never later than now');
   const loaded = m.parseGameState(JSON.parse(JSON.stringify(older)), today);
   assert.equal(m.getLevelFromXp(loaded.characters.wife.xp), 11, 'moved on load');
   assert.equal(loaded.xpRescale.version, '1.9.0');

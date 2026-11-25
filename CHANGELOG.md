@@ -29,7 +29,7 @@ Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
     - The Wardrobe only switches themes and avatars, with a "Choose reward" shortcut while a reward is waiting.
 - **What's New:** "Balance adjustments" can have **Skills** and **Quests** sub-sections (`skills` / `quests` notes, `BALANCE_PARTS`).
 - **Lucky Quest of the Day** (`utils/lucky.ts`):
-  - One enabled quest a day, the same for both players, picked from the date (`luckyQuestId`).
+  - One enabled quest a day, the same for both players, picked from the date (`luckyQuestId`). Once it's done, it stays the day's pick even if quests are turned on or off.
   - Done on time, it pays double base gold, before skills, streaks and the Both split (`luckyBase`). The log stores `lucky` and the doubled base.
   - Shown as a "★ x2" chip on the quest (with its gold doubled) and a row on the Today card. Late quests are never lucky.
 - **"Get the app" button**: a big banner under the title on the sign-in screen (download icon that hops every 2 s, one line on what installing gives, full-width green button), plus buttons on the phone top bar, the desktop side menu, the More drawer and Settings (`InstallButton`, which `InstallAppCard` now uses too).

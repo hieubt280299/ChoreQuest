@@ -1,4 +1,4 @@
-import type { Task } from '../types';
+import type { Task, TaskLog } from '../types';
 
 /** The Lucky Quest pays this many times its base gold (before skills, streaks and the "Both" split). */
 export const LUCKY_GOLD_MULTIPLIER = 2;
@@ -15,9 +15,17 @@ function hash(text: string): number {
 
 /**
  * The day's Lucky Quest: one enabled quest, the same for both players, picked from the date. Quests are sorted by id
- * first, so the order they're listed in doesn't matter. `null` when no quest is enabled.
+ * first, so the order they're listed in doesn't matter. `null` when no quest is enabled. Once a quest has been done as
+ * that day's Lucky Quest (a `lucky` log), it stays the pick, so turning quests on or off can't move the star mid-day
+ * and give a second quest double gold.
  */
-export function luckyQuestId(tasks: Pick<Task, 'id' | 'enabled'>[], date: string): string | null {
+export function luckyQuestId(
+  tasks: Pick<Task, 'id' | 'enabled'>[],
+  date: string,
+  logs: Pick<TaskLog, 'taskId' | 'date' | 'lucky'>[] = [],
+): string | null {
+  const done = logs.find((log) => log.lucky && log.date === date);
+  if (done) return done.taskId;
   const ids = tasks
     .filter((task) => task.enabled)
     .map((task) => task.id)

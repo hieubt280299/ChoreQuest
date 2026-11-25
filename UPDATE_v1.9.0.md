@@ -188,6 +188,7 @@ Unchanged: Speed Cleaner, Hall of Fame.
     * One enabled quest a day, the same for both players.
     * Chosen from the date with a stable hash over the enabled quest ids (sorted), so every device agrees and the list's order doesn't matter.
     * Any enabled quest can be picked.
+    * Once a quest is done as that day's Lucky Quest (a `lucky` log), it stays the pick for the day, so turning quests on or off can't move the star and pay a second quest double.
 * **The reward:**
     * Done **on time** that day, it pays double **base gold** (`luckyBase`, ×2 `LUCKY_GOLD_MULTIPLIER`). XP is unchanged.
     * The doubling happens after Effort levels and before skills, streaks and the "Both" split, so gold skills grow with it.
@@ -274,7 +275,7 @@ XP needed to reach each level (`XP_CURVE`; the old one stays as `XP_CURVE_V18`).
 * **Totals:** level 10 now takes 7,200 XP (was 5,320), level 24 (the last new skill point) 33,600 (was 24,020), level 30 66,600 (was 54,120).
 * **Nobody loses a level** (`rescaleXp`, once per household, first step after the skill refund in `advanceDays`): saved XP moves to the new curve keeping the level and the share of it done (`convertXp`; 40% through level 9 stays 40% through level 9). XP past level 30 is kept as it is, and XP owed after a fixed entry stays owed. No level-ups, level-up gold or tickets come from the move.
     * On the household's real data: husband level 8 (3,886 → 5,056 XP), wife level 11 (6,467 → 8,985 XP).
-* **Gold races still add up:** the move is recorded (`GameState.xpRescale`: time and each player's XP gain). A race across it follows the old curve before the move, and the gain counts as neither quest XP nor a level-up. On the real Chronicle 2 the race still ends at each player's gold (without the record it would be 50 and 100 gold off, and the chart hidden).
+* **Gold races still add up:** the move is recorded (`GameState.xpRescale`: time and each player's XP gain). Its time is just after the newest quest or XP already saved, since the move runs while an action is saved, after that action's quest got its time. A race across it follows the old curve before the move, and the gain counts as neither quest XP nor a level-up. On the real Chronicle 2 the race still ends at each player's gold (without the record it would be 50 and 100 gold off, and the chart hidden).
 * New games start on the new curve (`xpRescale.at` = 0).
 
 #### XP for daily actions

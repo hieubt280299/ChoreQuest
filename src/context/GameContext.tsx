@@ -443,7 +443,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           // Effort (intensity-enabled Moderate quests) scales the base first; skills and streaks build on it.
           const intensity = intensityApplies(task) ? (options?.intensity ?? 'normal') : 'normal';
           // The day's Lucky Quest doubles the (effort-scaled) base gold; late quests are never lucky.
-          const lucky = !late && luckyQuestId(current.tasks, date) === task.id;
+          const lucky = !late && luckyQuestId(current.tasks, date, current.logs) === task.id;
           const base = luckyBase(intensityBase(task, intensity), lucky);
           const index = buildStreakIndex(current.logs, undefined, current.freezes);
           const full = computeRewardBreakdown(
@@ -835,13 +835,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }),
       isTaskDoneToday: (taskId) => state.logs.some((log) => log.taskId === taskId && log.date === today),
       getTodayLog: (taskId) => state.logs.find((log) => log.taskId === taskId && log.date === today),
-      luckyTaskId: luckyQuestId(state.tasks, today),
+      luckyTaskId: luckyQuestId(state.tasks, today, state.logs),
       getStreak: (taskId, characterId) => currentStreak(streakIndex, taskId, characterId, today),
       previewReward: (taskId, completer, options) => {
         const task = state.tasks.find((item) => item.id === taskId);
         if (!task) return null;
         const date = options?.late ? addDays(today, -1) : today;
-        const lucky = !options?.late && luckyQuestId(state.tasks, today) === task.id;
+        const lucky = !options?.late && luckyQuestId(state.tasks, today, state.logs) === task.id;
         const full = computeRewardBreakdown(
           luckyBase(intensityBase(task, options?.intensity), lucky),
           completer,

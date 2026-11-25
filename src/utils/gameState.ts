@@ -418,9 +418,16 @@ function parseXpRescale(raw: unknown): Pick<GameState, 'xpRescale'> {
  * The one-time move of saved XP to the v1.9 level curve (`XP_CURVE_VERSION`): each player keeps their level and the
  * share of it done, so nobody drops a level or levels up from it (XP owed after a fixed entry stays owed). The time
  * and each player's XP gain are kept (`xpRescale`) so gold races still add up. Marked done: once per household.
+ * The time is just after the newest XP already saved (or now, if that's earlier): the move runs as an action is saved,
+ * after that action's quest got its time, and the race must count that quest on the new curve.
  */
 export function rescaleXp(state: GameState, now = Date.now()): GameState {
   if (state.xpRescale) return state;
+  const times = [
+    ...state.logs.map((log) => log.timestamp),
+    ...state.events.filter((event) => event.type === 'xp').map((event) => event.timestamp),
+  ].filter((time) => Number.isFinite(time));
+  const at = times.length > 0 ? Math.min(now, Math.max(...times) + 1) : now;
   const delta: Record<CharacterId, number> = { husband: 0, wife: 0 };
   const characters = { ...state.characters };
   for (const id of ['husband', 'wife'] as CharacterId[]) {
@@ -429,7 +436,7 @@ export function rescaleXp(state: GameState, now = Date.now()): GameState {
     delta[id] = xp - character.xp;
     characters[id] = { ...character, xp };
   }
-  return { ...state, characters, xpRescale: { version: XP_CURVE_VERSION, at: now, delta } };
+  return { ...state, characters, xpRescale: { version: XP_CURVE_VERSION, at, delta } };
 }
 
 /**
