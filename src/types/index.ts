@@ -16,6 +16,12 @@ export interface Character {
   /** Player-chosen display name (max 16 letters/digits/spaces); unset = show the role. */
   customName?: string;
   xp: number;
+  /**
+   * XP owed after a fixed entry took back more XP than the character's level holds while that level's skill points
+   * were spent: the level is kept (`xp` sits at its start) and this much new XP pays it back first. Shown as negative
+   * XP ("-10 XP"). Absent when 0.
+   */
+  xpDebt?: number;
   /** Gold earned this chronicle (quests, wheel, interest); decides the payout split. */
   gold: number;
   skills: CharacterSkill[];
@@ -36,6 +42,8 @@ export interface Character {
   mvpDays: number;
   /** Skill points were refunded by a rebalance and this player hasn't read the notice yet. */
   refundNotice?: boolean;
+  /** Chronicles this character won (most gold; a tie counts for both), kept for good, even through a New Legend. */
+  chronicleWins?: number;
 }
 
 export interface SkillDefinition {
@@ -56,7 +64,8 @@ export interface SkillDefinition {
     | 'ticket'
     | 'trending'
     | 'link'
-    | 'trophy';
+    | 'trophy'
+    | 'seesaw';
   maxLevel: 4;
   effect: SkillEffect;
 }
@@ -73,8 +82,10 @@ export type SkillEffectKind =
   | 'together'
   /** Quests the spouse currently has an active streak (3+ days) on (Tag Team). */
   | 'spouse_streak'
-  /** Extra wheel tickets at the start of each chronicle (`values`). */
+  /** Extra Normal Tickets at each level-up (`values`) and more gold on Normal Ticket spins (`gold`) (Fortune's Favor). */
   | 'chronicle_tickets'
+  /** Behind or tied in chronicle gold before the quest: `gold` bonus; leading: `xp` bonus instead (Seesaw). */
+  | 'gold_position'
   /** Daily interest on current gold (`values`, fractions), up to `caps` gold a day. */
   | 'daily_interest'
   /** Extra wheel tickets at every 3rd MVP day of a chronicle (`values`). */
@@ -90,8 +101,8 @@ export interface SkillEffect {
   values?: number[];
   /** Most gold a day at levels 1-4 (Gold Interest). */
   caps?: number[];
-  /** Extra XP bonus per character level on top of `xp` (Fast Learner: +1% per level). */
-  xpPerCharacterLevel?: number;
+  /** Extra XP bonus per character level on top of `xp`, at skill levels 1-4 (Fast Learner: 0.5 / 1 / 1.5 / 2%). */
+  xpPerCharacterLevel?: number[];
   /** Quest categories a `category` skill covers (Errand Runner covers two). */
   categories?: TaskCategory[];
   group?: TaskGroup;
@@ -147,6 +158,8 @@ export interface TaskLog {
   late?: boolean;
   /** Effort picked for an intensity-enabled quest (absent = Normal); `baseXp` / `baseGold` are already scaled. */
   intensity?: TaskIntensity;
+  /** The day's Lucky Quest, done on time: `baseGold` is already doubled (`luckyBase`), so re-assigning keeps it. */
+  lucky?: boolean;
   /**
    * Tag Team: done alone on a quest the spouse had a 3+ day streak on, so it kept that spouse's streak going, one day
    * shorter (covering every day runs the streak down instead of farming it).
@@ -219,9 +232,16 @@ export type ChronicleAward =
 
 /** The parts of a chronicle's stats that need the quest log (gold and averages come from the record itself). */
 export interface ChronicleStatsSnapshot {
-  /** `hearts`: hearts received (absent for chronicles from before hearts). */
-  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number; hearts?: number }>;
+  /**
+   * `hearts`: hearts received (absent for chronicles from before hearts). `lucky`: Lucky Quests done on time (absent
+   * before v1.9).
+   */
+  players: Record<CharacterId, { quests: number; bestStreak: number; mvpDays: number; hearts?: number; lucky?: number }>;
   awards: ChronicleAward[];
+  /** Quests finished in the chronicle, a "Both" quest counted once (absent before v1.9). */
+  totalQuests?: number;
+  /** Each player's gold at the end of each day, rounded, for the gold race chart (absent before v1.9). */
+  goldByDay?: Record<CharacterId, number[]>;
 }
 
 export interface RewardToast {
@@ -293,7 +313,20 @@ export interface InterestEvent {
   gold: number;
 }
 
-export type GameEvent = WheelSpinEvent | InterestEvent;
+/** XP for a daily action that isn't a quest: claiming the daily ticket or sending a heart (since v1.9). */
+export interface BonusXpEvent {
+  id: string;
+  type: 'xp';
+  characterId: CharacterId;
+  date: string;
+  timestamp: number;
+  source: 'ticket' | 'heart';
+  xp: number;
+  /** Always 0: level-up gold from this XP is worked out from the XP, like a quest's. */
+  gold: number;
+}
+
+export type GameEvent = WheelSpinEvent | InterestEvent | BonusXpEvent;
 
 /** A heart one player sent the other (one a day each); the recipient got a Normal Ticket. */
 export interface Heart {
@@ -354,8 +387,9 @@ export type AvatarId =
 export interface CosmeticReward {
   chronicleId: number;
   characterId: CharacterId;
-  kind: 'theme' | 'avatar';
-  item: ThemeId | AvatarId;
+  /** `tickets`: the winner took Golden Tickets instead of a theme (v1.9). */
+  kind: 'theme' | 'avatar' | 'tickets';
+  item: ThemeId | AvatarId | 'goldenTickets';
 }
 
 /**
@@ -398,6 +432,19 @@ export interface GameState {
   freezesSettledOn?: string;
   /** Version whose one-time skill point refund has been applied (`SKILL_REFUND_VERSION`). */
   skillsRefundedIn?: string;
+  /** The one-time move of saved XP to the v1.9 level curve (`rescaleXp`); missing until it's done. */
+  xpRescale?: XpRescale;
+}
+
+/**
+ * When saved XP was moved to the current level curve, and the XP each player gained by it (levels kept). Gold races
+ * use it: before `at`, levels follow the old curve; the gain isn't quest XP and pays no level-up gold.
+ */
+export interface XpRescale {
+  version: string;
+  /** Time of the move (ms); 0 for a household started on the current curve. */
+  at: number;
+  delta: Record<CharacterId, number>;
 }
 
 export interface HouseholdUser {
@@ -456,5 +503,6 @@ export interface HouseholdDoc {
     freezes?: StreakFreeze[];
     freezesSettledOn?: string;
     skillsRefundedIn?: string;
+    xpRescale?: XpRescale;
   };
 }

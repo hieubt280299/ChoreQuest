@@ -2,6 +2,83 @@
 
 All notable changes to ChoreQuest are listed here, newest first. Each version matches an `UPDATE_vX.Y.Z.md` spec in the repository root.
 
+## [1.9.0] - 2026-11-25
+
+Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md)
+
+### Added
+
+- **Richer Chronicle results** (`ChronicleSummaryModal`):
+  - **Shown:**
+    - Awards: quest champions, Streak Master, most MVP days, most hearts.
+    - The winning margin.
+    - Quests done together.
+    - Each player's gold change since the last Chronicle.
+    - Lucky Quests caught.
+    - A **gold race chart** (`GoldRaceChart`): both players' gold day by day, with a tap/hover crosshair and a screen-reader table. Its colors follow the theme (`--chart-husband` / `--chart-wife`), each pair validated for color-blind and normal-vision separation on that theme.
+  - **Reopen** any past Chronicle's results from History ("See results").
+  - **Demo:** "Finish this Chronicle" in Settings plays a sample month and ends it, to try the results right away (`finishDemoChronicle`). The sample month is the whole Chronicle (from 0 gold) and replaces an earlier run's days, so running it again doesn't count those quests twice.
+  - **The race always agrees with the results:** a race that doesn't end at each player's final gold is never saved or shown (`raceMatchesGold`).
+  - **Saved at rollover:** `totalQuests`, `lucky` and `goldByDay` in the Chronicle snapshot. The race (`goldRace`) is rebuilt from quests, spins, interest and level-up gold, and matches the final gold exactly.
+- **Winning matters more:**
+  - A "Champion" crown on the winner's character card for the whole next Chronicle (`reigningChampions`).
+  - A lasting Chronicle wins count (`Character.chronicleWins`, back-filled for older saves).
+  - The winner now picks a new theme **or 2 Golden Tickets** (`WINNER_GOLDEN_TICKETS`, `claimRewardOnState`). Only the tickets are offered once every theme is unlocked.
+    - Rewards have their own dialog (`RewardPickerModal`), apart from the Wardrobe, listing only what can be taken: the winner's "pick one" (locked themes, "OR", 2 Golden Tickets) and the locked avatars. The loser sees only avatars; with every theme unlocked, the winner sees only the tickets and avatars.
+    - Claiming a theme reads "Take {theme} as your prize".
+    - The Wardrobe only switches themes and avatars, with a "Choose reward" shortcut while a reward is waiting.
+- **What's New:** "Balance adjustments" can have **Skills** and **Quests** sub-sections (`skills` / `quests` notes, `BALANCE_PARTS`).
+- **Lucky Quest of the Day** (`utils/lucky.ts`):
+  - One enabled quest a day, the same for both players, picked from the date (`luckyQuestId`). Once it's done, it stays the day's pick even if quests are turned on or off.
+  - Done on time, it pays double base gold, before skills, streaks and the Both split (`luckyBase`). The log stores `lucky` and the doubled base.
+  - Shown as a "★ x2" chip on the quest (with its gold doubled) and a row on the Today card. Late quests are never lucky.
+- **"Get the app" button**: a big banner under the title on the sign-in screen (download icon that hops every 2 s, one line on what installing gives, full-width green button), plus buttons on the phone top bar, the desktop side menu, the More drawer and Settings (`InstallButton`, which `InstallAppCard` now uses too).
+  - Opens the browser's own install dialog where there is one (`beforeinstallprompt`).
+  - Otherwise opens a 1–3 step guide for the device and browser (`InstallGuideModal`, `utils/installGuide.ts`): iPhone / iPad Share → Add to Home Screen, Android browser menu, Chrome and Edge menus on computers, Safari 17+ Add to Dock. Firefox and older Safari are told to switch to Chrome or Edge.
+  - In-app browsers (Zalo, Facebook, Messenger, Instagram) first get "open in Safari / Chrome".
+  - Hidden inside the installed app (`isInstalledApp`, now exported from `utils/pwaMode.ts`) and after `appinstalled`.
+- **New skill: Seesaw** (_Bập bênh_, effect kind `gold_position`, General filter).
+  - Before each quest's rewards it compares Chronicle gold with the spouse's. Behind or tied: +6 / 12 / 18 / 24% gold. Leading: +10 / 20 / 30 / 40% XP instead.
+  - Decided inside `computeRewardBreakdown` from the stored gold, so both phones agree. Late rules apply as usual, each owner of a Both quest checks their own side, and undo takes back the stored amounts.
+
+### Changed
+
+- **Skill rebalance** (no refund; `SKILL_REFUND_VERSION` stays `1.8.0`):
+
+  | Skill | v1.8 | v1.9 |
+  | --- | --- | --- |
+  | Gold Interest | 2 / 3 / 4 / 5%, cap 15 / 30 / 45 / 60 | 1 / 2 / 3 / 4%, cap 12 / 20 / 28 / 36, active days only |
+  | Fortune's Favor | 1 / 2 / 3 / 4 Normal Tickets per Chronicle and per level-up | 2 per level-up at every level, none per Chronicle |
+  | Fast Learner | 30 / 45 / 60 / 75% XP + 1% per character level | 16 / 24 / 32 / 40% + 0.5 / 1 / 1.5 / 2% per character level |
+  | Quick Hands | 10 / 20 / 30 / 40% | 15 / 25 / 35 / 45% |
+  | Errand Runner | 15 / 30 / 45 / 60% | 25 / 40 / 55 / 70% |
+  | Laundry Pro | XP 20–50%, gold 20–80% | 25 / 45 / 65 / 85% both |
+  | Heavy Lifter | XP 10–40%, gold 20–50% | XP 15 / 30 / 45 / 60%, gold 20 / 40 / 60 / 80% |
+  | Master Chef | 9 / 18 / 27 / 36% | 14 / 28 / 42 / 56% |
+  | Team Player | 15 / 30 / 45 / 60% | 20 / 40 / 60 / 80% |
+  | Steady Worker | 10 / 15 / 20 / 25% | 9 / 18 / 27 / 36% |
+  | Golden Touch | 6 / 12 / 18 / 24% gold | 7 / 14 / 21 / 28% gold |
+  | Tag Team | 15 / 30 / 45 / 60% gold | 25 / 50 / 75 / 100% gold |
+
+  - **Gold Interest, active days only** (`applyDailyInterest`): a day pays only if the player finished an on-time quest (alone or Both) the day before. Late quests don't count, since they can be logged after the day was settled.
+  - **Fortune's Favor** no longer gives tickets at a new Chronicle (`applyChronicleRollover`).
+  - **Fast Learner:** `xpPerCharacterLevel` is now per skill level. Its tier pips show it as its own row, and half percents show one decimal (`formatPercent`).
+  - Laundry Pro's description names its now-equal XP and gold bonus once.
+- **Quest rebalance** (`V19_REBALANCE`; saved built-ins on the v1.8 values move, edited quests stay):
+  - Laundry quests +2 gold: Wash Clothes and Collect Dried Clothes 8 / 10, Hang / Dry Clothes 10 / 12, Change Bed Sheets 13 / 17.
+  - Quests with 30+ gold −5 gold, but never below their XP: dishwashing 28 / 28, cooking 40 / 40, Supermarket Shopping 45 / 45, Mop House 42 / 42, Clean Bathroom 55 / 60. Vacuum House stays 42 / 42.
+- **Streak gold = streak length:** days 3–10 pay 3–10 gold, then 10 a day (was Fibonacci up to 21; `STREAK_BONUS_GOLD`). Tag Team's cover run-down follows: 10, 9, 8 … 3.
+- **Fix an entry** (`canManageLog`):
+  - Either player can now undo or re-assign any entry, whoever did or logged it.
+  - Today's entries can be fixed, and so can yesterday's late entries while the late window is open; yesterday's on-time entries stay locked. The Yesterday view shows Fix on late entries and stays available while there are any.
+  - Fixing no longer refuses when a level's skill points are spent: the player keeps the level and owes the missing XP (`Character.xpDebt`, `revokeRewards`). For example, level 7 with 10 XP losing 20 XP becomes level 7 with −10 XP.
+  - New XP pays the debt first (`grantRewards`). The text shows negative XP; bars and level rings show it as empty (`characterXpProgress`).
+- **Level curve** (`XP_CURVE`): every level from 2 to 30 needs more XP, e.g. level 2 250 (was 230), level 10 1,225 (was 810), level 30 8,000 (was 7,500). Level 30 now takes 66,600 XP in total (was 54,120).
+  - Saved XP moves to the new curve once per household (`rescaleXp`, `convertXp`), keeping each player's level and progress through it; no level-up rewards come from it.
+  - The move is recorded (`GameState.xpRescale`) so a gold race across it still matches the final gold.
+- **XP for daily actions:** +3 XP for claiming the daily ticket (`DAILY_TICKET_XP`) and +3 XP to the sender of a heart (`HEART_SENT_XP`), given like quest XP (debt first, level-ups pay) and recorded as `xp` events (`BonusXpEvent`) that the gold race replays.
+- **Tests:** older suites now read skill and quest values from the code instead of pinning v1.8 numbers; the new values are pinned in `tests/v190.test.mjs`.
+
 ## [1.8.1] - 2026-11-17
 
 Spec: [UPDATE_v1.8.1.md](UPDATE_v1.8.1.md)

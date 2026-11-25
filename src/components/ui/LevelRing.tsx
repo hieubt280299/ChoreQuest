@@ -1,4 +1,4 @@
-import { getXpProgress } from '../../utils/calculations';
+import { characterXpProgress } from '../../utils/calculations';
 
 // Dota-style level circle: the level number inside a disc, wrapped by an XP gauge that fills
 // clockwise from 12 o'clock and resets on level up. Segmented to match the pixel theme.
@@ -19,8 +19,21 @@ const segmentPaths = Array.from({ length: SEGMENTS }, (_, index) => {
   return `M ${point(RING_R, start)} A ${RING_R} ${RING_R} 0 0 1 ${point(RING_R, end)}`;
 });
 
-export function LevelRing({ xp, size = 56, label, className = '' }: { xp: number; size?: number; label?: string; className?: string }) {
-  const { level, percent } = getXpProgress(xp);
+export function LevelRing({
+  xp,
+  xpDebt,
+  size = 56,
+  label,
+  className = '',
+}: {
+  xp: number;
+  /** XP owed after a fixed entry: the gauge shows empty. */
+  xpDebt?: number;
+  size?: number;
+  label?: string;
+  className?: string;
+}) {
+  const { level, percent } = characterXpProgress({ xp, xpDebt });
   const filled = Math.floor((percent / 100) * SEGMENTS);
   const digits = String(level);
 

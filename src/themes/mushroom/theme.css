@@ -1,6 +1,9 @@
 /* mushroom theme: palette and styles, loaded on demand with the theme module. */
 
 [data-theme='mushroom'] {
+  /* Chart series (gold race): husband / wife, checked with the data-viz palette validator against this theme's parchment-50. */
+  --chart-husband: #d82800;
+  --chart-wife: #6844fc;
   --c-ink: 0 0 0;
   --c-wood-950: 48 15 0;
   --c-wood-900: 92 32 0;

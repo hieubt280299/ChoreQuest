@@ -12,10 +12,13 @@ import {
   skillEffectValue,
   skillLevel,
   STREAK_FREEZES_PER_CHRONICLE,
+  XP_CURVE,
+  XP_CURVE_V18,
+  XP_CURVE_VERSION,
 } from '../constants/gameRules';
 import { AVATARS, DEFAULT_AVATAR, defaultCosmetics, isAvatarFor, isThemeId } from '../constants/cosmetics';
 import { nameFromProfile, normalizeCharacterName } from './characterName';
-import { snapshotChronicle } from './chronicleStats';
+import { chronicleWinners, effectiveXp, snapshotChronicle } from './chronicleStats';
 import { dayMvp } from './mvp';
 import type {
   Character,
@@ -34,10 +37,12 @@ import type {
   Task,
   TaskLog,
   WheelPrize,
+  XpRescale,
 } from '../types';
 import {
   addDays,
   calculatePayout,
+  convertXp,
   daysInMonth,
   defaultChronicle,
   endOfDayMs,
@@ -82,6 +87,7 @@ function parseEvents(raw: unknown): GameEvent[] {
     if (!event || typeof event.id !== 'string' || !isDateKey(event.date)) return false;
     if (event.characterId !== 'husband' && event.characterId !== 'wife') return false;
     if (typeof event.gold !== 'number' || typeof event.timestamp !== 'number') return false;
+    if (event.type === 'xp') return (event.source === 'ticket' || event.source === 'heart') && typeof event.xp === 'number' && event.xp > 0;
     return event.type === 'interest' || (event.type === 'spin' && WHEEL_PRIZE_IDS.includes(event.prize as WheelPrize));
   });
 }
@@ -134,8 +140,9 @@ export function createInitialState(today = localDateKey()): GameState {
     hearts: [],
     freezes: [],
     freezesSettledOn: addDays(today, -1),
-    // A new game has nothing to refund.
+    // A new game has nothing to refund, and starts on the current level curve.
     skillsRefundedIn: SKILL_REFUND_VERSION,
+    xpRescale: { version: XP_CURVE_VERSION, at: 0, delta: { husband: 0, wife: 0 } },
   };
 }
 
@@ -163,7 +170,11 @@ function parseCosmetics(raw: unknown): Cosmetics {
           !!reward &&
           typeof reward.chronicleId === 'number' &&
           (reward.characterId === 'husband' || reward.characterId === 'wife') &&
-          (reward.kind === 'theme' ? isThemeId(reward.item) : reward.kind === 'avatar' && AVATARS[reward.characterId].includes(reward.item as never)),
+          (reward.kind === 'theme'
+            ? isThemeId(reward.item)
+            : reward.kind === 'tickets'
+              ? reward.item === 'goldenTickets'
+              : reward.kind === 'avatar' && AVATARS[reward.characterId].includes(reward.item as never)),
       )
     : [];
   return {
@@ -197,6 +208,9 @@ function parseChronicle(raw: unknown, legacyMonth: unknown, today: string): Chro
 
 const isCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
+/** A character's `chronicleWins` field: only written once they have a win. */
+const withWins = (wins: number) => (wins > 0 ? { chronicleWins: wins } : {});
+
 /** A saved archive snapshot, if it has the expected shape. */
 function parseStats(raw: unknown): ChronicleStatsSnapshot | undefined {
   const data = raw as Partial<ChronicleStatsSnapshot> | undefined;
@@ -205,7 +219,13 @@ function parseStats(raw: unknown): ChronicleStatsSnapshot | undefined {
     const player = data.players?.[id];
     return !!player && isCount(player.quests) && isCount(player.bestStreak) && isCount(player.mvpDays);
   });
-  return ok ? (data as ChronicleStatsSnapshot) : undefined;
+  if (!ok) return undefined;
+  // A gold race that isn't two lists of numbers is dropped (the rest of the stats are kept).
+  const race = data.goldByDay;
+  const raceOk = !race || (['husband', 'wife'] as CharacterId[]).every((id) => Array.isArray(race[id]) && race[id].every((value) => typeof value === 'number'));
+  if (raceOk) return data as ChronicleStatsSnapshot;
+  const { goldByDay: _goldByDay, ...rest } = data as ChronicleStatsSnapshot;
+  return rest;
 }
 
 function parseHistory(raw: unknown): ChronicleResult[] {
@@ -272,7 +292,7 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
   if (!data.characters?.husband || !data.characters?.wife) return null;
   const character = (id: CharacterId): Character => {
     // `interestGold` was a short-lived separate interest balance (pre-release); interest is now plain gold.
-    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, ...rest } = data
+    const { customName, ticketClaimedOn, interestOn, interestGold: _interestGold, mvpDays, refundNotice, xpDebt, chronicleWins, ...rest } = data
       .characters![id] as Character & {
       interestGold?: unknown;
     };
@@ -295,6 +315,13 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
       ...(isDateKey(ticketClaimedOn) ? { ticketClaimedOn } : {}),
       ...(isDateKey(interestOn) ? { interestOn } : {}),
       ...(refundNotice === true ? { refundNotice } : {}),
+      ...(count(xpDebt) > 0 ? { xpDebt: count(xpDebt) } : {}),
+      // Saves from before v1.9 count their wins from the kept results; no wins, no field.
+      ...withWins(
+        isCount(chronicleWins)
+          ? Math.floor(chronicleWins as number)
+          : parseHistory(data.prizeHistory).filter((result) => chronicleWinners(result).includes(id)).length,
+      ),
     };
   };
   const state: GameState = {
@@ -317,25 +344,32 @@ export function parseGameState(raw: unknown, today = localDateKey(), advance = t
     freezes: parseFreezes(data.freezes),
     ...(isDateKey(data.freezesSettledOn) ? { freezesSettledOn: data.freezesSettledOn } : {}),
     ...(typeof data.skillsRefundedIn === 'string' ? { skillsRefundedIn: data.skillsRefundedIn } : {}),
+    ...parseXpRescale(data.xpRescale),
   };
   return advance ? advanceDays(state, today) : state;
 }
 
 const GOLD_INTEREST = SKILL_POOL.find((skill) => skill.id === 'gold-interest')!;
-const FORTUNES_FAVOR = SKILL_POOL.find((skill) => skill.id === 'fortunes-favor')!;
 const HALL_OF_FAME = SKILL_POOL.find((skill) => skill.id === 'hall-of-fame')!;
 
 /**
  * Gold Interest: at the start of each day after `interestOn`, up to `upTo`, a character with the skill
  * gains its rate of their current gold (rounded) as ordinary gold, so it counts for the payout. Each
  * payout is also logged as an `interest` event, which keeps it out of the day's MVP. A chronicle's first
- * day never pays (gold has just reset). Derived only from stored data, so every device computes the
- * same result whoever opens the app first.
+ * day never pays (gold has just reset), and a day only pays if the character finished a quest on time the day
+ * before (alone or "Both"; late quests don't count, since they can be logged after the day was settled). Derived
+ * only from stored data, so every device computes the same result whoever opens the app first.
  */
 export function applyDailyInterest(state: GameState, upTo: string): GameState {
   let changed = false;
   const characters = { ...state.characters };
   const events = [...state.events];
+  const activeDays: Record<CharacterId, Set<string>> = { husband: new Set(), wife: new Set() };
+  for (const log of state.logs) {
+    if (log.late) continue;
+    if (log.completedBy !== 'wife') activeDays.husband.add(log.date);
+    if (log.completedBy !== 'husband') activeDays.wife.add(log.date);
+  }
   for (const id of ['husband', 'wife'] as CharacterId[]) {
     const character = characters[id];
     const level = skillLevel(character, GOLD_INTEREST.id);
@@ -353,6 +387,8 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
     for (let day = addDays(character.interestOn, 1); day <= upTo; day = addDays(day, 1)) {
       // Day 1 of a chronicle never pays (gold has just reset); every later day pays at most the level's daily cap.
       if (day <= state.chronicle.startDate) continue;
+      // Active days only: no on-time quest yesterday, no interest today.
+      if (!activeDays[id].has(addDays(day, -1))) continue;
       const interest = Math.min(cap, Math.round(gold * rate));
       if (interest <= 0) continue;
       gold += interest;
@@ -369,6 +405,38 @@ export function applyDailyInterest(state: GameState, upTo: string): GameState {
     changed = true;
   }
   return changed ? { ...state, characters, events } : state;
+}
+
+function parseXpRescale(raw: unknown): Pick<GameState, 'xpRescale'> {
+  const value = raw as Partial<XpRescale> | undefined;
+  if (!value || typeof value.version !== 'string' || typeof value.at !== 'number' || !value.delta) return {};
+  const delta = { husband: Number(value.delta.husband) || 0, wife: Number(value.delta.wife) || 0 };
+  return { xpRescale: { version: value.version, at: value.at, delta } };
+}
+
+/**
+ * The one-time move of saved XP to the v1.9 level curve (`XP_CURVE_VERSION`): each player keeps their level and the
+ * share of it done, so nobody drops a level or levels up from it (XP owed after a fixed entry stays owed). The time
+ * and each player's XP gain are kept (`xpRescale`) so gold races still add up. Marked done: once per household.
+ * The time is just after the newest XP already saved (or now, if that's earlier): the move runs as an action is saved,
+ * after that action's quest got its time, and the race must count that quest on the new curve.
+ */
+export function rescaleXp(state: GameState, now = Date.now()): GameState {
+  if (state.xpRescale) return state;
+  const times = [
+    ...state.logs.map((log) => log.timestamp),
+    ...state.events.filter((event) => event.type === 'xp').map((event) => event.timestamp),
+  ].filter((time) => Number.isFinite(time));
+  const at = times.length > 0 ? Math.min(now, Math.max(...times) + 1) : now;
+  const delta: Record<CharacterId, number> = { husband: 0, wife: 0 };
+  const characters = { ...state.characters };
+  for (const id of ['husband', 'wife'] as CharacterId[]) {
+    const character = characters[id];
+    const xp = convertXp(character.xp, XP_CURVE_V18, XP_CURVE);
+    delta[id] = xp - character.xp;
+    characters[id] = { ...character, xp };
+  }
+  return { ...state, characters, xpRescale: { version: XP_CURVE_VERSION, at, delta } };
 }
 
 /**
@@ -430,7 +498,7 @@ export function advanceDays(state: GameState, today = localDateKey()): GameState
   const yesterday = addDays(today, -1);
   const minDay = (a: string, b: string) => (a < b ? a : b);
   // Finished days of the running chronicle: their MVPs and freezes, then interest up to today (or its last day).
-  let settled = settleMvpDays(refundSkills(state), minDay(yesterday, state.chronicle.endDate));
+  let settled = settleMvpDays(rescaleXp(refundSkills(state)), minDay(yesterday, state.chronicle.endDate));
   settled = applyDailyInterest(settled, minDay(today, state.chronicle.endDate));
   settled = settleStreakFreezes(settled, minDay(yesterday, state.chronicle.endDate));
   const rolled = applyChronicleRollover(settled, today);
@@ -479,16 +547,17 @@ export function applyChronicleRollover(state: GameState, today = localDateKey())
     payout: calculatePayout(state.prizePool, goldSnapshot.husband, goldSnapshot.wife),
     goldSnapshot,
   };
-  // Save the archive stats now, while this chronicle's quest log is all still there.
-  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes);
+  // Save the archive stats now, while this chronicle's quest log is all still there (with the gold race).
+  const xpNow = { husband: effectiveXp(state.characters.husband), wife: effectiveXp(state.characters.wife) };
+  const stats = snapshotChronicle(result, state.logs, state.hearts, state.freezes, state.events, xpNow, state.xpRescale);
   if (stats) result.stats = stats;
+  const winners = chronicleWinners(result);
   let next = defaultChronicle(current.id + 1, addDays(current.endDate, 1));
   while (today > next.endDate) next = defaultChronicle(next.id + 1, addDays(next.endDate, 1));
-  // Gold (and interest) reset; Fortune's Favor hands out its tickets for the new chronicle.
+  // Gold (and interest) reset. Fortune's Favor pays its tickets at level-ups only (since v1.9).
   const fresh = (id: CharacterId) => {
     const character = state.characters[id];
-    const bonusTickets = skillEffectValue(FORTUNES_FAVOR, skillLevel(character, FORTUNES_FAVOR.id));
-    return { ...character, gold: 0, mvpDays: 0, tickets: character.tickets + bonusTickets };
+    return { ...character, gold: 0, mvpDays: 0, ...withWins((character.chronicleWins ?? 0) + (winners.includes(id) ? 1 : 0)) };
   };
   return {
     ...state,
@@ -530,6 +599,7 @@ export function toHouseholdSections(state: GameState): HouseholdSections {
       freezes: state.freezes,
       ...(state.freezesSettledOn ? { freezesSettledOn: state.freezesSettledOn } : {}),
       ...(state.skillsRefundedIn ? { skillsRefundedIn: state.skillsRefundedIn } : {}),
+      ...(state.xpRescale ? { xpRescale: state.xpRescale } : {}),
     },
   };
 }
@@ -542,11 +612,17 @@ export function resetLevelsAndSkills(state: GameState, now = Date.now()): GameSt
   return {
     ...state,
     characters: {
-      husband: { ...state.characters.husband, xp: 0, skills: [], ticketLevel: 1 },
-      wife: { ...state.characters.wife, xp: 0, skills: [], ticketLevel: 1 },
+      husband: { ...withoutXpDebt(state.characters.husband), xp: 0, skills: [], ticketLevel: 1 },
+      wife: { ...withoutXpDebt(state.characters.wife), xp: 0, skills: [], ticketLevel: 1 },
     },
     levelResetAt: now,
   };
+}
+
+/** A character with no XP owed (levels start again from 0 after a reset). */
+function withoutXpDebt(character: Character): Character {
+  const { xpDebt: _xpDebt, ...rest } = character;
+  return rest;
 }
 
 export function fromHouseholdDoc(doc: Partial<HouseholdDoc>, today = localDateKey(), advance = true): GameState | null {

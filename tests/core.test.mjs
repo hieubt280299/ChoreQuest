@@ -88,17 +88,18 @@ test('grant then revoke restores characters (incl. level-up bonus gold)', () => 
   assert.deepEqual(levelUps, [{ characterId: 'husband', from: 1, to: 2, bonusGold: 50, goldenTickets: 1, tickets: 0, skillPoints: 1 }]);
   assert.equal(characters.husband.gold, 70);
   const back = calc.revokeRewards(characters, { husband: split.husband.xp, wife: 0 }, { husband: split.husband.gold, wife: 0 });
-  assert.equal(back.ok, true);
   // Tickets stay paid out (no farming by undo + redo); everything else is restored.
-  assert.deepEqual(back.characters, { ...s.characters, husband: { ...s.characters.husband, goldenTickets: 1, ticketLevel: 2 } });
+  assert.deepEqual(back, { ...s.characters, husband: { ...s.characters.husband, goldenTickets: 1, ticketLevel: 2 } });
 });
 
-test('revoke refuses when the lost level\'s skill point was spent', () => {
+test('revoke keeps the level when its skill point was spent, and owes the XP (v1.9)', () => {
   const s = calc.createInitialState('2026-10-01');
-  s.characters.wife.xp = 230; // level 2
+  s.characters.wife.xp = calc.XP_CURVE[0]; // level 2, 0 XP into it
   s.characters.wife.skills = [{ skillId: 'zen-housekeeper', level: 2 }];
   const r = calc.revokeRewards(s.characters, { husband: 0, wife: 30 }, { husband: 0, wife: 0 });
-  assert.deepEqual(r, { ok: false, characterId: 'wife' });
+  assert.equal(calc.getLevelFromXp(r.wife.xp), 2);
+  assert.equal(r.wife.xp, calc.XP_CURVE[0]);
+  assert.equal(r.wife.xpDebt, 30);
 });
 
 test('both splits 50/50 and re-assign moves rewards', () => {
@@ -108,8 +109,8 @@ test('both splits 50/50 and re-assign moves rewards', () => {
   assert.deepEqual(both, { husband: { xp: 25, gold: 20 }, wife: { xp: 25, gold: 20 } });
   const granted = calc.grantRewards(s.characters, both).characters;
   const revoked = calc.revokeRewards(granted, { husband: 25, wife: 25 }, { husband: 20, wife: 20 });
-  const wifeOnly = calc.computeRewardSplit(base, 'wife', revoked.characters, SKILL_POOL, 12);
-  const after = calc.grantRewards(revoked.characters, wifeOnly).characters;
+  const wifeOnly = calc.computeRewardSplit(base, 'wife', revoked, SKILL_POOL, 12);
+  const after = calc.grantRewards(revoked, wifeOnly).characters;
   assert.equal(after.husband.xp, 0);
   assert.equal(after.husband.gold, 0);
   assert.equal(after.wife.xp, 50);

@@ -1,6 +1,10 @@
 /* forest theme: palette and styles, loaded on demand with the theme module. */
 
 [data-theme='forest'] {
+  /* Chart series (gold race): husband / wife, checked with the data-viz palette validator against this theme's parchment-50 (an autumn rust: the
+     theme's brown brick reads as gray). */
+  --chart-husband: #b0552c;
+  --chart-wife: #8a6ad0;
   --c-ink: 11 20 15;
   --c-wood-950: 8 17 13;
   --c-wood-900: 15 29 23;

@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
-import { Check, Crown, Pencil } from 'pixelarticons/react';
+import { Check, Crown, Pencil, Trophy } from 'pixelarticons/react';
 import { useState, type ReactNode } from 'react';
 import { MAX_LEVEL, SKILL_POOL } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCharacterName } from '../../hooks/useCharacterName';
 import type { Character } from '../../types';
-import { formatGold, getXpProgress } from '../../utils/calculations';
+import { characterXpProgress, formatGold } from '../../utils/calculations';
+import { reigningChampions } from '../../utils/chronicleRewards';
 import type { TranslationKey } from '../../utils/i18n';
 import { CharacterName } from '../ui/CharacterName';
 import { Button } from '../ui/Button';
@@ -52,7 +53,8 @@ export function CharacterCard({ character, active }: { character: Character; act
   const { role, hasCustomName } = useCharacterName();
   const [renaming, setRenaming] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
-  const progress = getXpProgress(character.xp);
+  // XP owed after a fixed entry shows as negative XP in the text and an empty bar.
+  const progress = characterXpProgress(character);
   const id = character.id;
   const claimed = character.ticketClaimedOn === today;
   const ticketLabel = character.tickets === 1 ? t('wheel.ticketTooltipOne') : t('wheel.ticketTooltip', { count: character.tickets });
@@ -62,6 +64,10 @@ export function CharacterCard({ character, active }: { character: Character; act
   // Got a heart from the partner today: shown on this card to both players.
   const heart = state.hearts.find((item) => item.to === id && item.date === today);
   const freezeLabel = freezes === 1 ? t('freeze.tooltipOne') : t('freeze.tooltip', { count: freezes });
+  // Won the last chronicle: a crown for the whole of this one. Wins are counted for good.
+  const reigning = reigningChampions(state).includes(id);
+  const wins = character.chronicleWins ?? 0;
+  const chip = 'px-hit inline-flex items-center gap-1 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]';
 
   return (
     <motion.div className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: pixelEase(4) }}>
@@ -90,9 +96,34 @@ export function CharacterCard({ character, active }: { character: Character; act
               </h3>
               <LevelBadge level={progress.level} className="shrink-0" />
             </div>
-            {(hasCustomName(id) || progress.level >= MAX_LEVEL) && (
+            {(hasCustomName(id) || progress.level >= MAX_LEVEL || reigning || wins > 0) && (
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {hasCustomName(id) && <span className="text-sm font-bold uppercase text-wood-600">{role(id)}</span>}
+                {reigning && (
+                  <Tooltip
+                    label={
+                      <>
+                        <Icon as={Crown} size={12} className="text-brick-700" />
+                        {t('champion.reigning')}
+                      </>
+                    }
+                    content={t('champion.reigningHelp', { id: state.prizeHistory[0]?.chronicleId ?? 0 })}
+                    triggerClassName={`${chip} bg-flame-300`}
+                  />
+                )}
+                {wins > 0 && (
+                  <Tooltip
+                    label={
+                      <>
+                        <Icon as={Trophy} size={12} className="text-ember-700" />
+                        <span className="font-arcade text-[9px]">{wins}</span>
+                        <span className="sr-only">{t('champion.wins', { count: wins })}</span>
+                      </>
+                    }
+                    content={t('champion.wins', { count: wins })}
+                    triggerClassName={`${chip} bg-parchment-200`}
+                  />
+                )}
                 {progress.level >= MAX_LEVEL && (
                   <span className="inline-flex items-center gap-1 bg-flame-300 px-1.5 text-sm font-extrabold uppercase leading-tight text-ink shadow-[0_0_0_2px_#2b1a12]">
                     <Icon as={Crown} size={12} className="text-brick-700" />

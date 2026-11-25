@@ -1,4 +1,5 @@
 import { Trophy } from 'pixelarticons/react';
+import { WINNER_GOLDEN_TICKETS } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../ui/Button';
@@ -6,7 +7,7 @@ import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
 import { rewardCopy } from './rewardCopy';
 
-/** From Day 1 of a new chronicle, each player is invited to pick their unlocks (an avatar; the winner also a theme). */
+/** From Day 1 of a new chronicle, each player is invited to pick their unlocks (an avatar; the winner also a theme or Golden Tickets). */
 export function RewardBanner({ onOpen }: { onOpen: () => void }) {
   const { t } = useLanguage();
   const { activeCharacter, canRename, pendingReward } = useGame();
@@ -21,7 +22,7 @@ export function RewardBanner({ onOpen }: { onOpen: () => void }) {
         <p className="text-lg font-extrabold uppercase leading-tight">
           {t(copy.title, { id: reward.chronicleId })}
         </p>
-        <p className="text-base">{t(copy.hint)}</p>
+        <p className="text-base">{t(copy.hint, { count: WINNER_GOLDEN_TICKETS })}</p>
       </div>
       <Button className="w-full sm:w-auto" onClick={onOpen}>
         {t('cosmetics.choose')}

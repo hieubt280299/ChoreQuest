@@ -23,7 +23,7 @@ import type {
   ThemeId,
   WheelSpinEvent,
 } from '../types';
-import { AVATARS, DEFAULT_AVATAR, DEFAULT_THEME, isThemeId } from '../constants/cosmetics';
+import { DEFAULT_AVATAR } from '../constants/cosmetics';
 import {
   addDays,
   computeRewardBreakdown,
@@ -47,12 +47,15 @@ import {
   resetLevelsAndSkills,
   resetQuestList,
 } from '../utils/gameState';
+import { claimDailyTicketOnState } from '../utils/bonusXp';
 import { heartSentOn, sendHeartOnState } from '../utils/hearts';
 import { notifyPartnerOfHeart } from '../utils/push';
 import { normalizeCharacterName } from '../utils/characterName';
 import type { TranslationKey } from '../utils/i18n';
+import { finishDemoChronicle } from '../utils/demoChronicle';
+import { luckyBase, luckyQuestId } from '../utils/lucky';
 import { buildStreakIndex, currentStreak, streakIfCompletedOn, type StreakIndex } from '../utils/streaks';
-import { rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
+import { claimRewardOnState, rewardOffer, type RewardOffer } from '../utils/chronicleRewards';
 import { trackSave } from '../utils/savesInFlight';
 import { applyOp, replayOps, type GameOp, type OpResult } from '../utils/transactionUtils';
 import { isFreshSpin, rollWheelPrize, spinOnState, spinRevealDelay, withoutSpins } from '../utils/wheel';
@@ -118,7 +121,8 @@ interface GameContextValue {
   /** The cosmetic unlocks this character may still claim for the previous chronicle, if any. */
   pendingReward: (characterId: CharacterId) => RewardOffer | null;
   /** Claim a chronicle reward: an avatar of your own (both players) or a theme (the winner). */
-  claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId) => ActionResult;
+  /** Claims a chronicle reward: an avatar, a theme, or (winners) Golden Tickets instead of a theme. */
+  claimReward: (characterId: CharacterId, kind: 'theme' | 'avatar' | 'tickets', item?: ThemeId | AvatarId) => ActionResult;
   /** Switch your character's avatar to one the household has unlocked (shared with your spouse). */
   setAvatar: (characterId: CharacterId, avatar: AvatarId) => ActionResult;
   /**
@@ -163,10 +167,14 @@ interface GameContextValue {
   resetLevels: () => ActionResult;
   setPrizePool: (amount: number) => ActionResult;
   setChronicleEndDate: (date: string) => ActionResult;
+  /** Demo only: fill the last month with sample quests and end the chronicle, to try its results. */
+  finishDemoChronicle: () => ActionResult;
   unlockSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   upgradeSkill: (characterId: CharacterId, skillId: string) => ActionResult;
   isTaskDoneToday: (taskId: string) => boolean;
   getTodayLog: (taskId: string) => TaskLog | undefined;
+  /** Today's Lucky Quest (double gold when done on time), the same for both players; null with no quests. */
+  luckyTaskId: string | null;
   /** A character's live streak on a quest. */
   getStreak: (taskId: string, characterId: CharacterId) => Streak;
   /** Exact reward breakdown completing a quest today would give, per character (null = not a recipient). */
@@ -361,37 +369,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const claimReward = useCallback(
-    (characterId: CharacterId, kind: 'theme' | 'avatar', item: ThemeId | AvatarId): ActionResult => {
+    (characterId: CharacterId, kind: 'theme' | 'avatar' | 'tickets', item?: ThemeId | AvatarId): ActionResult => {
       if (!canRename(characterId)) return fail('household.error.ownCharacter');
-      return done(
-        commit({
-          id: newOpId(),
-          update: (current) => {
-            const reward = rewardOffer(current, characterId);
-            if (!reward || !reward[kind]) return 'cosmetics.error.noReward';
-            const cosmetics = current.cosmetics;
-            if (kind === 'theme') {
-              if (!isThemeId(item) || item === DEFAULT_THEME || cosmetics.themes.includes(item)) return 'cosmetics.error.locked';
-            } else if (!AVATARS[characterId].includes(item as AvatarId) || cosmetics.avatars[characterId].includes(item as AvatarId)) {
-              return 'cosmetics.error.locked';
-            }
-            return {
-              ...current,
-              cosmetics: {
-                ...cosmetics,
-                themes: kind === 'theme' ? [...cosmetics.themes, item as ThemeId] : cosmetics.themes,
-                avatars:
-                  kind === 'avatar'
-                    ? { ...cosmetics.avatars, [characterId]: [...cosmetics.avatars[characterId], item as AvatarId] }
-                    : cosmetics.avatars,
-                // A new avatar is put on right away.
-                activeAvatar: kind === 'avatar' ? { ...cosmetics.activeAvatar, [characterId]: item as AvatarId } : cosmetics.activeAvatar,
-                rewards: [...cosmetics.rewards, { chronicleId: reward.chronicleId, characterId, kind, item }],
-              },
-            };
-          },
-        }).result,
-      );
+      return done(commit({ id: newOpId(), update: (current) => claimRewardOnState(current, characterId, kind, item) }).result);
     },
     [canRename, commit],
   );
@@ -413,23 +393,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [canRename, commit],
   );
 
+  const yesterdayOpen = useCallback((now: Date = new Date()) => {
+    const current = stateRef.current;
+    const todayKey = localDateKey(now);
+    return now.getHours() < 12 && todayKey !== current.chronicle.startDate && !current.logs.some((log) => log.date === todayKey);
+  }, []);
+
+  /**
+   * Either player may fix (undo or re-assign) any entry, whoever did or logged it (v1.9): today's entries, and late
+   * entries ("Yesterday's quests") while the late window is open. Yesterday's on-time entries stay locked.
+   */
   const canManageLog = useCallback(
     (log: TaskLog) => {
       // Gold of finished chronicles is already settled, so only current-chronicle logs can change; and XP
       // from before a level reset is gone, so those entries can't be undone either.
       if (log.date < stateRef.current.chronicle.startDate || !canPlay) return false;
       if (stateRef.current.levelResetAt !== undefined && log.timestamp < stateRef.current.levelResetAt) return false;
-      if (demo || isModerator) return true;
-      return log.loggedBy === user?.uid || log.completedBy === myCharacter || log.completedBy === 'both';
+      const todayKey = localDateKey();
+      if (log.late) return log.date === addDays(todayKey, -1) && yesterdayOpen();
+      return log.date === todayKey;
     },
-    [canPlay, demo, isModerator, myCharacter, user?.uid],
+    [canPlay, yesterdayOpen],
   );
-
-  const yesterdayOpen = useCallback((now: Date = new Date()) => {
-    const current = stateRef.current;
-    const todayKey = localDateKey(now);
-    return now.getHours() < 12 && todayKey !== current.chronicle.startDate && !current.logs.some((log) => log.date === todayKey);
-  }, []);
 
   const yesterdayQuests = useCallback(() => {
     const current = stateRef.current;
@@ -457,7 +442,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (current.logs.some((log) => log.taskId === taskId && log.date === date)) return 'tasks.alreadyDone';
           // Effort (intensity-enabled Moderate quests) scales the base first; skills and streaks build on it.
           const intensity = intensityApplies(task) ? (options?.intensity ?? 'normal') : 'normal';
-          const base = intensityBase(task, intensity);
+          // The day's Lucky Quest doubles the (effort-scaled) base gold; late quests are never lucky.
+          const lucky = !late && luckyQuestId(current.tasks, date, current.logs) === task.id;
+          const base = luckyBase(intensityBase(task, intensity), lucky);
           const index = buildStreakIndex(current.logs, undefined, current.freezes);
           const full = computeRewardBreakdown(
             base,
@@ -487,6 +474,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ...coverField(breakdown, completer),
             ...(late ? { late: true } : {}),
             ...(intensity !== 'normal' ? { intensity } : {}),
+            ...(lucky ? { lucky: true } : {}),
           };
           Object.assign(outcome, { task, log, levelUps });
           return { ...current, characters, logs: [log, ...current.logs] };
@@ -515,19 +503,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (characterId: CharacterId): ActionResult => {
       if (!canActAs(characterId)) return fail('household.error.ownCharacter');
       const date = localDateKey();
-      return done(
-        commit({
-          id: newOpId(),
-          update: (current) => {
-            const character = current.characters[characterId];
-            if (character.ticketClaimedOn === date) return 'wheel.error.claimed';
-            return {
-              ...current,
-              characters: { ...current.characters, [characterId]: { ...character, tickets: character.tickets + 1, ticketClaimedOn: date } },
-            };
-          },
-        }).result,
-      );
+      const now = Date.now();
+      return done(commit({ id: newOpId(), update: (current) => claimDailyTicketOnState(current, characterId, date, now) }).result);
     },
     [canActAs, commit],
   );
@@ -607,9 +584,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           update: (current) => {
             const entry = current.logs.find((item) => item.id === logId);
             if (!entry) return 'tasks.error.missing';
-            const revoked = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
-            if (!revoked.ok) return 'tasks.error.skillsSpent';
-            return { ...current, characters: revoked.characters, logs: current.logs.filter((item) => item.id !== logId) };
+            const characters = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
+            return { ...current, characters, logs: current.logs.filter((item) => item.id !== logId) };
           },
         }).result,
       );
@@ -638,13 +614,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (xp === undefined || gold === undefined || !category || !group) return 'tasks.error.missing';
 
           const revoked = revokeRewards(current.characters, entry.xpAwarded, entry.goldAwarded);
-          if (!revoked.ok) return 'tasks.error.skillsSpent';
           // Streaks as of that entry's day, not counting the entry itself. Later entries keep the bonus they earned.
           const index = buildStreakIndex(current.logs, entry.id, current.freezes);
           const full = computeRewardBreakdown(
             { xp, gold, category, group },
             completer,
-            revoked.characters,
+            revoked,
             SKILL_POOL,
             recipientStreaks(index, entry.taskId, completer, entry.date),
             partnerStreaks(index, entry.taskId, completer, entry.date),
@@ -652,7 +627,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           // A late entry keeps the late rules when re-assigned.
           const breakdown = entry.late ? lateRewardBreakdown(full) : full;
           const split = splitFromBreakdown(breakdown);
-          const { characters, levelUps } = grantRewards(revoked.characters, split);
+          const { characters, levelUps } = grantRewards(revoked, split);
           const { coveredFor: _coveredFor, ...unchanged } = entry;
           const updated: TaskLog = {
             ...unchanged,
@@ -810,6 +785,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
         withSettings((current) => ({ ...current, tasks: resetQuestList(current.tasks, options?.removeCustom) })),
       removeTask: (taskId) =>
         withSettings((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== taskId) })),
+      finishDemoChronicle: () =>
+        demo
+          ? done(commit({ id: newOpId(), update: (current) => finishDemoChronicle(current, localDateKey()) }).result)
+          : fail('household.error.notAllowed'),
       setPrizePool: (amount) =>
         withSettings((current) => ({ ...current, prizePool: Math.max(0, Math.round(Number.isFinite(amount) ? amount : 0)) })),
       setChronicleEndDate: (date) =>
@@ -856,13 +835,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }),
       isTaskDoneToday: (taskId) => state.logs.some((log) => log.taskId === taskId && log.date === today),
       getTodayLog: (taskId) => state.logs.find((log) => log.taskId === taskId && log.date === today),
+      luckyTaskId: luckyQuestId(state.tasks, today, state.logs),
       getStreak: (taskId, characterId) => currentStreak(streakIndex, taskId, characterId, today),
       previewReward: (taskId, completer, options) => {
         const task = state.tasks.find((item) => item.id === taskId);
         if (!task) return null;
         const date = options?.late ? addDays(today, -1) : today;
+        const lucky = !options?.late && luckyQuestId(state.tasks, today, state.logs) === task.id;
         const full = computeRewardBreakdown(
-          intensityBase(task, options?.intensity),
+          luckyBase(intensityBase(task, options?.intensity), lucky),
           completer,
           state.characters,
           SKILL_POOL,
@@ -901,6 +882,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       undoLog,
       reassignLog,
       withSettings,
+      commit,
       yesterdayOpen,
       yesterdayQuests,
       changeSkill,

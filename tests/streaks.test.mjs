@@ -14,8 +14,13 @@ const log = (taskId, date, completedBy, extra = {}) => ({
   xpAwarded: { husband: 0, wife: 0 }, goldAwarded: { husband: 0, wife: 0 }, timestamp: 0, ...extra,
 });
 
-test('Fibonacci bonus table and cap', () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 30].map(m.streakBonusGold), [0, 0, 1, 1, 2, 3, 5, 8, 13, 21, 21, 21]);
+test('streak bonus: nothing before day 3, grows to day 10, then stays (values: v190)', () => {
+  const gold = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 30].map(m.streakBonusGold);
+  assert.deepEqual(gold.slice(0, 2), [0, 0]);
+  assert.ok(gold[2] > 0);
+  for (let i = 3; i < 10; i += 1) assert.ok(gold[i] >= gold[i - 1], `day ${i + 1}`);
+  assert.equal(gold[10], gold[9]);
+  assert.equal(gold[11], gold[9]);
 });
 
 test('streak counts consecutive days per character; a missed day resets', () => {
@@ -35,8 +40,9 @@ test('streak counts consecutive days per character; a missed day resets', () => 
 test('live streak: done today vs pending, and broken streaks show 0', () => {
   const logs = ['2026-10-01', '2026-10-02', '2026-10-03'].map((d) => log('trash', d, 'wife'));
   const idx = m.buildStreakIndex(logs);
-  assert.deepEqual(m.currentStreak(idx, 'trash', 'wife', '2026-10-03'), { taskId: 'trash', characterId: 'wife', days: 3, doneToday: true, bonusGold: 1 });
-  assert.deepEqual(m.currentStreak(idx, 'trash', 'wife', '2026-10-04'), { taskId: 'trash', characterId: 'wife', days: 3, doneToday: false, bonusGold: 1 });
+  // Done today: what today's completion paid; pending: what completing it today would pay (the 4th day).
+  assert.deepEqual(m.currentStreak(idx, 'trash', 'wife', '2026-10-03'), { taskId: 'trash', characterId: 'wife', days: 3, doneToday: true, bonusGold: m.streakBonusGold(3) });
+  assert.deepEqual(m.currentStreak(idx, 'trash', 'wife', '2026-10-04'), { taskId: 'trash', characterId: 'wife', days: 3, doneToday: false, bonusGold: m.streakBonusGold(4) });
   assert.equal(m.currentStreak(idx, 'trash', 'wife', '2026-10-05').days, 0, 'missed 10-04');
 });
 
@@ -49,25 +55,27 @@ test('"both" keeps both streaks alive; excluded log is ignored (re-assign)', () 
 test('breakdown: streak gold is not split for "both"; skills apply to the share', () => {
   const s = m.createInitialState('2026-10-01');
   s.characters.husband.skills = [{ skillId: 'raid-master', level: 1 }]; // +20% gold, +10% XP on heavy
-  const task = s.tasks.find((t) => t.id === 'mop'); // 42 XP / 45 gold, heavy
+  const task = s.tasks.find((t) => t.id === 'mop'); // heavy
   const b = m.computeRewardBreakdown(task, 'both', s.characters, SKILL_POOL, { husband: 5, wife: 3 });
-  assert.equal(b.husband.baseGold, 22.5);
-  assert.ok(Math.abs(b.husband.skillGold - 4.5) < 1e-9);
-  assert.equal(b.husband.streakGold, 2, 'day 5 = +2, full amount');
-  assert.equal(b.wife.streakGold, 1);
-  assert.ok(Math.abs(b.husband.gold - (22.5 + 4.5 + 2)) < 1e-9);
-  assert.equal(b.wife.xp, 21);
+  const share = task.gold / 2;
+  assert.equal(b.husband.baseGold, share);
+  assert.ok(Math.abs(b.husband.skillGold - share * 0.2) < 1e-9);
+  assert.equal(b.husband.streakGold, m.streakBonusGold(5), 'day 5, full amount');
+  assert.equal(b.wife.streakGold, m.streakBonusGold(3));
+  assert.ok(Math.abs(b.husband.gold - (share * 1.2 + m.streakBonusGold(5))) < 1e-9);
+  assert.equal(b.wife.xp, task.xp / 2);
   const solo = m.computeRewardBreakdown(task, 'wife', s.characters, SKILL_POOL, { wife: 10 });
   assert.equal(solo.husband, null);
-  assert.equal(solo.wife.gold, 45 + 21);
+  assert.equal(solo.wife.gold, task.gold + m.streakBonusGold(10));
 });
 
 test('group skills only affect their group', () => {
   const s = m.createInitialState('2026-10-01');
-  s.characters.wife.skills = [{ skillId: 'quick-hands', level: 2 }]; // +20% xp, +20% gold on quick
+  s.characters.wife.skills = [{ skillId: 'quick-hands', level: 2 }]; // XP and gold bonus on quick quests
+  const bonus = SKILL_POOL.find((d) => d.id === 'quick-hands').effect.gold[1];
   const quick = s.tasks.find((t) => t.id === 'trash');
   const main = s.tasks.find((t) => t.id === 'sweep');
-  assert.deepEqual(m.computeRewardSplit(quick, 'wife', s.characters, SKILL_POOL).wife, { xp: 6, gold: 12 });
+  assert.deepEqual(m.computeRewardSplit(quick, 'wife', s.characters, SKILL_POOL).wife, { xp: quick.xp * (1 + bonus), gold: quick.gold * (1 + bonus) });
   assert.deepEqual(m.computeRewardSplit(main, 'wife', s.characters, SKILL_POOL).wife, { xp: 15, gold: 20 });
 });
 
@@ -94,12 +102,12 @@ test('old data: retired skills migrate, groups are inferred', () => {
   }
 });
 
-test('default quests: 21 across 3 groups, unique ids, 14 skills', () => {
+test('default quests: 21 across 3 groups, unique ids, 15 skills', () => {
   const tasks = m.createInitialState('2026-10-01').tasks;
   assert.equal(tasks.length, 21);
   assert.equal(new Set(tasks.map((t) => t.id)).size, 21);
   assert.deepEqual(['quick', 'main', 'heavy'].map((g) => tasks.filter((t) => t.group === g).length), [8, 9, 4]);
-  assert.equal(SKILL_POOL.length, 14);
+  assert.equal(SKILL_POOL.length, 15);
   assert.equal(SKILL_POOL.some((s) => /morning|evening/.test(s.effect.kind)), false);
 });
 
@@ -137,7 +145,7 @@ test('history: per-player counts, both counts for each, partner comparison, chro
 test('level-up gold: standard, high tier, mastery at 30; grant pays it', () => {
   assert.deepEqual([2, 24, 25, 29, 30, 31].map(m.getLevelUpGold), [50, 50, 300, 300, 2000, 0]);
   const s = m.createInitialState('2026-10-01');
-  const xpFor = (level) => { let xp = 0; for (let l = 1; l < level; l++) xp += [230, 370, 480, 580, 600, 720, 750, 780, 810, 840, 870, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1590, 1600, 1850, 2100, 2350, 2600, 3500, 4500, 5500, 6500, 7500][l - 1]; return xp; };
+  const xpFor = (level) => m.xpAtLevelStart(level);
   s.characters.wife.xp = xpFor(30) - 10;
   assert.equal(m.getLevelFromXp(s.characters.wife.xp), 29);
   const { characters, levelUps } = m.grantRewards(s.characters, { husband: { xp: 0, gold: 0 }, wife: { xp: 20, gold: 5 } });
@@ -163,9 +171,9 @@ test('new legend: reset levels and skills, keep gold/chronicle/quests/history; p
   assert.equal('levelResetAt' in m.toHouseholdSections(s).game, false, 'not written until a reset happens');
 });
 
-test('default quest values (v1.0 rebalance)', () => {
+test('default quest values come from DEFAULT_TASKS (values: v190)', () => {
   const by = (id) => m.createInitialState('2026-10-01').tasks.find((t) => t.id === id);
-  assert.deepEqual(['beds', 'cleanLitter', 'changeSheets', 'cooking', 'bathroom'].map((id) => [by(id).xp, by(id).gold]), [[5, 5], [8, 10], [13, 15], [40, 42], [55, 65]]);
+  for (const task of m.DEFAULT_TASKS) assert.deepEqual([by(task.id).xp, by(task.id).gold], [task.xp, task.gold], task.id);
 });
 
 console.log(`\n${passed} passed`);

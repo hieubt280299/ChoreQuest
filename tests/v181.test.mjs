@@ -242,14 +242,10 @@ check('push notifications are short and friendly, with no game rules in them', (
   assert.match(m.reminders.heartMessage('vi', household, 'husband').title, /^Chồng vừa gửi tim cho bạn/);
 });
 
-check('version and What\'s New are 1.8.1', () => {
-  assert.equal(m.APP_VERSION, '1.8.1');
-  assert.equal(JSON.parse(source('package.json')).version, '1.8.1');
-  const lock = JSON.parse(source('package-lock.json'));
-  assert.equal(lock.version, '1.8.1');
-  assert.equal(lock.packages[''].version, '1.8.1');
-  const { notes } = m.PATCH_NOTES[0];
-  for (const section of Object.values(notes)) assert.equal(section.en.length, section.vi.length);
+check('1.8.1 is in What\'s New and the changelog', () => {
+  const release = m.PATCH_NOTES.find((entry) => entry.version === '1.8.1');
+  assert.ok(release);
+  for (const section of Object.values(release.notes)) assert.equal(section.en.length, section.vi.length);
   assert.match(source('CHANGELOG.md'), /## \[1\.8\.1\] - \d{4}-\d{2}-\d{2}\r?\n\r?\nSpec: \[UPDATE_v1\.8\.1\.md\]/);
   assert.ok(existsSync(new URL('../UPDATE_v1.8.1.md', import.meta.url)));
 });

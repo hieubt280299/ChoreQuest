@@ -84,6 +84,7 @@ export function householdPatch(prev: GameState, next: GameState): Record<string,
     'game.freezes': [before.game.freezes, after.game.freezes],
     'game.freezesSettledOn': [before.game.freezesSettledOn, after.game.freezesSettledOn],
     'game.skillsRefundedIn': [before.game.skillsRefundedIn, after.game.skillsRefundedIn],
+    'game.xpRescale': [before.game.xpRescale, after.game.xpRescale],
   };
   const patch: Record<string, unknown> = {};
   for (const [path, [a, b]] of Object.entries(fields)) {

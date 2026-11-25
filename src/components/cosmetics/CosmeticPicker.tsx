@@ -1,6 +1,7 @@
-import { Check, Lock, Trophy } from 'pixelarticons/react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Trophy } from 'pixelarticons/react';
+import { useState } from 'react';
 import { AVATARS, DEFAULT_AVATAR, DEFAULT_THEME, THEMES } from '../../constants/cosmetics';
+import { WINNER_GOLDEN_TICKETS } from '../../constants/gameRules';
 import { useGame } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../hooks/useTheme';
@@ -12,102 +13,48 @@ import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 import { rewardCopy } from './rewardCopy';
 import { ThemePreview } from './ThemePreview';
-
-type Choice = { kind: 'theme'; item: ThemeId } | { kind: 'avatar'; item: AvatarId };
-
-/** A selectable tile: active, owned, locked, or (with a reward to claim) claimable. */
-function Tile({
-  label,
-  state,
-  selected,
-  onClick,
-  children,
-}: {
-  label: string;
-  state: 'active' | 'owned' | 'locked' | 'claimable';
-  selected?: boolean;
-  onClick?: () => void;
-  children: ReactNode;
-}) {
-  const disabled = state === 'locked';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={state === 'active' || selected}
-      className={`px-slot px-focus relative flex min-w-0 flex-col items-center gap-1.5 p-2 text-center ${
-        state === 'active' || selected ? 'shadow-[0_0_0_3px_#ffd166]' : ''
-      } ${disabled ? 'cursor-not-allowed opacity-70 saturate-50' : 'cursor-pointer hover:brightness-105'}`}
-    >
-      {children}
-      <span className="w-full break-words text-sm font-extrabold uppercase leading-tight">{label}</span>
-      {state === 'active' && <Icon as={Check} size={24} className="absolute right-0.5 top-0.5 text-moss-600" />}
-      {(state === 'locked' || state === 'claimable') && (
-        <Icon as={Lock} size={12} className={`absolute right-1 top-1 ${state === 'claimable' ? 'text-ember-600' : 'text-wood-600'}`} />
-      )}
-    </button>
-  );
-}
+import { Tile } from './Tile';
 
 /**
- * Wardrobe: pick your theme (this device only) and your character's avatar (seen by your spouse too). After a
- * chronicle, each player unlocks one locked avatar, and the winner also one theme for the household.
+ * Wardrobe: pick your theme (this device only) and your character's avatar (seen by your spouse too), from what is
+ * unlocked. Chronicle rewards are picked in their own dialog (RewardPickerModal); a reward still to pick shows a
+ * shortcut to it here.
  */
-export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function CosmeticPicker({ open, onClose, onOpenRewards }: { open: boolean; onClose: () => void; onOpenRewards: () => void }) {
   const { t } = useLanguage();
-  const { state, activeCharacter, canRename, pendingReward, claimReward, setAvatar } = useGame();
+  const { state, activeCharacter, canRename, pendingReward, setAvatar } = useGame();
   const { theme, setTheme } = useTheme();
-  const [choice, setChoice] = useState<Choice | null>(null);
   const [error, setError] = useState<TranslationKey | null>(null);
   const me: CharacterId = activeCharacter;
   const { cosmetics } = state;
   const reward = canRename(me) ? pendingReward(me) : null;
-  const copy = reward ? rewardCopy(reward) : null;
-  // Two tabs keep the dialog short. It opens on Avatars when an avatar is the only unlock left to pick.
+  // Two tabs keep the dialog short.
   const [tab, setTab] = useState<'themes' | 'avatars'>('themes');
-  useEffect(() => {
-    if (open) setTab(reward?.avatar && !reward.theme ? 'avatars' : 'themes');
-    // Only when it opens; switching tabs is up to the player after that.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   const themeOwned = (item: ThemeId) => item === DEFAULT_THEME || cosmetics.themes.includes(item);
   const avatarOwned = (item: AvatarId) => item === DEFAULT_AVATAR[me] || cosmetics.avatars[me].includes(item);
-  const isChoice = (kind: Choice['kind'], item: string) => choice?.kind === kind && choice.item === item;
-
-  const claim = () => {
-    if (!choice) return;
-    const result = claimReward(me, choice.kind, choice.item);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    if (choice.kind === 'theme') setTheme(choice.item);
-    setChoice(null);
-    setError(null);
-  };
 
   return (
     <Modal open={open} onClose={onClose} title={t('cosmetics.title')}>
       <div className="space-y-5">
         {reward && (
-          <div className="px-slot-dark flex items-start gap-3 p-3 text-parchment-50">
-            <Icon as={Trophy} size={24} className="mt-0.5 text-flame-300" />
-            <div className="min-w-0">
-              <p className="text-lg font-extrabold uppercase leading-tight text-flame-300">
-                {t(copy!.title, { id: reward.chronicleId })}
+          <div className="px-slot-dark flex flex-wrap items-center gap-3 p-3 text-parchment-50">
+            <Icon as={Trophy} size={24} className="shrink-0 text-flame-300" />
+            <div className="min-w-[10rem] flex-1">
+              <p className="text-base font-extrabold uppercase leading-tight text-flame-300">
+                {t(rewardCopy(reward).title, { id: reward.chronicleId })}
               </p>
-              <p className="text-base text-parchment-100">{t(copy!.hint)}</p>
+              <p className="text-sm text-parchment-100">{t(rewardCopy(reward).hint, { count: WINNER_GOLDEN_TICKETS })}</p>
             </div>
+            <Button className="w-full sm:w-auto" onClick={onOpenRewards}>
+              {t('cosmetics.choose')}
+            </Button>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3" role="tablist" aria-label={t('cosmetics.title')}>
           {(['themes', 'avatars'] as const).map((key) => {
             const selected = tab === key;
-            // A trophy marks the tab with an unlock still to claim.
-            const claimable = key === 'themes' ? reward?.theme : reward?.avatar;
             return (
               <Button
                 key={key}
@@ -118,7 +65,6 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
                 variant={selected ? 'primary' : 'secondary'}
                 onClick={() => setTab(key)}
               >
-                {claimable && <Icon as={Trophy} size={24} />}
                 {t(key === 'themes' ? 'cosmetics.themes' : 'cosmetics.avatars')}
               </Button>
             );
@@ -131,14 +77,12 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {THEMES.map((item) => {
                 const owned = themeOwned(item);
-                const state = item === theme ? 'active' : owned ? 'owned' : reward?.theme ? 'claimable' : 'locked';
                 return (
                   <Tile
                     key={item}
                     label={t(`theme.${item}` as TranslationKey)}
-                    state={state}
-                    selected={isChoice('theme', item)}
-                    onClick={() => (owned ? setTheme(item) : setChoice({ kind: 'theme', item }))}
+                    state={item === theme ? 'active' : owned ? 'owned' : 'locked'}
+                    onClick={() => setTheme(item)}
                   >
                     <ThemePreview theme={item} />
                   </Tile>
@@ -154,19 +98,14 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {AVATARS[me].map((item) => {
                 const owned = avatarOwned(item);
-                const state = item === cosmetics.activeAvatar[me] ? 'active' : owned ? 'owned' : reward?.avatar ? 'claimable' : 'locked';
                 return (
                   <Tile
                     key={item}
                     label={t(`avatar.${item}` as TranslationKey)}
-                    state={state}
-                    selected={isChoice('avatar', item)}
+                    state={item === cosmetics.activeAvatar[me] ? 'active' : owned ? 'owned' : 'locked'}
                     onClick={() => {
-                      if (!owned) setChoice({ kind: 'avatar', item });
-                      else {
-                        const result = setAvatar(me, item);
-                        setError(result.ok ? null : result.error);
-                      }
+                      const result = setAvatar(me, item);
+                      setError(result.ok ? null : result.error);
                     }}
                   >
                     <span className="flex h-14 items-end">
@@ -183,14 +122,6 @@ export function CosmeticPicker({ open, onClose }: { open: boolean; onClose: () =
           <p className="bg-brick-600 px-3 py-2 text-base font-bold text-parchment-50" role="alert">
             {t(error)}
           </p>
-        )}
-        {reward && (
-          <Button className="w-full" disabled={!choice} onClick={claim}>
-            <Icon as={Trophy} size={24} />
-            {choice
-              ? t('cosmetics.claim', { item: t(`${choice.kind === 'theme' ? 'theme' : 'avatar'}.${choice.item}` as TranslationKey) })
-              : t(reward.avatar && reward.theme ? 'cosmetics.pickReward' : reward.theme ? 'cosmetics.pickTheme' : 'cosmetics.pickAvatar')}
-          </Button>
         )}
       </div>
     </Modal>

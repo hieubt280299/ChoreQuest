@@ -11,11 +11,15 @@ export * from '../src/services/authService';
 export { RECONNECT_AFTER_HIDDEN_MS, shouldReconnect } from '../src/services/firestoreResume';
 export * from '../src/utils/invite';
 export * from '../src/utils/today';
+export * from '../src/utils/installGuide';
+export * from '../src/utils/lucky';
+export * from '../src/utils/demoChronicle';
 export * from '../src/utils/skillFilters';
 export { needsReload } from '../src/utils/appUpdate';
 export * from '../src/utils/savesInFlight';
 export * from '../src/utils/placeBubble';
 export * from '../src/utils/hearts';
+export * from '../src/utils/bonusXp';
 export { translations } from '../src/utils/i18n';
 // Server-side notification planning (Vercel functions), under its own name: it has its own date helpers.
 export * as reminders from '../api/_lib/reminders';

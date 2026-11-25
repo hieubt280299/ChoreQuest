@@ -5,16 +5,27 @@ Ideas for future versions, to revise and pick from. Nothing here is promised. On
 **Size:** S = a few days · M = about a week · L = bigger, or needs a server.
 **Status:** Idea · Planned · Done · Parked.
 
-_Last revised: 2026-11-04 (after v1.8.0)._
+_Last revised: 2026-11-24 (v1.9.0 built, with Chronicle results)._
 
 ---
 
-## ⭐ Suggested next: v1.9.0
+## ✅ Built: v1.9.0 (release planned 2026-11-25)
 
-v1.8.0 shipped hearts, Streak Freezes, reminders and the skill rebalance. Next, these give tickets and gold real-world meaning and add daily variety. Both are S–M.
+Spec: [UPDATE_v1.9.0.md](UPDATE_v1.9.0.md).
+
+1. **Get the App button** (S)
+2. **Seesaw** skill (S)
+3. **Lucky Quest of the Day** (S)
+4. **Chronicle results** (M): awards, story and gold race chart in the results pop-up (reopen from History), a Champion crown and wins count, the winner picks a theme or 2 Golden Tickets in a reward dialog of its own
+5. **Skill and quest rebalance** (S): Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry quests +2 gold, quests worth 30+ gold −5 (never below XP), streak gold = streak length (up to 10), no refund
+6. **Simpler Fix entry** (S): either player can fix any entry, late entries until noon, levels kept with negative XP
+7. **Steeper level curve** (S): every level from 2 to 30 needs more XP; saved XP is converted once so nobody loses a level. +3 XP for the daily ticket and for sending a heart
+
+## ⭐ Suggested next: v1.10.0
+
+v1.9.0 added a daily surprise (Lucky Quest) and made the end of a Chronicle worth watching (results, crown, winner's prize). Next, the reward shop gives tickets and gold real-world meaning: the winner's Golden Tickets get something to buy.
 
 1. **Reward shop** (M)
-2. **Lucky Quest of the Day** (S)
 
 Then the **Weekly Boss Raid** as the headline of the version after.
 
@@ -37,12 +48,12 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
-| **Lucky Quest of the Day** | S | Idea | One random quest pays double gold today, highlighted on the Today card. |
+| **Lucky Quest of the Day** | S | Done (v1.9.0) | One quest a day, the same for both players, pays double base gold when done on time; a star on the quest and a row on the Today card. |
 | **Household events** | M | Idea | Rotating modifiers: "Rainy week: laundry +50% XP", "Guests are coming: cleaning pays more". Vietnamese seasons: a **Tết cleaning week** with double XP, lanterns in the cabin for **Trung thu**. |
 | **Combos** | S | Idea | Finish 3 quests within an hour for a combo bonus. An "Early bird" badge for quests done before 9am. |
 
 **To decide:**
-- **Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?
+- ~~**Lucky Quest:** the same lucky quest for both players (fairer, and they can race for it)?~~ Yes (v1.9.0).
 - **Events:** chosen by the moderator, or automatic on the calendar?
 
 ## 🏆 Long-term goals
@@ -52,6 +63,7 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | **Achievement book** | M | Idea | Pixel badges: "100 lần rửa bát", "Chuỗi 30 ngày", "Song kiếm hợp bích" (50 quests done together), plus a few hidden ones to discover. |
 | **The cat grows up** | M | Idea | The cabin cat reflects how the home is doing: happy and playful in a busy week, sleepy when quests pile up, never punishing. Feed it treats with gold. |
 | **Decorate the cabin** | L | Idea | Spend gold on furniture, plants and lights for the scene. Gives gold a use beyond the prize split, with a trade-off: decorate now, or keep your share. |
+| **Chronicle results** | M | Done (v1.9.0) | The results pop-up tells the story: awards, quests done together, how close it was and a gold race chart, reopened any time from History. The winner wears a Champion crown for the next Chronicle, keeps a trophy count, and picks a new theme or 2 Golden Tickets. |
 | **Chronicle reward track** | M | Idea | Each Chronicle gets a theme and a shared track of rewards (avatar frames, scene props, wheel skins) unlocked by combined XP. |
 
 **To decide:**
@@ -63,7 +75,7 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
 | **Reward shop** | M | Idea | The couple writes their own rewards, such as "Massage 15 phút", "Được chọn phim tối nay" or "Ngủ nướng Chủ nhật", and buys them with tickets. Turning game currency into real treats is the strongest motivator here. |
-| **Chronicle recap** | M | Idea | A "Wrapped"-style pixel card at the end of each Chronicle: "Bạn đã rửa 62 bộ bát", top chore, best streak. Easy to share on Zalo or Facebook, which also brings in new players. |
+| **Chronicle recap** | M | Idea | A "Wrapped"-style pixel card at the end of each Chronicle: "Bạn đã rửa 62 bộ bát", top chore, best streak. Easy to share on Zalo or Facebook, which also brings in new players. Builds on the v1.9.0 results pop-up (awards, gold race), so it's now mostly the shareable image. |
 
 **To decide:**
 - **Reward shop:** who sets the prices? Is there a confirmation that the reward was actually given?
@@ -86,9 +98,10 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | Idea | Size | Status | What it is |
 | --- | --- | --- | --- |
 | **Skill rebalance** | M | Done (v1.8.0) | Gold Interest capped per level, weak skills raised, Errand Runner and Tag Team redesigned, all points refunded once. |
+| **Skill and quest rebalance** | S | Done (v1.9.0) | Checked against a real household's quest log: Gold Interest (active days only), Fast Learner and Fortune's Favor weaker, eight weaker skills stronger, laundry +2 gold, big quests −2 to −5 gold (never below XP), streak gold = streak length (up to 10). No refund. |
 | **"Your skills earned you…"** | S | Idea | The Chronicle summary says how much gold each skill earned ("Your skills earned 1,240 gold this Mùa"). Makes skills feel real. |
 | **Level-4 bonuses** | M | Idea | Maxing a skill unlocks something new: Speed Cleaner streaks pay from day 2, every heavy quest gives Heavy Lifter a Normal Ticket, a meal from Master Chef gives the partner +5 XP, Fortune's Favor re-spins a miss once per Mùa. |
-| **Underdog** | S | Idea | +10/20/30/40% gold while you're behind your partner this Mùa: a catch-up skill so the player who's behind stays motivated. |
+| **Seesaw** (was Underdog) | S | Done (v1.9.0) | Behind your partner in gold this Mùa (or tied): +6/12/18/24% gold per quest. Leading: +10/20/30/40% XP instead. A catch-up skill so the player who's behind stays motivated, and still useful when ahead. |
 | **Active skills** | M | Idea | Tap to use: "Double Down" (next quest pays double, once a week), "Second Wind" (rescue a broken streak, once per Mùa). |
 | **Combos** | M | Idea | Two related skills unlock a bonus together, e.g. Master Chef + Errand Runner: cooking on a day you went shopping pays +20%. |
 | **A choice at level 4** | M | Idea | Pick one of two upgrades (Golden Touch L4: +24% gold, or +12% gold and +12% XP), so the partners' builds differ. |
@@ -96,7 +109,13 @@ Then the **Weekly Boss Raid** as the headline of the version after.
 | **Skill of the Month** | S | Idea | Each Mùa one skill gets a free +1 level for everyone who owns it, so the best picks shift. |
 
 **To decide:**
-- **Underdog:** does it fight the payout split, which is meant to reward whoever does more?
+- ~~**Underdog:** does it fight the payout split, which is meant to reward whoever does more?~~ Answered by Seesaw: the gold bonus stops once you catch up, so at level 4 you still need about 80% of your partner's quest gold to keep level.
+
+## 📱 The app
+
+| Idea | Size | Status | What it is |
+| --- | --- | --- | --- |
+| **Get the App button** | S | Done (v1.9.0) | A Download button on the sign-in screen, the top bar, the side menu, the More drawer and Settings. One tap installs on Android and Windows; iPhones and iPads get a short "Add to Home Screen" guide. Hidden inside the installed app. |
 
 ---
 
